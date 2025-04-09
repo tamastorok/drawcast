@@ -743,12 +743,20 @@ export default function Demo() {
     }
   };
 
-  const handleShareToWarpcast = () => {
+  const handleShareToWarpcast = async () => {
     if (!lastCreatedGameId) return;
     
-    const gameUrl = `https://drawcast.xyz/game/${lastCreatedGameId}`;
-    window.open(`https://warpcast.com/~/compose?text=I just created a new drawing in Drawcast! Can you guess what it is? 🎨%0A%0A${encodeURIComponent(gameUrl)}`);
-    setShowSharePopup(false);
+    // Create the frame URL for Warpcast
+    const frameUrl = `${window.location.origin}/game/${lastCreatedGameId}`;
+    const warpcastUrl = `https://warpcast.com/~/frames?url=${encodeURIComponent(frameUrl)}`;
+    const castText = `I just created a new drawing in Drawcast! Can you guess what it is? 🎨\n\n${warpcastUrl}`;
+
+    try {
+      await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}`);
+      setShowSharePopup(false);
+    } catch (error) {
+      console.error('Error sharing to Warpcast:', error);
+    }
   };
 
   // Add effect to handle pull-to-refresh prevention
@@ -782,9 +790,6 @@ export default function Demo() {
       <div 
         className="fixed inset-0 bg-white dark:bg-gray-800" 
         style={{ 
-          touchAction: 'none',
-          overscrollBehavior: 'none',
-          overflow: 'hidden',
           paddingTop: "72px", // Height of header
           paddingBottom: "64px", // Height of bottom nav
           position: 'fixed',
@@ -1189,7 +1194,7 @@ export default function Demo() {
     const initializeFrame = async () => {
       if (isSDKLoaded) {
         try {
-          await sdk.actions.ready();
+          await sdk.actions.ready({ disableNativeGestures: true });
           await sdk.actions.addFrame();
           console.log('Frame initialized and added successfully');
         } catch (error) {
