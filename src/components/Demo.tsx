@@ -842,13 +842,13 @@ export default function Demo() {
   const handleShareToWarpcast = async () => {
     if (!lastCreatedGameId) return;
     
-    // Create the frame URL
-    const frameUrl = `${window.location.origin}/?game=${lastCreatedGameId}`;
-    const castText = `I just created a new drawing in Drawcast! Can you guess what it is? 🎨\n\n${frameUrl}`;
+    // Create the frame URL with the game ID
+    const gameUrl = `${window.location.origin}/?game=${lastCreatedGameId}`;
+    const castText = `I just created a new drawing in Drawcast! Can you guess what it is? 🎨\n\n${gameUrl}`;
 
     try {
       // Open the compose window with the frame URL
-      await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(frameUrl)}`);
+      await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`);
       setShowSharePopup(false);
     } catch (error) {
       console.error('Error sharing to Warpcast:', error);
