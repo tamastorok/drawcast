@@ -2,21 +2,22 @@ import { Metadata } from 'next';
 import Demo from '~/components/Demo';
 
 type Props = {
-  params: { gameId: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  params: Promise<{ gameId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 export async function generateMetadata(
   { params }: Props
 ): Promise<Metadata> {
-  const gameUrl = `https://drawcast.xyz/games/${params.gameId}`;
+  const resolvedParams = await params;
+  const gameUrl = `https://drawcast.xyz/games/${resolvedParams.gameId}`;
   
   return {
     metadataBase: new URL('https://drawcast.xyz'),
-    title: `Drawcast - Game ${params.gameId}`,
+    title: `Drawcast - Game ${resolvedParams.gameId}`,
     description: 'Can you guess what this drawing is?',
     openGraph: {
-      title: `Drawcast - Game ${params.gameId}`,
+      title: `Drawcast - Game ${resolvedParams.gameId}`,
       description: 'Can you guess what this drawing is?',
       images: ['/image.png'],
       url: gameUrl,
@@ -44,6 +45,7 @@ export async function generateMetadata(
   };
 }
 
-export default function GamePage({ params }: Props) {
-  return <Demo initialGameId={params.gameId} />;
+export default async function GamePage({ params }: Props) {
+  const resolvedParams = await params;
+  return <Demo initialGameId={resolvedParams.gameId} />;
 } 
