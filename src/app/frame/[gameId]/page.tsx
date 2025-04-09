@@ -1,14 +1,15 @@
 import { Metadata } from 'next';
 
 type PageProps = {
-  params: { gameId: string }
+  params: Promise<{ gameId: string }>
   searchParams: { [key: string]: string | string[] | undefined }
 }
 
 export async function generateMetadata(
   { params }: PageProps
 ): Promise<Metadata> {
-  const gameUrl = `https://drawcast.xyz/?game=${params.gameId}`;
+  const resolvedParams = await params;
+  const gameUrl = `https://drawcast.xyz/?game=${resolvedParams.gameId}`;
   
   return {
     metadataBase: new URL('https://drawcast.xyz'),
