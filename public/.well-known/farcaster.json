@@ -1,18 +1,18 @@
 {
-    "accountAssociation": {
-      "header": "eyJmaWQiOjIzNDY5MiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweGQ5MGM0NDlhY2M3ZDBjOWM1MDQ1MTM1YjM4ZGI1ODEwYTcyNDY1N2YifQ",
-      "payload": "eyJkb21haW4iOiJsb2NhbGhvc3Q6MzAwMCJ9",
-      "signature": ""
-    },
-    "frame": {
-      "name": "drawcast",
-      "version": "1",
-      "iconUrl": "https://drawcast.xyz/icon.png",
-      "homeUrl": "https://drawcast.xyz",
-      "imageUrl": "https://drawcast.xyz/image.png",
-      "buttonTitle": "Draw",
-      "splashImageUrl": "https://drawcast.xyz/splash.png",
-      "splashBackgroundColor": "#FFF",
-      "webhookUrl": "https://drawcast.xyz/api/webhook"
-    }
+  "accountAssociation": {
+    "header": "eyJmaWQiOjIzNDY5MiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweGQ5MGM0NDlhY2M3ZDBjOWM1MDQ1MTM1YjM4ZGI1ODEwYTcyNDY1N2YifQ",
+    "payload": "eyJkb21haW4iOiJkcmF3Y2FzdC54eXoifQ",
+    "signature": ""
+  },
+  "frame": {
+    "name": "Drawcast",
+    "version": "1",
+    "iconUrl": "https://drawcast.xyz/icon.png",
+    "homeUrl": "https://drawcast.xyz",
+    "imageUrl": "https://drawcast.xyz/image.png",
+    "buttonTitle": "Draw",
+    "splashImageUrl": "https://drawcast.xyz/splash.png",
+    "splashBackgroundColor": "#FFF",
+    "webhookUrl": "https://drawcast.xyz/api/webhook"
   }
+}
