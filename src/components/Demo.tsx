@@ -8,6 +8,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 //import { getAnalytics } from "firebase/analytics";
+import { useSearchParams } from 'next/navigation';
 
 interface LeaderboardUser {
   fid: number;
@@ -33,6 +34,7 @@ interface Guess {
 
 export default function Demo() {
   const { isSDKLoaded, context } = useFrame();
+  const searchParams = useSearchParams();
   const [showProfile, setShowProfile] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -94,6 +96,40 @@ export default function Demo() {
   const db = getFirestore(app);
   const storage = getStorage(app);
   //const analytics = getAnalytics(app);
+
+  // Add effect to handle URL parameters
+  useEffect(() => {
+    const gameId = searchParams.get('game');
+    if (gameId) {
+      // Fetch the game data
+      const fetchGame = async () => {
+        try {
+          const gameRef = doc(db, 'games', gameId);
+          const gameDoc = await getDoc(gameRef);
+          
+          if (gameDoc.exists()) {
+            const gameData = gameDoc.data();
+            setSelectedGame({
+              id: gameId,
+              imageUrl: gameData.imageUrl,
+              prompt: gameData.prompt,
+              createdAt: gameData.createdAt.toDate(),
+              expiredAt: gameData.expiredAt.toDate(),
+              userFid: gameData.userFid,
+              username: gameData.username,
+              guesses: gameData.guesses || [],
+              totalGuesses: gameData.totalGuesses || 0
+            });
+            setShowGuess(true);
+          }
+        } catch (error) {
+          console.error('Error fetching game:', error);
+        }
+      };
+
+      fetchGame();
+    }
+  }, [searchParams]);
 
   // Handle user data storage when context changes
   useEffect(() => {
@@ -749,7 +785,7 @@ export default function Demo() {
     // Create the frame URL for Warpcast
     const frameUrl = `${window.location.origin}/game/${lastCreatedGameId}`;
     const warpcastUrl = `https://warpcast.com/~/frames?url=${encodeURIComponent(frameUrl)}`;
-    const castText = `I just created a new drawing in Drawcast! Can you guess what it is? ��\n\n${warpcastUrl}`;
+    const castText = `I just created a new drawing in Drawcast! Can you guess what it is? 🎨\n\n${warpcastUrl}`;
 
     try {
       await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}`);
