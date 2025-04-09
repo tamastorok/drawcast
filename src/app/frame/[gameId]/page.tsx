@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 
 type PageProps = {
   params: Promise<{ gameId: string }>
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
 export async function generateMetadata(
