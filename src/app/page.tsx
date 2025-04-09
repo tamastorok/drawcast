@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { initializeApp } from "firebase/app";
 import Demo from "~/components/Demo";
 
@@ -19,16 +17,5 @@ const firebaseConfig = {
 initializeApp(firebaseConfig);
 
 export default function Home() {
-  const searchParams = useSearchParams();
-
-  // Check for game ID in URL
-  useEffect(() => {
-    const gameId = searchParams.get('game');
-    if (gameId) {
-      // Store the game ID in localStorage
-      localStorage.setItem('selectedGameId', gameId);
-    }
-  }, [searchParams]);
-
   return <Demo />;
 }
