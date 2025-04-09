@@ -104,50 +104,71 @@ export default function Demo() {
       return;
     }
 
-    const gameId = searchParams.get('game');
-    console.log('Game ID from URL:', gameId);
-    
-    if (gameId) {
-      console.log('Found game ID, resetting states and fetching game data');
-      // Reset other states
-      setShowProfile(false);
-      setShowLeaderboard(false);
-      setIsDrawing(false);
-      
-      // Fetch the game data
-      const fetchGame = async () => {
-        try {
-          console.log('Fetching game data for ID:', gameId);
-          const gameRef = doc(db, 'games', gameId);
-          const gameDoc = await getDoc(gameRef);
-          
-          if (gameDoc.exists()) {
-            console.log('Game found, setting selected game');
-            const gameData = gameDoc.data();
-            setSelectedGame({
-              id: gameId,
-              imageUrl: gameData.imageUrl,
-              prompt: gameData.prompt,
-              createdAt: gameData.createdAt.toDate(),
-              expiredAt: gameData.expiredAt.toDate(),
-              userFid: gameData.userFid,
-              username: gameData.username,
-              guesses: gameData.guesses || [],
-              totalGuesses: gameData.totalGuesses || 0
-            });
-            setShowGuess(true);
-          } else {
-            console.log('Game not found in Firestore');
-          }
-        } catch (error) {
-          console.error('Error fetching game:', error);
-        }
-      };
+    const getGameId = () => {
+      try {
+        // Get the current URL
+        const url = new URL(window.location.href);
+        console.log('Current URL:', url.href);
+        
+        // Get game ID from URL parameters
+        const gameId = url.searchParams.get('game');
+        console.log('Game ID from URL:', gameId);
+        
+        return gameId;
+      } catch (error) {
+        console.error('Error getting game ID:', error);
+        return null;
+      }
+    };
 
-      fetchGame();
-    } else {
-      console.log('No game ID found in URL');
-    }
+    const initializeGame = () => {
+      const gameId = getGameId();
+      console.log('Final game ID:', gameId);
+      
+      if (gameId) {
+        console.log('Found game ID, resetting states and fetching game data');
+        // Reset other states
+        setShowProfile(false);
+        setShowLeaderboard(false);
+        setIsDrawing(false);
+        
+        // Fetch the game data
+        const fetchGame = async () => {
+          try {
+            console.log('Fetching game data for ID:', gameId);
+            const gameRef = doc(db, 'games', gameId);
+            const gameDoc = await getDoc(gameRef);
+            
+            if (gameDoc.exists()) {
+              console.log('Game found, setting selected game');
+              const gameData = gameDoc.data();
+              setSelectedGame({
+                id: gameId,
+                imageUrl: gameData.imageUrl,
+                prompt: gameData.prompt,
+                createdAt: gameData.createdAt.toDate(),
+                expiredAt: gameData.expiredAt.toDate(),
+                userFid: gameData.userFid,
+                username: gameData.username,
+                guesses: gameData.guesses || [],
+                totalGuesses: gameData.totalGuesses || 0
+              });
+              setShowGuess(true);
+            } else {
+              console.log('Game not found in Firestore');
+            }
+          } catch (error) {
+            console.error('Error fetching game:', error);
+          }
+        };
+
+        fetchGame();
+      } else {
+        console.log('No game ID found');
+      }
+    };
+
+    initializeGame();
   }, [searchParams, isSDKLoaded]);
 
   // Handle user data storage when context changes
@@ -801,23 +822,16 @@ export default function Demo() {
   const handleShareToWarpcast = async () => {
     if (!lastCreatedGameId) return;
     
-    // Create the deep link for the app
-    const deepLink = `${window.location.origin}/?game=${lastCreatedGameId}`;
-    const castText = `I just created a new drawing in Drawcast! Can you guess what it is? 🎨\n\n${deepLink}`;
+    // Create the frame URL
+    const frameUrl = `${window.location.origin}/?game=${lastCreatedGameId}`;
+    const castText = `I just created a new drawing in Drawcast! Can you guess what it is? 🎨\n\n${frameUrl}`;
 
     try {
-      // Try to open the compose window directly
-      await sdk.actions.openUrl(deepLink);
+      // Open the compose window with the frame URL
+      await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(frameUrl)}`);
       setShowSharePopup(false);
     } catch (error) {
       console.error('Error sharing to Warpcast:', error);
-      // Fallback to compose window if direct open fails
-      try {
-        await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}`);
-        setShowSharePopup(false);
-      } catch (fallbackError) {
-        console.error('Error with fallback sharing:', fallbackError);
-      }
     }
   };
 
