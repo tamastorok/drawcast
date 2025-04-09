@@ -138,6 +138,11 @@ export default function Demo() {
     const gameId = gameIdMatch ? gameIdMatch[1] : null;
     
     if (gameId) {
+      // Reset other states
+      setShowProfile(false);
+      setShowLeaderboard(false);
+      setIsDrawing(false);
+      
       // Fetch the game data
       const fetchGame = async () => {
         try {
