@@ -1,0 +1,18 @@
+{
+    "accountAssociation": {
+      "header": "eyJmaWQiOjIzNDY5MiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweGQ5MGM0NDlhY2M3ZDBjOWM1MDQ1MTM1YjM4ZGI1ODEwYTcyNDY1N2YifQ",
+      "payload": "eyJkb21haW4iOiJsb2NhbGhvc3Q6MzAwMCJ9",
+      "signature": ""
+    },
+    "frame": {
+      "name": "drawcast",
+      "version": "1",
+      "iconUrl": "https://375ef35cd2df.ngrok.app/icon.png",
+      "homeUrl": "https://375ef35cd2df.ngrok.app",
+      "imageUrl": "https://375ef35cd2df.ngrok.app/image.png",
+      "buttonTitle": "Draw",
+      "splashImageUrl": "https://375ef35cd2df.ngrok.app/splash.png",
+      "splashBackgroundColor": "#FFF",
+      "webhookUrl": "https://375ef35cd2df.ngrok.app/api/webhook"
+    }
+  }

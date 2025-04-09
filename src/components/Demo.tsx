@@ -1,170 +1,1024 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { Input } from "../components/ui/input";
-import { signIn, signOut, getCsrfToken } from "next-auth/react";
-import sdk, {
-  SignIn as SignInCore,
-} from "@farcaster/frame-sdk";
-import {
-  useAccount,
-  useSendTransaction,
-  useSignMessage,
-  useSignTypedData,
-  useWaitForTransactionReceipt,
-  useDisconnect,
-  useConnect,
-  useSwitchChain,
-  useChainId,
-} from "wagmi";
-
-import { config } from "~/components/providers/WagmiProvider";
-import { Button } from "~/components/ui/Button";
-import { truncateAddress } from "~/lib/truncateAddress";
-import { base, degen, mainnet, optimism, unichain } from "wagmi/chains";
-import { BaseError, UserRejectedRequestError } from "viem";
-import { useSession } from "next-auth/react";
-import { Label } from "~/components/ui/label";
+import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { useFrame } from "~/components/providers/FrameProvider";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch } from "firebase/firestore";
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
+//import { getAnalytics } from "firebase/analytics";
 
-export default function Demo(
-  { title }: { title?: string } = { title: "Frames v2 Demo" }
-) {
-  const { isSDKLoaded, context, added, notificationDetails, lastEvent, addFrame, addFrameResult } = useFrame();
-  const [isContextOpen, setIsContextOpen] = useState(false);
-  const [txHash, setTxHash] = useState<string | null>(null);
+interface LeaderboardUser {
+  fid: number;
+  username: string;
+  pfpUrl: string;
+  points: number;
+  isPremium?: boolean;
+  rank?: number;
+}
 
-  const [sendNotificationResult, setSendNotificationResult] = useState("");
+interface LeaderboardData {
+  topUsers: LeaderboardUser[];
+  currentUser: LeaderboardUser | null;
+}
 
-  const { address, isConnected } = useAccount();
-  const chainId = useChainId();
+interface Guess {
+  userId: string;
+  username: string;
+  guess: string;
+  isCorrect: boolean;
+  createdAt: Date;
+}
 
-  const {
-    sendTransaction,
-    error: sendTxError,
-    isError: isSendTxError,
-    isPending: isSendTxPending,
-  } = useSendTransaction();
+export default function Demo() {
+  const { isSDKLoaded, context } = useFrame();
+  const [showProfile, setShowProfile] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [showGuess, setShowGuess] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<typeof games[0] | null>(null);
+  const [isDrawingActive, setIsDrawingActive] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [currentPrompt, setCurrentPrompt] = useState<string>('');
+  const [currentGuess, setCurrentGuess] = useState('');
+  const [isSubmittingGuess, setIsSubmittingGuess] = useState(false);
+  const [guessError, setGuessError] = useState<string | null>(null);
+  const [userStats, setUserStats] = useState<{
+    correctGuesses: number;
+    points: number;
+    created: number;
+  } | null>(null);
+  const [games, setGames] = useState<Array<{
+    id: string;
+    imageUrl: string;
+    prompt: string;
+    createdAt: Date;
+    userFid: string;
+    username: string;
+    guesses?: Guess[];
+    expiredAt: Date;
+    totalGuesses: number;
+  }>>([]);
+  const [timeLeft, setTimeLeft] = useState<number>(30);
+  const [showTimeUpPopup, setShowTimeUpPopup] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const lastPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const [showSharePopup, setShowSharePopup] = useState(false);
+  const [lastCreatedGameId, setLastCreatedGameId] = useState<string | null>(null);
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash: txHash as `0x${string}`,
-    });
+  const firebaseConfig = {
+    apiKey: "AIzaSyBlL2CIZTb-crfirYJ6ym6j6G4uQewu59k",
+    authDomain: "drawcast-ae4cf.firebaseapp.com",
+    projectId: "drawcast-ae4cf",
+    storageBucket: "drawcast-ae4cf.firebasestorage.app",
+    messagingSenderId: "998299398034",
+    appId: "1:998299398034:web:0f8e8a516d69e8ecf9db4b",
+    measurementId: "G-B6N4RGK1M5"
+  };
+  
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+  //const analytics = getAnalytics(app);
 
-  const {
-    signTypedData,
-    error: signTypedError,
-    isError: isSignTypedError,
-    isPending: isSignTypedPending,
-  } = useSignTypedData();
+  // Handle user data storage when context changes
+  useEffect(() => {
+    const storeUserData = async () => {
+      if (!context?.user?.fid) return;
 
-  const { disconnect } = useDisconnect();
-  const { connect } = useConnect();
+      try {
+        const userRef = doc(db, 'users', context.user.fid.toString());
+        const userDoc = await getDoc(userRef);
+        
+        if (!userDoc.exists()) {
+          // New user - store initial data
+          await setDoc(userRef, {
+            fid: context.user.fid.toString(),
+            username: context.user.username || '',
+            pfpUrl: context.user.pfpUrl || '',
+            joinedAt: new Date()
+          });
+          console.log('New user data stored:', context.user.fid);
+        } else {
+          // Existing user - update profile data
+          await setDoc(userRef, {
+            username: context.user.username || '',
+            pfpUrl: context.user.pfpUrl || '',
+          }, { merge: true });
+          console.log('User data updated:', context.user.fid);
+        }
+      } catch (error) {
+        console.error('Error storing user data:', error);
+      }
+    };
 
-  const {
-    switchChain,
-    error: switchChainError,
-    isError: isSwitchChainError,
-    isPending: isSwitchChainPending,
-  } = useSwitchChain();
+    storeUserData();
+  }, [context?.user, db]);
 
-  const nextChain = useMemo(() => {
-    if (chainId === base.id) {
-      return optimism;
-    } else if (chainId === optimism.id) {
-      return degen;
-    } else if (chainId === degen.id) {
-      return mainnet;
-    } else if (chainId === mainnet.id) {
-      return unichain;
-    } else {
-      return base;
+  // Fetch and generate random prompt
+  useEffect(() => {
+    const generatePrompt = async () => {
+      try {
+        // Fetch both documents
+        const adjectivesRef = doc(db, 'prompts', 'adjectives');
+        const nounsRef = doc(db, 'prompts', 'nouns');
+        
+        const [adjectivesDoc, nounsDoc] = await Promise.all([
+          getDoc(adjectivesRef),
+          getDoc(nounsRef)
+        ]);
+        
+        if (adjectivesDoc.exists() && nounsDoc.exists()) {
+          const adjectivesData = adjectivesDoc.data();
+          const nounsData = nounsDoc.data();
+          
+          console.log('Adjectives data:', adjectivesData);
+          console.log('Nouns data:', nounsData);
+          
+          // Get all fields from both documents
+          const adjectiveFields = Object.values(adjectivesData);
+          const nounFields = Object.values(nounsData);
+          
+          if (adjectiveFields.length > 0 && nounFields.length > 0) {
+            // Get random values
+            const randomAdjective = adjectiveFields[Math.floor(Math.random() * adjectiveFields.length)];
+            const randomNoun = nounFields[Math.floor(Math.random() * nounFields.length)];
+            
+            console.log('Selected adjective:', randomAdjective);
+            console.log('Selected noun:', randomNoun);
+            
+            setCurrentPrompt(`${randomAdjective} ${randomNoun}`);
+          } else {
+            console.log('No fields found in adjectives or nouns documents');
+          }
+        } else {
+          console.log('One or both documents do not exist');
+        }
+      } catch (error) {
+        console.error('Error generating prompt:', error);
+      }
+    };
+
+    if (isDrawing) {
+      // Verify Firebase Storage is initialized
+      try {
+        const bucket = storage.app.options.storageBucket;
+        console.log('Firebase Storage bucket:', bucket);
+        if (!bucket) {
+          console.error('Storage bucket is not configured');
+        }
+      } catch (error) {
+        console.error('Error checking storage configuration:', error);
+      }
+
+      generatePrompt();
     }
-  }, [chainId]);
+  }, [isDrawing, db, storage]);
 
-  const handleSwitchChain = useCallback(() => {
-    switchChain({ chainId: nextChain.id });
-  }, [switchChain, nextChain.id]);
+  // Initialize canvas when drawing mode is activated
+  useEffect(() => {
+    if (isDrawing && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Set canvas size to match its display size
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        
+        // Fill canvas with white background
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Set drawing style
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+      }
+    }
+  }, [isDrawing]);
 
-  const openUrl = useCallback(() => {
-    sdk.actions.openUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-  }, []);
+  // Timer effect
+  useEffect(() => {
+    if (isDrawing && !showTimeUpPopup) {
+      setTimeLeft(30);
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current!);
+            setShowTimeUpPopup(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
 
-  const openWarpcastUrl = useCallback(() => {
-    sdk.actions.openUrl("https://warpcast.com/~/compose");
-  }, []);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isDrawing, showTimeUpPopup]);
 
-  const close = useCallback(() => {
-    sdk.actions.close();
-  }, []);
+  // Reset timer when starting new drawing
+  const handleStartNew = async () => {
+    setShowTimeUpPopup(false);
+    setTimeLeft(30);
+    setCurrentPrompt('Loading prompt...');
+    
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Fill canvas with white background
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }
 
-  const sendNotification = useCallback(async () => {
-    setSendNotificationResult("");
-    if (!notificationDetails || !context) {
+    try {
+      // Fetch both documents
+      const adjectivesRef = doc(db, 'prompts', 'adjectives');
+      const nounsRef = doc(db, 'prompts', 'nouns');
+      
+      const [adjectivesDoc, nounsDoc] = await Promise.all([
+        getDoc(adjectivesRef),
+        getDoc(nounsRef)
+      ]);
+      
+      if (adjectivesDoc.exists() && nounsDoc.exists()) {
+        const adjectivesData = adjectivesDoc.data();
+        const nounsData = nounsDoc.data();
+        
+        // Get all fields from both documents
+        const adjectiveFields = Object.values(adjectivesData);
+        const nounFields = Object.values(nounsData);
+        
+        if (adjectiveFields.length > 0 && nounFields.length > 0) {
+          // Get random values
+          const randomAdjective = adjectiveFields[Math.floor(Math.random() * adjectiveFields.length)];
+          const randomNoun = nounFields[Math.floor(Math.random() * nounFields.length)];
+          
+          setCurrentPrompt(`${randomAdjective} ${randomNoun}`);
+        } else {
+          console.log('No fields found in adjectives or nouns documents');
+          setCurrentPrompt('Error loading prompt');
+        }
+      } else {
+        console.log('One or both documents do not exist');
+        setCurrentPrompt('Error loading prompt');
+      }
+    } catch (error) {
+      console.error('Error generating new prompt:', error);
+      setCurrentPrompt('Error loading prompt');
+    }
+  };
+
+  // Drawing functions
+  const startDrawing = (x: number, y: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const normalizedX = (x - rect.left) * scaleX;
+    const normalizedY = (y - rect.top) * scaleY;
+
+    setIsDrawingActive(true);
+    lastPositionRef.current = { x: normalizedX, y: normalizedY };
+  };
+
+  const draw = (x: number, y: number) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx || !isDrawingActive || !lastPositionRef.current) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const normalizedX = (x - rect.left) * scaleX;
+    const normalizedY = (y - rect.top) * scaleY;
+
+    ctx.beginPath();
+    ctx.moveTo(lastPositionRef.current.x, lastPositionRef.current.y);
+    ctx.lineTo(normalizedX, normalizedY);
+    ctx.stroke();
+
+    lastPositionRef.current = { x: normalizedX, y: normalizedY };
+  };
+
+  const stopDrawing = () => {
+    setIsDrawingActive(false);
+    lastPositionRef.current = null;
+  };
+
+  // Mouse event handlers
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    startDrawing(e.clientX, e.clientY);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    draw(e.clientX, e.clientY);
+  };
+
+  const handleMouseUp = () => {
+    stopDrawing();
+  };
+
+  // Touch event handlers
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    startDrawing(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    draw(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    stopDrawing();
+  };
+
+  // Mock data for testing
+  const mockLeaderboardData: LeaderboardData = {
+    topUsers: [
+      { fid: 1, username: "User1", pfpUrl: "/profile.png", points: 100, isPremium: true },
+      { fid: 2, username: "User2", pfpUrl: "/profile.png", points: 90 },
+      { fid: 3, username: "User3", pfpUrl: "/profile.png", points: 80 },
+    ],
+    currentUser: context?.user ? {
+      fid: context.user.fid,
+      username: context.user.username || '',
+      pfpUrl: context.user.pfpUrl || '',
+      points: 75,
+      rank: 4,
+      isPremium: false
+    } : null
+  };
+
+  // Fetch user stats when profile is shown
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      if (!context?.user?.fid || !showProfile) return;
+
+      try {
+        const userRef = doc(db, 'users', context.user.fid.toString());
+        const userDoc = await getDoc(userRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setUserStats({
+            correctGuesses: userData.correctGuesses || 0,
+            points: userData.points || 0,
+            created: userData.gamesCreated || 0
+          });
+        } else {
+          setUserStats({
+            correctGuesses: 0,
+            points: 0,
+            created: 0
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user stats:', error);
+        setUserStats(null);
+      }
+    };
+
+    fetchUserStats();
+  }, [context?.user?.fid, showProfile, db]);
+
+  const renderProfile = () => {
+    return (
+      <div>
+        {/* Profile Image */}
+        <div className="flex justify-center mb-6">
+          {context?.user?.pfpUrl && (
+            <Image 
+              src={context.user.pfpUrl} 
+              alt="Profile" 
+              width={96} 
+              height={96} 
+              className="rounded-full"
+            />
+          )}
+        </div>
+
+        {/* Username */}
+        <h2 className="text-xl font-bold text-center mb-2 text-gray-600">
+          {context?.user?.username || 'Anonymous'}
+        </h2>
+
+        {/* Leaderboard Position */}
+        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-center mb-6 text-gray-600">
+          <div className="text-2xl font-bold text-gray-600">
+            {mockLeaderboardData.currentUser?.rank ? `#${mockLeaderboardData.currentUser.rank}` : 'Not ranked'}
+          </div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Leaderboard Position
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-center">
+            <div className="text-2xl font-bold text-gray-600">
+              {userStats?.correctGuesses || 0}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Solved
+            </div>
+          </div>
+          <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-center">
+            <div className="text-2xl font-bold text-gray-600">
+              {userStats?.created || 0}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Created
+            </div>
+          </div>
+        </div>
+
+        {/* Points */}
+        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-center mb-6">
+          <div className="text-2xl font-bold text-gray-600">
+            {userStats?.points || 0}
+          </div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Points
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderLeaderboard = () => {
+    return (
+      <div>
+        <div className="space-y-2">
+          {mockLeaderboardData.topUsers.map((user, index) => (
+            <div 
+              key={user.fid}
+              className={`p-3 rounded-lg flex items-center gap-3 ${
+                context?.user?.fid === user.fid 
+                  ? 'bg-green-100 dark:bg-green-100' 
+                  : 'bg-gray-100 dark:bg-gray-800'
+              }`}
+            >
+              <div className="text-lg font-bold w-8">{index + 1}</div>
+              {user.pfpUrl && (
+                <Image 
+                  src={user.pfpUrl} 
+                  alt={user.username} 
+                  width={32} 
+                  height={32} 
+                  className="rounded-full"
+                />
+              )}
+              <div className="flex-1">
+                <div className="font-bold">{user.username}{user.isPremium && <span className="text-xs text-gray-500" title="Premium user"> ⭐</span>}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">{user.points} points</div>
+              </div>
+            </div>
+          ))}
+
+          {/* Show current user's position if not in top 10 */}
+          {mockLeaderboardData.currentUser && (
+            <>
+              <div className="h-4"></div>
+              <div className="border-t border-gray-300 dark:border-gray-600 my-2"></div>
+              <div 
+                className="p-3 bg-green-100 dark:bg-green-900 rounded-lg flex items-center gap-3"
+              >
+                <div className="text-lg font-bold w-8">{mockLeaderboardData.currentUser.rank}</div>
+                {mockLeaderboardData.currentUser.pfpUrl && (
+                  <Image 
+                    src={mockLeaderboardData.currentUser.pfpUrl} 
+                    alt={mockLeaderboardData.currentUser.username} 
+                    width={32} 
+                    height={32} 
+                    className="rounded-full"
+                  />
+                )}
+                <div className="flex-1">
+                  <div className="font-bold">{mockLeaderboardData.currentUser.username}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{mockLeaderboardData.currentUser.points} points</div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const handleDrawingSubmit = async () => {
+    if (!canvasRef.current || !context?.user?.fid) {
+      console.error('Missing canvas reference or user FID');
       return;
     }
 
     try {
-      const response = await fetch("/api/send-notification", {
-        method: "POST",
-        mode: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fid: context.user.fid,
-          notificationDetails,
-        }),
+      setIsUploading(true);
+      console.log('Starting upload process...');
+
+      // Get the canvas data as base64 string
+      const dataUrl = canvasRef.current.toDataURL('image/png');
+      console.log('Canvas data URL generated');
+
+      // Remove the data URL prefix to get just the base64 data
+      const base64Data = dataUrl.split(',')[1];
+      console.log('Base64 data extracted');
+
+      // Create a unique filename using timestamp and user ID
+      const timestamp = new Date().getTime();
+      const filename = `drawings/${context.user.fid}_${timestamp}.png`;
+      console.log('Generated filename:', filename);
+
+      // Create a reference to the file location
+      const storageRef = ref(storage, filename);
+      console.log('Storage reference created');
+
+      // Upload the image
+      console.log('Starting uploadString...');
+      const snapshot = await uploadString(storageRef, base64Data, 'base64', {
+        contentType: 'image/png'
+      });
+      console.log('Upload completed successfully:', snapshot);
+
+      // Get the download URL
+      const imageUrl = await getDownloadURL(storageRef);
+      console.log('Got download URL:', imageUrl);
+
+      // Create new game document with initialized guesses array and counts
+      const createdAt = new Date();
+      const expiredAt = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000); // 24 hours later
+
+      const gameData = {
+        createdAt,
+        expiredAt,
+        imageUrl: imageUrl,
+        prompt: currentPrompt,
+        userFid: context.user.fid.toString(),
+        username: context.user.username || 'Anonymous',
+        guesses: [],
+        totalGuesses: 0,
+        correctGuesses: 0
+      };
+
+      // Add the game document to Firestore and update user's gamesCreated count
+      const batch = writeBatch(db);
+      
+      // Add game document
+      const gamesRef = collection(db, 'games');
+      const newGameRef = doc(gamesRef);
+      batch.set(newGameRef, gameData);
+
+      // Update user's gamesCreated count
+      const userRef = doc(db, 'users', context.user.fid.toString());
+      batch.update(userRef, {
+        gamesCreated: increment(1)
       });
 
-      if (response.status === 200) {
-        setSendNotificationResult("Success");
-        return;
-      } else if (response.status === 429) {
-        setSendNotificationResult("Rate limited");
-        return;
-      }
+      // Commit both operations
+      await batch.commit();
+      console.log('Game document created and user stats updated');
 
-      const data = await response.text();
-      setSendNotificationResult(`Error: ${data}`);
+      // Store the new game ID for sharing
+      setLastCreatedGameId(newGameRef.id);
+
+      // Clear the canvas and return to home
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      }
+      
+      // Reset all drawing-related states
+      setIsDrawing(false);
+      setShowTimeUpPopup(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      setTimeLeft(30);
+
+      // Show the share popup
+      setShowSharePopup(true);
+
     } catch (error) {
-      setSendNotificationResult(`Error: ${error}`);
+      console.error('Error uploading drawing or creating game:', error);
+      setIsUploading(false);
+    } finally {
+      setIsUploading(false);
     }
-  }, [context, notificationDetails]);
+  };
 
-  const sendTx = useCallback(() => {
-    sendTransaction(
-      {
-        // call yoink() on Yoink contract
-        to: "0x4bBFD120d9f352A0BEd7a014bd67913a2007a878",
-        data: "0x9846cd9efc000023c0",
-      },
-      {
-        onSuccess: (hash) => {
-          setTxHash(hash);
-        },
-      }
+  const handleShareToWarpcast = () => {
+    if (!lastCreatedGameId) return;
+    
+    const gameUrl = `https://drawcast.xyz/game/${lastCreatedGameId}`;
+    window.open(`https://warpcast.com/~/compose?text=I just created a new drawing in Drawcast! Can you guess what it is? 🎨%0A%0A${encodeURIComponent(gameUrl)}`);
+    setShowSharePopup(false);
+  };
+
+  const renderDrawingPage = () => {
+    return (
+      <div className="fixed inset-0 bg-white dark:bg-gray-800" style={{ 
+        touchAction: 'none',
+        overscrollBehavior: 'none',
+        overflow: 'hidden',
+        paddingTop: "72px", // Height of header
+        paddingBottom: "64px" // Height of bottom nav
+      }}>
+        <div className="w-[300px] mx-auto px-2">
+          <button
+            onClick={() => {
+              if (timerRef.current) {
+                clearInterval(timerRef.current);
+              }
+              setIsDrawing(false);
+              setShowTimeUpPopup(false);
+            }}
+            className="flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 mb-2 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            <span>Back to home</span>
+          </button>
+          <h1 className="text-2xl font-bold text-center mb-4 text-gray-600 dark:text-gray-100">Draw: {currentPrompt || 'Loading...'}</h1>
+          <div className="text-center mb-4 text-gray-600 dark:text-gray-100">
+            Time left: {timeLeft}s
+          </div>
+
+          {/* Drawing Canvas Area */}
+          <div className="w-full aspect-square bg-white dark:bg-gray-700 rounded-lg mb-4 border-2 border-gray-300 dark:border-gray-600 overflow-hidden touch-none select-none"
+               style={{ touchAction: 'none' }}>
+            <canvas
+              ref={canvasRef}
+              className="w-full h-full touch-none"
+              style={{ touchAction: 'none' }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            />
+          </div>
+          
+          <div className="space-y-4">
+            <button 
+              onClick={handleDrawingSubmit}
+              disabled={isUploading}
+              className="w-full bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {isUploading ? 'Uploading...' : 'Submit'}
+            </button>
+          </div>
+        </div>
+
+        {/* Time Up Popup */}
+        {showTimeUpPopup && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-sm w-full mx-4">
+              <h2 className="text-xl font-bold text-center mb-4 text-gray-600">Time is up!</h2>
+              <p className="text-center mb-6 text-gray-800">Do you want to submit?</p>
+              <div className="flex gap-4">
+                <button
+                  onClick={handleDrawingSubmit}
+                  className="flex-1 bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors"
+                >
+                  Submit
+                </button>
+                <button
+                  onClick={handleStartNew}
+                  className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors"
+                >
+                  Start New
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     );
-  }, [sendTransaction]);
+  };
 
-  const signTyped = useCallback(() => {
-    signTypedData({
-      domain: {
-        name: "Frames v2 Demo",
-        version: "1",
-        chainId,
-      },
-      types: {
-        Message: [{ name: "content", type: "string" }],
-      },
-      message: {
-        content: "Hello from Frames v2!",
-      },
-      primaryType: "Message",
-    });
-  }, [chainId, signTypedData]);
+  // Fetch games when guess page is shown
+  useEffect(() => {
+    const fetchGames = async () => {
+      try {
+        const gamesRef = collection(db, 'games');
+        const q = query(gamesRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        
+        const gamesData = await Promise.all(querySnapshot.docs.map(async (gameDoc) => {
+          const gameData = gameDoc.data();
+          const userDocRef = doc(db, 'users', gameData.userFid as string);
+          const userDoc = await getDoc(userDocRef);
+          const userData = userDoc.data() as { username?: string } | undefined;
+          const username = userData?.username || 'Anonymous';
+          
+          return {
+            id: gameDoc.id,
+            imageUrl: gameData.imageUrl as string || '',
+            prompt: gameData.prompt as string || '',
+            createdAt: (gameData.createdAt as { toDate: () => Date }).toDate(),
+            expiredAt: (gameData.expiredAt as { toDate: () => Date }).toDate(),
+            userFid: gameData.userFid as string || '',
+            username: username,
+            guesses: gameData.guesses || [],
+            totalGuesses: gameData.totalGuesses || 0
+          };
+        }));
+        
+        setGames(gamesData);
+      } catch (error) {
+        console.error('Error fetching games:', error);
+      }
+    };
 
-  const toggleContext = useCallback(() => {
-    setIsContextOpen((prev) => !prev);
-  }, []);
+    if (showGuess) {
+      fetchGames();
+    }
+  }, [showGuess, db]);
+
+  const handleGuessSubmit = async () => {
+    if (!selectedGame || !currentGuess.trim() || !context?.user?.fid) return;
+
+    try {
+      setIsSubmittingGuess(true);
+      setGuessError(null);
+      
+      // Check if user has already guessed this game
+      const gameRef = doc(db, 'games', selectedGame.id);
+      const gameDoc = await getDoc(gameRef);
+      
+      if (gameDoc.exists()) {
+        const gameData = gameDoc.data();
+        const existingGuess = gameData.guesses?.find(
+          (guess: Guess) => guess.userId === context.user.fid.toString()
+        );
+        
+        if (existingGuess) {
+          setGuessError('You have already guessed this drawing');
+          setCurrentGuess('');
+          setIsSubmittingGuess(false);
+          return;
+        }
+      }
+
+      const isCorrect = currentGuess.trim().toLowerCase() === selectedGame.prompt.toLowerCase();
+      const guess: Guess = {
+        userId: context.user.fid.toString(),
+        username: context.user.username || 'Anonymous',
+        guess: currentGuess.trim().toLowerCase(),
+        isCorrect,
+        createdAt: new Date()
+      };
+
+      // Use a batch to ensure atomicity
+      const batch = writeBatch(db);
+
+      // Update the game document with the new guess
+      batch.update(gameRef, {
+        guesses: arrayUnion(guess),
+        totalGuesses: increment(1),
+        correctGuesses: isCorrect ? increment(1) : increment(0)
+      });
+
+      // If the guess is correct, update user's points
+      if (isCorrect) {
+        const userRef = doc(db, 'users', context.user.fid.toString());
+        batch.update(userRef, {
+          points: increment(10),
+          correctGuesses: increment(1)
+        });
+      }
+
+      // Commit all updates
+      await batch.commit();
+
+      // Update the local state to show the result
+      setSelectedGame(prev => prev ? {
+        ...prev,
+        guesses: [...(prev.guesses || []), guess]
+      } : null);
+      
+      // Clear the input
+      setCurrentGuess('');
+      
+    } catch (error) {
+      console.error('Error submitting guess:', error);
+      setGuessError('Failed to submit guess. Please try again.');
+    } finally {
+      setIsSubmittingGuess(false);
+    }
+  };
+
+  const formatTimeRemaining = (expiredAt: { toDate: () => Date } | Date) => {
+    // Convert Firestore Timestamp to Date if needed
+    const expirationDate = 'toDate' in expiredAt ? expiredAt.toDate() : expiredAt;
+    const now = new Date();
+    const diff = expirationDate.getTime() - now.getTime();
+    
+    if (diff <= 0) return 'Game ended';
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `Game ends in ${hours}h ${minutes}m`;
+  };
+
+  const renderGuessDetailPage = () => {
+    if (!selectedGame) return null;
+
+    // Check if current user has already guessed this game
+    const userGuess = selectedGame.guesses?.find(
+      (guess: Guess) => guess.userId === context?.user?.fid?.toString()
+    );
+
+    // Check if game has expired
+    const isExpired = selectedGame.expiredAt.getTime() <= new Date().getTime() || selectedGame.totalGuesses >= 10;
+    
+    return (
+      <div>
+        <button
+          onClick={async () => {
+            // Fetch fresh data before going back to list
+            try {
+              const gamesRef = collection(db, 'games');
+              const q = query(gamesRef, orderBy('createdAt', 'desc'));
+              const querySnapshot = await getDocs(q);
+              
+              const gamesData = await Promise.all(querySnapshot.docs.map(async (gameDoc) => {
+                const gameData = gameDoc.data();
+                const userDocRef = doc(db, 'users', gameData.userFid as string);
+                const userDoc = await getDoc(userDocRef);
+                const userData = userDoc.data() as { username?: string } | undefined;
+                const username = userData?.username || 'Anonymous';
+                
+                return {
+                  id: gameDoc.id,
+                  imageUrl: gameData.imageUrl as string || '',
+                  prompt: gameData.prompt as string || '',
+                  createdAt: (gameData.createdAt as { toDate: () => Date }).toDate(),
+                  expiredAt: (gameData.expiredAt as { toDate: () => Date }).toDate(),
+                  userFid: gameData.userFid as string || '',
+                  username: username,
+                  guesses: gameData.guesses || [],
+                  totalGuesses: gameData.totalGuesses || 0
+                };
+              }));
+              
+              setGames(gamesData);
+            } catch (error) {
+              console.error('Error fetching updated games:', error);
+            }
+            
+            setSelectedGame(null);
+            setCurrentGuess('');
+            setGuessError(null);
+          }}
+          className="flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200 mb-2 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          <span>Back to list</span>
+        </button>
+        <h1 className="text-2xl font-bold text-center mb-4">Make your guess!</h1>
+        <div className="text-center text-gray-600 dark:text-gray-400 mb-4">
+          Drawing by {selectedGame.username}
+        </div>
+        <div className="text-center text-gray-600 dark:text-gray-400 mb-4">
+          {selectedGame.totalGuesses}/10 players
+        </div>
+        <div className="aspect-square relative mb-4 bg-white dark:bg-gray-700 rounded-lg overflow-hidden">
+          <Image
+            src={selectedGame.imageUrl}
+            alt="Drawing to guess"
+            fill
+            className="object-contain"
+          />
+        </div>
+            
+        <div className="space-y-4">
+          {isExpired ? (
+            <div className="p-4 rounded-lg text-center bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100">
+              This game has ended
+            </div>
+          ) : userGuess ? (
+            <div className={`p-4 rounded-lg text-center ${
+              userGuess.isCorrect 
+                ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' 
+                : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100'
+            }`}>
+              <p className="font-medium">You guessed: {userGuess.guess}</p>
+              <p className="text-lg font-bold mt-2">
+                {userGuess.isCorrect ? '✅ Correct!' : '❌ Wrong'}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label htmlFor="guess" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Your guess:
+                </label>
+                <input
+                  type="text"
+                  id="guess"
+                  value={currentGuess}
+                  onChange={(e) => setCurrentGuess(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder="Type your guess here..."
+                  disabled={isSubmittingGuess}
+                />
+              </div>
+              
+              {guessError && (
+                <div className="p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded-md text-sm">
+                  {guessError}
+                </div>
+              )}
+                  
+              <button
+                onClick={handleGuessSubmit}
+                disabled={!currentGuess.trim() || isSubmittingGuess}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {isSubmittingGuess ? 'Submitting...' : 'Submit Guess'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderGuessPage = () => {
+    return (
+      <div>
+        <h1 className="text-l text-center mb-6 text-gray-600 dark:text-gray-100">Guess the drawings, earn points and climb the leaderboard!</h1>
+        <div className="space-y-2">
+          {games.map((game) => {
+            // Check if current user has already guessed this game
+            const userGuess = game.guesses?.find(
+              (guess: Guess) => guess.userId === context?.user?.fid?.toString()
+            );
+
+            return (
+              <button
+                key={game.id}
+                onClick={() => {
+                  setSelectedGame(game);
+                  setGuessError(null);
+                }}
+                className={`w-full p-4 ${
+                  userGuess 
+                    ? userGuess.isCorrect
+                      ? 'bg-green-100 dark:bg-green-900'
+                      : 'bg-red-100 dark:bg-red-900'
+                    : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+                } rounded-lg text-left transition-colors`}
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="text-gray-600 dark:text-gray-400">
+                      Drawing by {game.username}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {formatTimeRemaining(game.expiredAt)}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {game.totalGuesses}/10 players
+                    </div>
+                  </div>
+                  {userGuess && (
+                    <div className="text-sm font-medium">
+                      {userGuess.isCorrect ? '✅ Solved' : '❌ Wrong'}
+                    </div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
@@ -177,450 +1031,170 @@ export default function Demo(
         paddingBottom: context?.client.safeAreaInsets?.bottom ?? 0,
         paddingLeft: context?.client.safeAreaInsets?.left ?? 0,
         paddingRight: context?.client.safeAreaInsets?.right ?? 0,
+        touchAction: isDrawing ? 'none' : undefined,
+        overscrollBehavior: isDrawing ? 'none' : undefined,
+        overflow: isDrawing ? 'hidden' : undefined,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
       }}
+      className="touch-none"
     >
-      <div className="w-[300px] mx-auto py-2 px-2">
-        <h1 className="text-2xl font-bold text-center mb-4">{title}</h1>
-
-        <div className="mb-4">
-          <h2 className="font-2xl font-bold">Context</h2>
-          <button
-            onClick={toggleContext}
-            className="flex items-center gap-2 transition-colors"
-          >
-            <span
-              className={`transform transition-transform ${
-                isContextOpen ? "rotate-90" : ""
-              }`}
-            >
-              ➤
-            </span>
-            Tap to expand
-          </button>
-
-          {isContextOpen && (
-            <div className="p-4 mt-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-              <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-                {JSON.stringify(context, null, 2)}
-              </pre>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h2 className="font-2xl font-bold">Actions</h2>
-
-          <div className="mb-4">
-            <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg my-2">
-              <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-                sdk.actions.signIn
-              </pre>
-            </div>
-            <SignIn />
-          </div>
-
-          <div className="mb-4">
-            <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg my-2">
-              <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-                sdk.actions.openUrl
-              </pre>
-            </div>
-            <Button onClick={openUrl}>Open Link</Button>
-          </div>
-
-          <div className="mb-4">
-            <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg my-2">
-              <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-                sdk.actions.openUrl
-              </pre>
-            </div>
-            <Button onClick={openWarpcastUrl}>Open Warpcast Link</Button>
-          </div>
-
-          <div className="mb-4">
-            <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg my-2">
-              <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-                sdk.actions.viewProfile
-              </pre>
-            </div>
-            <ViewProfile />
-          </div>
-
-          <div className="mb-4">
-            <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg my-2">
-              <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-                sdk.actions.close
-              </pre>
-            </div>
-            <Button onClick={close}>Close Frame</Button>
+      {/* Header */}
+      <div className="fixed top-0 left-0 right-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="w-[300px] mx-auto py-3">
+          <div className="flex justify-center items-center gap-2">
+            <Image
+              src="/icon.png"
+              alt="Icon"
+              width={40}
+              height={40}
+              priority
+            />
+            <span className="text-2xl font-bold text-gray-600 dark:text-gray-100 font-mono">drawcast</span><sup className="text-xs text-gray-600">beta</sup>
           </div>
         </div>
+      </div>
 
-        <div className="mb-4">
-          <h2 className="font-2xl font-bold">Last event</h2>
-
-          <div className="p-4 mt-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-            <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-              {lastEvent || "none"}
-            </pre>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="font-2xl font-bold">Add to client & notifications</h2>
-
-          <div className="mt-2 mb-4 text-sm">
-            Client fid {context?.client.clientFid},
-            {added ? " frame added to client," : " frame not added to client,"}
-            {notificationDetails
-              ? " notifications enabled"
-              : " notifications disabled"}
-          </div>
-
-          <div className="mb-4">
-            <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg my-2">
-              <pre className="font-mono text-xs whitespace-pre-wrap break-words max-w-[260px] overflow-x-">
-                sdk.actions.addFrame
-              </pre>
-            </div>
-            {addFrameResult && (
-              <div className="mb-2 text-sm">
-                Add frame result: {addFrameResult}
-              </div>
-            )}
-            <Button onClick={addFrame} disabled={added}>
-              Add frame to client
-            </Button>
-          </div>
-
-          {sendNotificationResult && (
-            <div className="mb-2 text-sm">
-              Send notification result: {sendNotificationResult}
-            </div>
-          )}
-          <div className="mb-4">
-            <Button onClick={sendNotification} disabled={!notificationDetails}>
-              Send notification
-            </Button>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="font-2xl font-bold">Wallet</h2>
-
-          {address && (
-            <div className="my-2 text-xs">
-              Address: <pre className="inline">{truncateAddress(address)}</pre>
-            </div>
-          )}
-
-          {chainId && (
-            <div className="my-2 text-xs">
-              Chain ID: <pre className="inline">{chainId}</pre>
-            </div>
-          )}
-
-          <div className="mb-4">
-            <Button
-              onClick={() =>
-                isConnected
-                  ? disconnect()
-                  : connect({ connector: config.connectors[0] })
-              }
-            >
-              {isConnected ? "Disconnect" : "Connect"}
-            </Button>
-          </div>
-
-          <div className="mb-4">
-            <SignMessage />
-          </div>
-
-          {isConnected && (
-            <>
-              <div className="mb-4">
-                <SendEth />
-              </div>
-              <div className="mb-4">
-                <Button
-                  onClick={sendTx}
-                  disabled={!isConnected || isSendTxPending}
-                  isLoading={isSendTxPending}
+      {/* Main Content Area - Scrollable */}
+      <div className="w-full h-full overflow-y-auto" style={{ 
+        paddingTop: "72px", // Height of header
+        paddingBottom: "64px", // Height of bottom nav
+        touchAction: "pan-y" 
+      }}>
+        <div className="w-[300px] mx-auto px-2">
+          {showLeaderboard ? (
+            renderLeaderboard()
+          ) : showProfile ? (
+            renderProfile()
+          ) : isDrawing ? (
+            renderDrawingPage()
+          ) : showGuess ? (
+            selectedGame ? renderGuessDetailPage() : renderGuessPage()
+          ) : (
+            // Main Draw Page
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+              <h2 className="text-2xl font-bold text-center text-gray-600 dark:text-gray-100">Draw & challenge others!</h2>
+              <p className="text-m text-gray-500 text-center mb-8">The better your drawing, the more points you&apos;ll earn!</p>
+              <div className="flex flex-col items-center gap-6">
+                <button
+                  onClick={() => {
+                    setIsDrawing(true);
+                    setShowTimeUpPopup(false);
+                    setTimeLeft(30);
+                    if (timerRef.current) {
+                      clearInterval(timerRef.current);
+                    }
+                  }}
+                  className="bg-[#0c703b] text-white py-4 px-8 rounded-lg text-xl font-bold hover:bg-[#0c703b] transition-colors"
                 >
-                  Send Transaction (contract)
-                </Button>
-                {isSendTxError && renderError(sendTxError)}
-                {txHash && (
-                  <div className="mt-2 text-xs">
-                    <div>Hash: {truncateAddress(txHash)}</div>
-                    <div>
-                      Status:{" "}
-                      {isConfirming
-                        ? "Confirming..."
-                        : isConfirmed
-                        ? "Confirmed!"
-                        : "Pending"}
-                    </div>
-                  </div>
-                )}
+                  Draw
+                </button>
+                <p className="text-sm text-gray-500 text-center">You&apos;ll have 30 seconds to draw.</p>
               </div>
-              <div className="mb-4">
-                <Button
-                  onClick={signTyped}
-                  disabled={!isConnected || isSignTypedPending}
-                  isLoading={isSignTypedPending}
-                >
-                  Sign Typed Data
-                </Button>
-                {isSignTypedError && renderError(signTypedError)}
-              </div>
-              <div className="mb-4">
-                <Button
-                  onClick={handleSwitchChain}
-                  disabled={isSwitchChainPending}
-                  isLoading={isSwitchChainPending}
-                >
-                  Switch to {nextChain.name}
-                </Button>
-                {isSwitchChainError && renderError(switchChainError)}
-              </div>
-            </>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Bottom navigation - Fixed */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-10">
+        <div className="w-[300px] mx-auto">
+          <div className="flex justify-around items-center h-14">
+            <button 
+              className={`flex flex-col items-center justify-center w-full h-full ${!showLeaderboard && !showProfile && !isDrawing && !showGuess ? 'bg-green-100 dark:bg-green-900' : ''}`}
+              onClick={() => {
+                setShowLeaderboard(false);
+                setShowProfile(false);
+                setIsDrawing(false);
+                setShowGuess(false);
+                setSelectedGame(null);
+              }}
+            >
+              <span className="text-2xl animate-wiggle">
+                <Image src="/draw.png" alt="Quiz" width={24} height={24} />
+              </span>
+              <span className="text-xs">Draw</span>
+            </button>
+            <button 
+              className={`flex flex-col items-center justify-center w-full h-full ${showGuess ? 'bg-green-100 dark:bg-green-900' : ''}`}
+              onClick={() => {
+                setShowLeaderboard(false);
+                setShowProfile(false);
+                setIsDrawing(false);
+                setShowGuess(true);
+                setSelectedGame(null);
+              }}
+            >
+              <span className="text-2xl">
+                <Image src="/guess.png" alt="Guess" width={24} height={24} />
+              </span>
+              <span className="text-xs">Guess</span>
+            </button>
+            <button 
+              className={`flex flex-col items-center justify-center w-full h-full ${showLeaderboard ? 'bg-green-100 dark:bg-green-900' : ''}`}
+              onClick={() => {
+                setShowLeaderboard(true);
+                setShowProfile(false);
+                setIsDrawing(false);
+                setShowGuess(false);
+                setSelectedGame(null);
+              }}
+            > 
+              <span className="text-2xl"><Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} /></span>
+              <span className="text-xs">Top</span>
+            </button>
+            <button 
+              className={`flex flex-col items-center justify-center w-full h-full ${showProfile ? 'bg-green-100 dark:bg-green-900' : ''}`}
+              onClick={() => {
+                setShowLeaderboard(false);
+                setShowProfile(true);
+                setIsDrawing(false);
+                setShowGuess(false);
+                setSelectedGame(null);
+              }}
+            >
+              <div className="text-2xl">
+                <Image src="/profile.png" alt="Profile" width={24} height={24} />
+              </div>
+              <span className="text-xs">Profile</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Share Popup */}
+      {showSharePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-sm w-full mx-4 relative">
+            {/* Close button */}
+            <button
+              onClick={() => setShowSharePopup(false)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+
+            <h2 className="text-xl font-bold text-center mb-2 text-gray-600 dark:text-gray-100">Drawing Submitted!</h2>
+            <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+              Can other guess it?Share your drawing on Warpcast to challenge others and earn more points!
+            </p>
+
+            <button
+              onClick={handleShareToWarpcast}
+              className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+            >
+              Share on Warpcast
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-function SignMessage() {
-  const { isConnected } = useAccount();
-  const { connectAsync } = useConnect();
-  const {
-    signMessage,
-    data: signature,
-    error: signError,
-    isError: isSignError,
-    isPending: isSignPending,
-  } = useSignMessage();
-
-  const handleSignMessage = useCallback(async () => {
-    if (!isConnected) {
-      await connectAsync({
-        chainId: base.id,
-        connector: config.connectors[0],
-      });
-    }
-
-    signMessage({ message: "Hello from Frames v2!" });
-  }, [connectAsync, isConnected, signMessage]);
-
-  return (
-    <>
-      <Button
-        onClick={handleSignMessage}
-        disabled={isSignPending}
-        isLoading={isSignPending}
-      >
-        Sign Message
-      </Button>
-      {isSignError && renderError(signError)}
-      {signature && (
-        <div className="mt-2 text-xs">
-          <div>Signature: {signature}</div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function SendEth() {
-  const { isConnected, chainId } = useAccount();
-  const {
-    sendTransaction,
-    data,
-    error: sendTxError,
-    isError: isSendTxError,
-    isPending: isSendTxPending,
-  } = useSendTransaction();
-
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash: data,
-    });
-
-  const toAddr = useMemo(() => {
-    // Protocol guild address
-    return chainId === base.id
-      ? "0x32e3C7fD24e175701A35c224f2238d18439C7dBC"
-      : "0xB3d8d7887693a9852734b4D25e9C0Bb35Ba8a830";
-  }, [chainId]);
-
-  const handleSend = useCallback(() => {
-    sendTransaction({
-      to: toAddr,
-      value: 1n,
-    });
-  }, [toAddr, sendTransaction]);
-
-  return (
-    <>
-      <Button
-        onClick={handleSend}
-        disabled={!isConnected || isSendTxPending}
-        isLoading={isSendTxPending}
-      >
-        Send Transaction (eth)
-      </Button>
-      {isSendTxError && renderError(sendTxError)}
-      {data && (
-        <div className="mt-2 text-xs">
-          <div>Hash: {truncateAddress(data)}</div>
-          <div>
-            Status:{" "}
-            {isConfirming
-              ? "Confirming..."
-              : isConfirmed
-              ? "Confirmed!"
-              : "Pending"}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function SignIn() {
-  const [signingIn, setSigningIn] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-  const [signInResult, setSignInResult] = useState<SignInCore.SignInResult>();
-  const [signInFailure, setSignInFailure] = useState<string>();
-  const { data: session, status } = useSession();
-
-  const getNonce = useCallback(async () => {
-    const nonce = await getCsrfToken();
-    if (!nonce) throw new Error("Unable to generate nonce");
-    return nonce;
-  }, []);
-
-  const handleSignIn = useCallback(async () => {
-    try {
-      setSigningIn(true);
-      setSignInFailure(undefined);
-      const nonce = await getNonce();
-      const result = await sdk.actions.signIn({ nonce });
-      setSignInResult(result);
-
-      await signIn("credentials", {
-        message: result.message,
-        signature: result.signature,
-        redirect: false,
-      });
-    } catch (e) {
-      if (e instanceof SignInCore.RejectedByUser) {
-        setSignInFailure("Rejected by user");
-        return;
-      }
-
-      setSignInFailure("Unknown error");
-    } finally {
-      setSigningIn(false);
-    }
-  }, [getNonce]);
-
-  const handleSignOut = useCallback(async () => {
-    try {
-      setSigningOut(true);
-      await signOut({ redirect: false });
-      setSignInResult(undefined);
-    } finally {
-      setSigningOut(false);
-    }
-  }, []);
-
-  return (
-    <>
-      {status !== "authenticated" && (
-        <Button onClick={handleSignIn} disabled={signingIn}>
-          Sign In with Farcaster
-        </Button>
-      )}
-      {status === "authenticated" && (
-        <Button onClick={handleSignOut} disabled={signingOut}>
-          Sign out
-        </Button>
-      )}
-      {session && (
-        <div className="my-2 p-2 text-xs overflow-x-scroll bg-gray-100 rounded-lg font-mono">
-          <div className="font-semibold text-gray-500 mb-1">Session</div>
-          <div className="whitespace-pre">
-            {JSON.stringify(session, null, 2)}
-          </div>
-        </div>
-      )}
-      {signInFailure && !signingIn && (
-        <div className="my-2 p-2 text-xs overflow-x-scroll bg-gray-100 rounded-lg font-mono">
-          <div className="font-semibold text-gray-500 mb-1">SIWF Result</div>
-          <div className="whitespace-pre">{signInFailure}</div>
-        </div>
-      )}
-      {signInResult && !signingIn && (
-        <div className="my-2 p-2 text-xs overflow-x-scroll bg-gray-100 rounded-lg font-mono">
-          <div className="font-semibold text-gray-500 mb-1">SIWF Result</div>
-          <div className="whitespace-pre">
-            {JSON.stringify(signInResult, null, 2)}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function ViewProfile() {
-  const [fid, setFid] = useState("3");
-
-  return (
-    <>
-      <div>
-        <Label
-          className="text-xs font-semibold text-gray-500 mb-1"
-          htmlFor="view-profile-fid"
-        >
-          Fid
-        </Label>
-        <Input
-          id="view-profile-fid"
-          type="number"
-          value={fid}
-          className="mb-2"
-          onChange={(e) => {
-            setFid(e.target.value);
-          }}
-          step="1"
-          min="1"
-        />
-      </div>
-      <Button
-        onClick={() => {
-          sdk.actions.viewProfile({ fid: parseInt(fid) });
-        }}
-      >
-        View Profile
-      </Button>
-    </>
-  );
-}
-const renderError = (error: Error | null) => {
-  if (!error) return null;
-  if (error instanceof BaseError) {
-    const isUserRejection = error.walk(
-      (e) => e instanceof UserRejectedRequestError
-    );
-
-    if (isUserRejection) {
-      return <div className="text-red-500 text-xs mt-1">Rejected by user.</div>;
-    }
-  }
-
-  return <div className="text-red-500 text-xs mt-1">{error.message}</div>;
-};
 

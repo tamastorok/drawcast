@@ -7,6 +7,12 @@ import { Providers } from "~/app/providers";
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_FRAME_NAME || "Frames v2 Demo",
   description: process.env.NEXT_PUBLIC_FRAME_DESCRIPTION || "A Farcaster Frames v2 demo app",
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 };
 
 export default async function RootLayout({
@@ -18,7 +24,10 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+      </head>
+      <body style={{ overscrollBehavior: 'none', touchAction: 'none' }}>
         <Providers session={session}>{children}</Providers>
       </body>
     </html>
