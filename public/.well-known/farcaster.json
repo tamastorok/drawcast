@@ -7,12 +7,12 @@
     "frame": {
       "name": "drawcast",
       "version": "1",
-      "iconUrl": "https://375ef35cd2df.ngrok.app/icon.png",
-      "homeUrl": "https://375ef35cd2df.ngrok.app",
-      "imageUrl": "https://375ef35cd2df.ngrok.app/image.png",
+      "iconUrl": "https://drawcast.xyz/icon.png",
+      "homeUrl": "https://drawcast.xyz",
+      "imageUrl": "https://drawcast.xyz/image.png",
       "buttonTitle": "Draw",
-      "splashImageUrl": "https://375ef35cd2df.ngrok.app/splash.png",
+      "splashImageUrl": "https://drawcast.xyz/splash.png",
       "splashBackgroundColor": "#FFF",
-      "webhookUrl": "https://375ef35cd2df.ngrok.app/api/webhook"
+      "webhookUrl": "https://drawcast.xyz/api/webhook"
     }
   }

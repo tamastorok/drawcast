@@ -679,6 +679,9 @@ export default function Demo() {
           </div>
           
           <div className="space-y-4">
+            <p className="text-sm text-center text-gray-600 dark:text-gray-400">
+              You&apos;ll earn 10 points after each successful guesses
+            </p>
             <button 
               onClick={handleDrawingSubmit}
               disabled={isUploading}
@@ -1077,7 +1080,7 @@ export default function Demo() {
             // Main Draw Page
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
               <h2 className="text-2xl font-bold text-center text-gray-600 dark:text-gray-100">Draw & challenge others!</h2>
-              <p className="text-m text-gray-500 text-center mb-8">The better your drawing, the more points you&apos;ll earn!</p>
+              <p className="text-m text-gray-500 text-center mb-8">Earn 10 points after each successful guess.</p>
               <div className="flex flex-col items-center gap-6">
                 <button
                   onClick={() => {
