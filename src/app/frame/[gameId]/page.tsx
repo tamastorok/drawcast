@@ -9,14 +9,17 @@ export async function generateMetadata(
   { params }: PageProps
 ): Promise<Metadata> {
   const resolvedParams = await params;
-  const gameUrl = `https://drawcast.xyz/?game=${resolvedParams.gameId}`;
+  console.log('Generating metadata for game ID:', resolvedParams.gameId);
   
-  return {
+  const gameUrl = `https://drawcast.xyz/?game=${resolvedParams.gameId}`;
+  console.log('Generated game URL:', gameUrl);
+  
+  const metadata: Metadata = {
     metadataBase: new URL('https://drawcast.xyz'),
-    title: 'Drawcast - Guess the Drawing!',
+    title: `Drawcast - Game ${resolvedParams.gameId}`,
     description: 'Can you guess what this drawing is?',
     openGraph: {
-      title: 'Drawcast - Guess the Drawing!',
+      title: `Drawcast - Game ${resolvedParams.gameId}`,
       description: 'Can you guess what this drawing is?',
       images: ['/image.png'],
       url: gameUrl,
@@ -42,6 +45,9 @@ export async function generateMetadata(
       canonical: gameUrl
     }
   };
+
+  console.log('Generated metadata:', metadata);
+  return metadata;
 }
 
 export default function FramePage() {
