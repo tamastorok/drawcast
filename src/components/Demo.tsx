@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useFrame } from "~/components/providers/FrameProvider";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 //import { getAnalytics } from "firebase/analytics";
 
@@ -47,7 +47,17 @@ export default function Demo() {
     correctGuesses: number;
     points: number;
     created: number;
+    gameSolutions: number;
   } | null>(null);
+  const [createdGames, setCreatedGames] = useState<Array<{
+    id: string;
+    imageUrl: string;
+    prompt: string;
+    totalGuesses: number;
+    correctGuesses: number;
+    createdAt: Date;
+  }>>([]);
+  const [isLoadingGames, setIsLoadingGames] = useState(false);
   const [games, setGames] = useState<Array<{
     id: string;
     imageUrl: string;
@@ -66,6 +76,7 @@ export default function Demo() {
   const lastPositionRef = useRef<{ x: number; y: number } | null>(null);
   const [showSharePopup, setShowSharePopup] = useState(false);
   const [lastCreatedGameId, setLastCreatedGameId] = useState<string | null>(null);
+  const [isDrawingsExpanded, setIsDrawingsExpanded] = useState(false);
 
   const firebaseConfig = {
     apiKey: "AIzaSyBlL2CIZTb-crfirYJ6ym6j6G4uQewu59k",
@@ -121,7 +132,7 @@ export default function Demo() {
   useEffect(() => {
     const generatePrompt = async () => {
       try {
-        // Fetch both documents
+        // Fetch both documents from the prompts collection
         const adjectivesRef = doc(db, 'prompts', 'adjectives');
         const nounsRef = doc(db, 'prompts', 'nouns');
         
@@ -131,33 +142,29 @@ export default function Demo() {
         ]);
         
         if (adjectivesDoc.exists() && nounsDoc.exists()) {
-          const adjectivesData = adjectivesDoc.data();
-          const nounsData = nounsDoc.data();
+          const adjectives = adjectivesDoc.data().words || [];
+          const nouns = nounsDoc.data().words || [];
           
-          console.log('Adjectives data:', adjectivesData);
-          console.log('Nouns data:', nounsData);
-          
-          // Get all fields from both documents
-          const adjectiveFields = Object.values(adjectivesData);
-          const nounFields = Object.values(nounsData);
-          
-          if (adjectiveFields.length > 0 && nounFields.length > 0) {
+          if (adjectives.length > 0 && nouns.length > 0) {
             // Get random values
-            const randomAdjective = adjectiveFields[Math.floor(Math.random() * adjectiveFields.length)];
-            const randomNoun = nounFields[Math.floor(Math.random() * nounFields.length)];
+            const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
             
             console.log('Selected adjective:', randomAdjective);
             console.log('Selected noun:', randomNoun);
             
             setCurrentPrompt(`${randomAdjective} ${randomNoun}`);
           } else {
-            console.log('No fields found in adjectives or nouns documents');
+            console.log('No words found in adjectives or nouns arrays');
+            setCurrentPrompt('Error loading prompt');
           }
         } else {
-          console.log('One or both documents do not exist');
+          console.log('Adjectives or nouns document does not exist');
+          setCurrentPrompt('Error loading prompt');
         }
       } catch (error) {
         console.error('Error generating prompt:', error);
+        setCurrentPrompt('Error loading prompt');
       }
     };
 
@@ -175,7 +182,7 @@ export default function Demo() {
 
       generatePrompt();
     }
-  }, [isDrawing, db, storage]);
+  }, [isDrawing, db]);
 
   // Initialize canvas when drawing mode is activated
   useEffect(() => {
@@ -367,37 +374,79 @@ export default function Demo() {
     } : null
   };
 
-  // Fetch user stats when profile is shown
+  // Fetch user stats and created games when profile is shown
   useEffect(() => {
-    const fetchUserStats = async () => {
+    const fetchUserData = async () => {
       if (!context?.user?.fid || !showProfile) return;
 
       try {
+        // Fetch user stats
         const userRef = doc(db, 'users', context.user.fid.toString());
         const userDoc = await getDoc(userRef);
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          const totalPoints = ((userData.correctGuesses || 0) * 10) + ((userData.gameSolutions || 0) * 10);
           setUserStats({
             correctGuesses: userData.correctGuesses || 0,
-            points: userData.points || 0,
-            created: userData.gamesCreated || 0
+            points: totalPoints,
+            created: userData.gamesCreated || 0,
+            gameSolutions: userData.gameSolutions || 0
           });
         } else {
           setUserStats({
             correctGuesses: 0,
             points: 0,
-            created: 0
+            created: 0,
+            gameSolutions: 0
           });
         }
       } catch (error) {
-        console.error('Error fetching user stats:', error);
+        console.error('Error fetching user data:', error);
         setUserStats(null);
       }
     };
 
-    fetchUserStats();
+    fetchUserData();
   }, [context?.user?.fid, showProfile, db]);
+
+  // Fetch created games when section is expanded
+  useEffect(() => {
+    const fetchCreatedGames = async () => {
+      if (!context?.user?.fid || !isDrawingsExpanded) return;
+
+      try {
+        setIsLoadingGames(true);
+        const gamesRef = collection(db, 'games');
+        const q = query(
+          gamesRef,
+          where('userFid', '==', context.user.fid.toString())
+        );
+        const querySnapshot = await getDocs(q);
+        
+        const gamesData = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            imageUrl: data.imageUrl,
+            prompt: data.prompt,
+            totalGuesses: data.totalGuesses || 0,
+            correctGuesses: data.correctGuesses || 0,
+            createdAt: data.createdAt.toDate()
+          };
+        });
+        
+        setCreatedGames(gamesData);
+      } catch (error) {
+        console.error('Error fetching games:', error);
+        setCreatedGames([]);
+      } finally {
+        setIsLoadingGames(false);
+      }
+    };
+
+    fetchCreatedGames();
+  }, [context?.user?.fid, isDrawingsExpanded, db]);
 
   const renderProfile = () => {
     return (
@@ -458,6 +507,76 @@ export default function Demo() {
           <div className="text-sm text-gray-600 dark:text-gray-400">
             Points
           </div>
+        </div>
+
+        {/* Created Games Section */}
+        <div className="mb-6">
+          <button
+            onClick={() => setIsDrawingsExpanded(!isDrawingsExpanded)}
+            className="w-full flex justify-between items-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          >
+            <h3 className="text-lg font-bold text-gray-600 dark:text-gray-100">Your Drawings</h3>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`transform transition-transform ${isDrawingsExpanded ? 'rotate-180' : ''}`}
+            >
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+          
+          {isDrawingsExpanded && (
+            <div className="mt-2">
+              {isLoadingGames ? (
+                <div className="text-center text-gray-600 dark:text-gray-400 p-4">
+                  Loading your drawings...
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {createdGames.map((game) => (
+                    <div 
+                      key={game.id}
+                      className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="text-gray-600 dark:text-gray-400">
+                            {game.prompt}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Created {new Date(game.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {game.totalGuesses}/10 players
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {game.totalGuesses} guesses
+                          </div>
+                          <div className="text-sm text-green-600 dark:text-green-400">
+                            {game.correctGuesses} correct
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {createdGames.length === 0 && (
+                    <div className="text-center text-gray-600 dark:text-gray-400 p-4">
+                      No drawings created yet
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -631,15 +750,50 @@ export default function Demo() {
     setShowSharePopup(false);
   };
 
+  // Add effect to handle pull-to-refresh prevention
+  useEffect(() => {
+    if (isDrawing) {
+      const preventDefault = (e: TouchEvent) => {
+        // Only prevent if we're at the top of the page
+        if (window.scrollY === 0) {
+          e.preventDefault();
+        }
+      };
+
+      // Add event listeners
+      document.addEventListener('touchmove', preventDefault, { passive: false });
+      document.body.style.overscrollBehavior = 'none';
+      document.body.style.touchAction = 'none';
+      document.body.style.overflow = 'hidden';
+
+      // Cleanup
+      return () => {
+        document.removeEventListener('touchmove', preventDefault);
+        document.body.style.overscrollBehavior = '';
+        document.body.style.touchAction = '';
+        document.body.style.overflow = '';
+      };
+    }
+  }, [isDrawing]);
+
   const renderDrawingPage = () => {
     return (
-      <div className="fixed inset-0 bg-white dark:bg-gray-800" style={{ 
-        touchAction: 'none',
-        overscrollBehavior: 'none',
-        overflow: 'hidden',
-        paddingTop: "72px", // Height of header
-        paddingBottom: "64px" // Height of bottom nav
-      }}>
+      <div 
+        className="fixed inset-0 bg-white dark:bg-gray-800" 
+        style={{ 
+          touchAction: 'none',
+          overscrollBehavior: 'none',
+          overflow: 'hidden',
+          paddingTop: "72px", // Height of header
+          paddingBottom: "64px", // Height of bottom nav
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1000
+        }}
+      >
         <div className="w-[300px] mx-auto px-2">
           <button
             onClick={() => {
@@ -802,12 +956,19 @@ export default function Demo() {
         correctGuesses: isCorrect ? increment(1) : increment(0)
       });
 
-      // If the guess is correct, update user's points
+      // If the guess is correct, update both the guesser's and creator's points
       if (isCorrect) {
-        const userRef = doc(db, 'users', context.user.fid.toString());
-        batch.update(userRef, {
+        // Update guesser's points
+        const guesserRef = doc(db, 'users', context.user.fid.toString());
+        batch.update(guesserRef, {
           points: increment(10),
           correctGuesses: increment(1)
+        });
+
+        // Update creator's points and gameSolutions
+        const creatorRef = doc(db, 'users', selectedGame.userFid);
+        batch.update(creatorRef, {
+          gameSolutions: increment(1)
         });
       }
 
@@ -909,7 +1070,7 @@ export default function Demo() {
         <div className="text-center text-gray-600 dark:text-gray-400 mb-4">
           {selectedGame.totalGuesses}/10 players
         </div>
-        <div className="aspect-square relative mb-4 bg-white dark:bg-gray-700 rounded-lg overflow-hidden">
+        <div className="aspect-square relative bg-white dark:bg-gray-700 rounded-lg overflow-hidden">
           <Image
             src={selectedGame.imageUrl}
             alt="Drawing to guess"
@@ -917,6 +1078,9 @@ export default function Demo() {
             className="object-contain"
           />
         </div>
+        <p className="text-sm text-center text-gray-600 dark:text-gray-400 mb-4">
+          You will earn 10 points for successfully guessing this drawing.
+        </p>
             
         <div className="space-y-4">
           {isExpired ? (
@@ -937,9 +1101,6 @@ export default function Demo() {
           ) : (
             <>
               <div>
-                <label htmlFor="guess" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Your guess:
-                </label>
                 <input
                   type="text"
                   id="guess"
@@ -1011,7 +1172,7 @@ export default function Demo() {
                   </div>
                   {userGuess && (
                     <div className="text-sm font-medium">
-                      {userGuess.isCorrect ? '✅ Solved' : '❌ Wrong'}
+                      {userGuess.isCorrect ? 'Solved' : 'Wrong'}
                     </div>
                   )}
                 </div>
