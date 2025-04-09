@@ -44,7 +44,8 @@ export async function generateMetadata(
 
 export default function GameLayout({
   children,
-  params,
-}: Props) {
+}: {
+  children: React.ReactNode;
+}) {
   return children;
 } 
