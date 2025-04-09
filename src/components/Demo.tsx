@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useFrame } from "~/components/providers/FrameProvider";
+import { sdk } from '@farcaster/frame-sdk'
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
@@ -1183,6 +1184,22 @@ export default function Demo() {
       </div>
     );
   };
+
+  useEffect(() => {
+    const initializeFrame = async () => {
+      if (isSDKLoaded) {
+        try {
+          await sdk.actions.ready();
+          await sdk.actions.addFrame();
+          console.log('Frame initialized and added successfully');
+        } catch (error) {
+          console.error('Error initializing frame:', error);
+        }
+      }
+    };
+
+    initializeFrame();
+  }, [isSDKLoaded]);
 
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
