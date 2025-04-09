@@ -99,10 +99,16 @@ export default function Demo() {
 
   // Add effect to handle URL parameters
   useEffect(() => {
-    if (!isSDKLoaded) return;
+    if (!isSDKLoaded) {
+      console.log('SDK not loaded yet');
+      return;
+    }
 
     const gameId = searchParams.get('game');
+    console.log('Game ID from URL:', gameId);
+    
     if (gameId) {
+      console.log('Found game ID, resetting states and fetching game data');
       // Reset other states
       setShowProfile(false);
       setShowLeaderboard(false);
@@ -111,10 +117,12 @@ export default function Demo() {
       // Fetch the game data
       const fetchGame = async () => {
         try {
+          console.log('Fetching game data for ID:', gameId);
           const gameRef = doc(db, 'games', gameId);
           const gameDoc = await getDoc(gameRef);
           
           if (gameDoc.exists()) {
+            console.log('Game found, setting selected game');
             const gameData = gameDoc.data();
             setSelectedGame({
               id: gameId,
@@ -128,6 +136,8 @@ export default function Demo() {
               totalGuesses: gameData.totalGuesses || 0
             });
             setShowGuess(true);
+          } else {
+            console.log('Game not found in Firestore');
           }
         } catch (error) {
           console.error('Error fetching game:', error);
@@ -135,6 +145,8 @@ export default function Demo() {
       };
 
       fetchGame();
+    } else {
+      console.log('No game ID found in URL');
     }
   }, [searchParams, isSDKLoaded]);
 
