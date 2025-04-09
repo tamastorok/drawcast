@@ -829,9 +829,10 @@ export default function Demo() {
   const handleShareToWarpcast = async () => {
     if (!lastCreatedGameId) return;
     
-    // Create the deep link for the app
-    const deepLink = `${window.location.origin}/?game=${lastCreatedGameId}`;
-    const castText = `I just created a new drawing in Drawcast! Can you guess what it is? 🎨\n\n${deepLink}`;
+    // Create the frame URL for Warpcast
+    const frameUrl = `${window.location.origin}/game/${lastCreatedGameId}`;
+    const warpcastUrl = `https://warpcast.com/~/frames?url=${encodeURIComponent(frameUrl)}`;
+    const castText = `I just created a new drawing in Drawcast! Can you guess what it is? 🎨\n\n${warpcastUrl}`;
 
     try {
       await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}`);

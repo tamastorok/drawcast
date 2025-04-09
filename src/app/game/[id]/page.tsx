@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc, arrayUnion, increment, writeBatch } from "firebase/firestore";
 import Image from "next/image";
@@ -41,6 +41,7 @@ interface GameData {
 
 export default function GamePage() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
   const { isSDKLoaded, context } = useFrame();
   const [game, setGame] = useState<GameData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,10 +69,12 @@ export default function GamePage() {
   // Fetch game data
   useEffect(() => {
     const fetchGame = async () => {
-      if (!id) return;
+      // Get game ID from either path or query parameter
+      const gameId = id || searchParams.get('game');
+      if (!gameId) return;
 
       try {
-        const gameRef = doc(db, 'games', id as string);
+        const gameRef = doc(db, 'games', gameId as string);
         const gameDoc = await getDoc(gameRef);
 
         if (gameDoc.exists()) {
@@ -98,7 +101,7 @@ export default function GamePage() {
     };
 
     fetchGame();
-  }, [id]);
+  }, [id, searchParams]);
 
   const handleGuessSubmit = async () => {
     if (!currentGuess.trim() || !context?.user?.fid || !game) return;
