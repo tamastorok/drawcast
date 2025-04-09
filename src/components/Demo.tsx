@@ -115,10 +115,26 @@ export default function Demo() {
         console.log('All URL parameters:', Object.fromEntries(url.searchParams));
         
         // Try different ways to get the game ID
-        const gameId = url.searchParams.get('game') || 
-                      url.searchParams.get('id') || 
-                      url.pathname.split('/').pop();
-        console.log('Attempted to get game ID:', gameId);
+        let gameId = url.searchParams.get('game') || 
+                    url.searchParams.get('id') || 
+                    url.pathname.split('/').pop();
+
+        // Check if we're coming from a Warpcast frame
+        if (!gameId && url.searchParams.has('url')) {
+          try {
+            const frameUrl = decodeURIComponent(url.searchParams.get('url') || '');
+            console.log('Decoded frame URL:', frameUrl);
+            const frameUrlObj = new URL(frameUrl);
+            gameId = frameUrlObj.searchParams.get('game') || 
+                    frameUrlObj.searchParams.get('id') || 
+                    frameUrlObj.pathname.split('/').pop();
+            console.log('Game ID from frame URL:', gameId);
+          } catch (error) {
+            console.log('Error parsing frame URL:', error);
+          }
+        }
+        
+        console.log('Final game ID:', gameId);
         
         if (gameId) {
           console.log('Found game ID:', gameId);
