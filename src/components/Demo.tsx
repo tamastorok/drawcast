@@ -100,17 +100,15 @@ export default function Demo() {
     const initializeFrame = async () => {
       console.log('Checking SDK state:', { isSDKLoaded, context });
       
-      if (!isSDKLoaded) {
-        console.log('SDK not loaded yet, waiting...');
+      if (!isSDKLoaded || !context) {
+        console.log('SDK or context not ready yet, waiting...');
         return;
       }
 
       try {
-        console.log('SDK loaded, initializing frame...');
+        console.log('SDK and context ready, initializing...');
         await sdk.actions.ready({ disableNativeGestures: true });
-        await sdk.actions.addFrame();
-        console.log('Frame initialized successfully');
-
+        
         // Get the current URL and log all parameters
         const url = new URL(window.location.href);
         console.log('Current URL:', url.href);
@@ -160,12 +158,17 @@ export default function Demo() {
             }
           };
 
-          fetchGame();
+          await fetchGame();
         } else {
           console.log('No game ID found in URL or path');
         }
+
+        // Add frame as the last step
+        console.log('Adding frame...');
+        await sdk.actions.addFrame();
+        console.log('Frame added successfully');
       } catch (error) {
-        console.error('Error initializing frame:', error);
+        console.error('Error during initialization:', error);
       }
     };
 
