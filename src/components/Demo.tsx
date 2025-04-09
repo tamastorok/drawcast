@@ -31,12 +31,12 @@ interface Guess {
   createdAt: Date;
 }
 
-export default function Demo() {
+export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const { isSDKLoaded, context } = useFrame();
   const [showProfile, setShowProfile] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [showGuess, setShowGuess] = useState(false);
+  const [showGuess, setShowGuess] = useState(!!initialGameId);
   const [selectedGame, setSelectedGame] = useState<typeof games[0] | null>(null);
   const [isDrawingActive, setIsDrawingActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -115,7 +115,8 @@ export default function Demo() {
         console.log('All URL parameters:', Object.fromEntries(url.searchParams));
         
         // Try different ways to get the game ID
-        let gameId = url.searchParams.get('game') || 
+        let gameId = initialGameId || 
+                    url.searchParams.get('game') || 
                     url.searchParams.get('id') || 
                     url.pathname.split('/').pop();
 
@@ -142,6 +143,7 @@ export default function Demo() {
           setShowProfile(false);
           setShowLeaderboard(false);
           setIsDrawing(false);
+          setShowGuess(true);
           
           // Fetch the game data
           const fetchGame = async () => {
@@ -164,7 +166,6 @@ export default function Demo() {
                   guesses: gameData.guesses || [],
                   totalGuesses: gameData.totalGuesses || 0
                 });
-                setShowGuess(true);
                 console.log('Game state updated, showing guess interface');
               } else {
                 console.log('Game not found in Firestore:', gameId);
@@ -842,14 +843,13 @@ export default function Demo() {
   const handleShareToWarpcast = async () => {
     if (!lastCreatedGameId) return;
     
-    // Create the frame URL and game URL
-    const frameUrl = `https://drawcast.xyz/frame/${lastCreatedGameId}`;
-    const gameUrl = `${window.location.origin}/?game=${lastCreatedGameId}`;
+    // Create the game URL
+    const gameUrl = `${window.location.origin}/games/${lastCreatedGameId}`;
     const castText = `I just created a new drawing in Drawcast! Can you guess what it is? 🎨\n\n${gameUrl}`;
 
     try {
-      // Open the compose window with the frame URL
-      await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(frameUrl)}`);
+      // Open the compose window with the game URL
+      await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`);
       setShowSharePopup(false);
     } catch (error) {
       console.error('Error sharing to Warpcast:', error);
@@ -1005,6 +1005,14 @@ export default function Demo() {
         }));
         
         setGames(gamesData);
+        
+        // If we have an initialGameId, select that game
+        if (initialGameId) {
+          const game = gamesData.find(g => g.id === initialGameId);
+          if (game) {
+            setSelectedGame(game);
+          }
+        }
       } catch (error) {
         console.error('Error fetching games:', error);
       }
@@ -1013,7 +1021,7 @@ export default function Demo() {
     if (showGuess) {
       fetchGames();
     }
-  }, [showGuess, db]);
+  }, [showGuess, db, initialGameId]);
 
   const handleGuessSubmit = async () => {
     if (!selectedGame || !currentGuess.trim() || !context?.user?.fid) return;
