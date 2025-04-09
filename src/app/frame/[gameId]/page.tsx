@@ -1,12 +1,12 @@
 import { Metadata } from 'next';
 
-type Props = {
+type PageProps = {
   params: { gameId: string }
   searchParams: { [key: string]: string | string[] | undefined }
 }
 
 export async function generateMetadata(
-  { params }: Props
+  { params }: PageProps
 ): Promise<Metadata> {
   const gameUrl = `https://drawcast.xyz/?game=${params.gameId}`;
   
