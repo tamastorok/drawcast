@@ -8,7 +8,6 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 //import { getAnalytics } from "firebase/analytics";
-import { useSearchParams } from 'next/navigation';
 
 interface LeaderboardUser {
   fid: number;
@@ -34,7 +33,6 @@ interface Guess {
 
 export default function Demo() {
   const { isSDKLoaded, context } = useFrame();
-  const searchParams = useSearchParams();
   const [showProfile, setShowProfile] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -97,79 +95,90 @@ export default function Demo() {
   const storage = getStorage(app);
   //const analytics = getAnalytics(app);
 
-  // Add effect to handle URL parameters
+  // Initialize Frame
   useEffect(() => {
-    if (!isSDKLoaded) {
-      console.log('SDK not loaded yet');
-      return;
-    }
+    const initializeFrame = async () => {
+      if (isSDKLoaded) {
+        try {
+          console.log('Initializing frame...');
+          await sdk.actions.ready({ disableNativeGestures: true });
+          await sdk.actions.addFrame();
+          console.log('Frame initialized successfully');
 
-    const getGameId = () => {
-      try {
-        // Get the current URL
-        const url = new URL(window.location.href);
-        console.log('Current URL:', url.href);
-        
-        // Get game ID from URL parameters
-        const gameId = url.searchParams.get('game');
-        console.log('Game ID from URL:', gameId);
-        
-        return gameId;
-      } catch (error) {
-        console.error('Error getting game ID:', error);
-        return null;
-      }
-    };
-
-    const initializeGame = () => {
-      const gameId = getGameId();
-      console.log('Final game ID:', gameId);
-      
-      if (gameId) {
-        console.log('Found game ID, resetting states and fetching game data');
-        // Reset other states
-        setShowProfile(false);
-        setShowLeaderboard(false);
-        setIsDrawing(false);
-        
-        // Fetch the game data
-        const fetchGame = async () => {
-          try {
-            console.log('Fetching game data for ID:', gameId);
-            const gameRef = doc(db, 'games', gameId);
-            const gameDoc = await getDoc(gameRef);
-            
-            if (gameDoc.exists()) {
-              console.log('Game found, setting selected game');
-              const gameData = gameDoc.data();
-              setSelectedGame({
-                id: gameId,
-                imageUrl: gameData.imageUrl,
-                prompt: gameData.prompt,
-                createdAt: gameData.createdAt.toDate(),
-                expiredAt: gameData.expiredAt.toDate(),
-                userFid: gameData.userFid,
-                username: gameData.username,
-                guesses: gameData.guesses || [],
-                totalGuesses: gameData.totalGuesses || 0
-              });
-              setShowGuess(true);
-            } else {
-              console.log('Game not found in Firestore');
+          // Now that frame is initialized, handle game ID
+          const getGameId = () => {
+            try {
+              // Get the current URL
+              const url = new URL(window.location.href);
+              console.log('Current URL:', url.href);
+              
+              // Get game ID from URL parameters
+              const gameId = url.searchParams.get('game');
+              console.log('Game ID from URL:', gameId);
+              
+              return gameId;
+            } catch (error) {
+              console.error('Error getting game ID:', error);
+              return null;
             }
-          } catch (error) {
-            console.error('Error fetching game:', error);
-          }
-        };
+          };
 
-        fetchGame();
-      } else {
-        console.log('No game ID found');
+          const initializeGame = () => {
+            const gameId = getGameId();
+            console.log('Final game ID:', gameId);
+            
+            if (gameId) {
+              console.log('Found game ID, resetting states and fetching game data');
+              // Reset other states
+              setShowProfile(false);
+              setShowLeaderboard(false);
+              setIsDrawing(false);
+              
+              // Fetch the game data
+              const fetchGame = async () => {
+                try {
+                  console.log('Fetching game data for ID:', gameId);
+                  const gameRef = doc(db, 'games', gameId);
+                  const gameDoc = await getDoc(gameRef);
+                  
+                  if (gameDoc.exists()) {
+                    console.log('Game found, setting selected game');
+                    const gameData = gameDoc.data();
+                    setSelectedGame({
+                      id: gameId,
+                      imageUrl: gameData.imageUrl,
+                      prompt: gameData.prompt,
+                      createdAt: gameData.createdAt.toDate(),
+                      expiredAt: gameData.expiredAt.toDate(),
+                      userFid: gameData.userFid,
+                      username: gameData.username,
+                      guesses: gameData.guesses || [],
+                      totalGuesses: gameData.totalGuesses || 0
+                    });
+                    setShowGuess(true);
+                  } else {
+                    console.log('Game not found in Firestore');
+                  }
+                } catch (error) {
+                  console.error('Error fetching game:', error);
+                }
+              };
+
+              fetchGame();
+            } else {
+              console.log('No game ID found');
+            }
+          };
+
+          initializeGame();
+        } catch (error) {
+          console.error('Error initializing frame:', error);
+        }
       }
     };
 
-    initializeGame();
-  }, [searchParams, isSDKLoaded]);
+    initializeFrame();
+  }, [isSDKLoaded]);
 
   // Handle user data storage when context changes
   useEffect(() => {
@@ -1265,22 +1274,6 @@ export default function Demo() {
       </div>
     );
   };
-
-  useEffect(() => {
-    const initializeFrame = async () => {
-      if (isSDKLoaded) {
-        try {
-          await sdk.actions.ready({ disableNativeGestures: true });
-          await sdk.actions.addFrame();
-          console.log('Frame initialized and added successfully');
-        } catch (error) {
-          console.error('Error initializing frame:', error);
-        }
-      }
-    };
-
-    initializeFrame();
-  }, [isSDKLoaded]);
 
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
