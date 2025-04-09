@@ -1,21 +1,20 @@
 import type { Metadata } from "next";
 
 type Props = {
-  params: Promise<{ gameId: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  children: React.ReactNode;
+  params: { gameId: string };
 };
 
 export async function generateMetadata(
   { params }: Props
 ): Promise<Metadata> {
-  const resolvedParams = await params;
-  const gameUrl = `https://drawcast.xyz/games/${resolvedParams.gameId}`;
+  const gameUrl = `https://drawcast.xyz/games/${params.gameId}`;
   
   return {
-    title: `Drawcast - Game ${resolvedParams.gameId}`,
+    title: `Drawcast - Game ${params.gameId}`,
     description: 'Can you guess what this drawing is?',
     openGraph: {
-      title: `Drawcast - Game ${resolvedParams.gameId}`,
+      title: `Drawcast - Game ${params.gameId}`,
       description: 'Can you guess what this drawing is?',
       images: ['/image.png'],
       url: gameUrl,
@@ -45,8 +44,7 @@ export async function generateMetadata(
 
 export default function GameLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+  params,
+}: Props) {
   return children;
 } 
