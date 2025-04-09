@@ -105,16 +105,19 @@ export default function Demo() {
           await sdk.actions.addFrame();
           console.log('Frame initialized successfully');
 
-          // Get the current URL
+          // Get the current URL and log all parameters
           const url = new URL(window.location.href);
           console.log('Current URL:', url.href);
+          console.log('All URL parameters:', Object.fromEntries(url.searchParams));
           
-          // Get game ID from URL parameters
-          const gameId = url.searchParams.get('game');
-          console.log('Game ID from URL:', gameId);
+          // Try different ways to get the game ID
+          const gameId = url.searchParams.get('game') || 
+                        url.searchParams.get('id') || 
+                        url.pathname.split('/').pop();
+          console.log('Attempted to get game ID:', gameId);
           
           if (gameId) {
-            console.log('Found game ID, resetting states and fetching game data');
+            console.log('Found game ID:', gameId);
             // Reset other states
             setShowProfile(false);
             setShowLeaderboard(false);
@@ -128,7 +131,7 @@ export default function Demo() {
                 const gameDoc = await getDoc(gameRef);
                 
                 if (gameDoc.exists()) {
-                  console.log('Game found, setting selected game');
+                  console.log('Game found in Firestore:', gameId);
                   const gameData = gameDoc.data();
                   setSelectedGame({
                     id: gameId,
@@ -142,8 +145,9 @@ export default function Demo() {
                     totalGuesses: gameData.totalGuesses || 0
                   });
                   setShowGuess(true);
+                  console.log('Game state updated, showing guess interface');
                 } else {
-                  console.log('Game not found in Firestore');
+                  console.log('Game not found in Firestore:', gameId);
                 }
               } catch (error) {
                 console.error('Error fetching game:', error);
@@ -152,11 +156,13 @@ export default function Demo() {
 
             fetchGame();
           } else {
-            console.log('No game ID found in URL');
+            console.log('No game ID found in URL or path');
           }
         } catch (error) {
           console.error('Error initializing frame:', error);
         }
+      } else {
+        console.log('SDK not loaded yet');
       }
     };
 
