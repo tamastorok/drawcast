@@ -19,6 +19,7 @@ export async function generateMetadata(
       title: 'Drawcast - Guess the Drawing!',
       description: 'Can you guess what this drawing is?',
       images: ['/image.png'],
+      url: gameUrl,
     },
     other: {
       'fc:frame': JSON.stringify({
@@ -36,6 +37,9 @@ export async function generateMetadata(
           }
         }
       })
+    },
+    alternates: {
+      canonical: gameUrl
     }
   };
 }
