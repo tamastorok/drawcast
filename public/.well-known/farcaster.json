@@ -1,8 +1,8 @@
 {
   "accountAssociation": {
-    "header": "eyJmaWQiOjIzNDY5MiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweGQ5MGM0NDlhY2M3ZDBjOWM1MDQ1MTM1YjM4ZGI1ODEwYTcyNDY1N2YifQ",
+    "header": "eyJmaWQiOjIzNDY5MiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweEQ5MEM0NDlBQ2M3ZDBDOWM1MDQ1MTM1QjM4REI1ODEwYTcyNDY1N0YifQ",
     "payload": "eyJkb21haW4iOiJkcmF3Y2FzdC54eXoifQ",
-    "signature": ""
+    "signature": "MHgzMjQ3OWJkNDA2MGYyNDliZmE2YmE2MjJkZmNkNjdhNDg1OWZlMDc0MDY1YmQ3MWU5NzAwMzJjZWNmNzBkODkwMWU0YzQ4ZmQwZTgxZTU2NTQyMzI3YjM3NmMyOWYxMWNjYTY0OWNjNmU1MWY3ZWI4OTQ0NzQ2NmVmZThlMGMwNTFi"
   },
   "frame": {
     "name": "Drawcast",
