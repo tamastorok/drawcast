@@ -11,7 +11,7 @@ export async function generateMetadata(
   const resolvedParams = await params;
   console.log('Generating metadata for game ID:', resolvedParams.gameId);
   
-  const gameUrl = `https://drawcast.xyz/?game=${resolvedParams.gameId}`;
+  const gameUrl = `https://drawcast.xyz/games/${resolvedParams.gameId}`;
   console.log('Generated game URL:', gameUrl);
   
   const metadata: Metadata = {
