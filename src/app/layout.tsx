@@ -25,7 +25,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+      <meta name='fc:frame' content='{"version":"next","imageUrl":"https://drawcast.xyz/image.png","aspectRatio":"3:2","button":{"title":"Draw","action":{"type":"launch_frame","name":"Drawcast","url":"https://drawcast.xyz","splashImageUrl":"https://drawcast.xyz/splash.png","splashBackgroundColor":"#FFF"}}}' />
       </head>
       <body style={{ overscrollBehavior: 'none', touchAction: 'none' }}>
         <Providers session={session}>{children}</Providers>
