@@ -12,47 +12,26 @@ export async function generateMetadata(
   const resolvedParams = await params;
   const gameUrl = `https://drawcast.xyz/games/${resolvedParams.gameId}`;
   
-  // Define metadata object
-  const metadata = {
-    title: `Drawcast - Game ${resolvedParams.gameId}`,
-    description: 'Can you guess what this drawing is?',
-    image: '/image.png',
-    url: gameUrl,
-    frame: {
-      version: 'next',
-      imageUrl: 'https://drawcast.xyz/image.png',
-      aspectRatio: '3:2',
-      button: {
-        title: 'Guess the Drawing!',
-        action: {
-          type: 'launch_frame',
-          name: 'Drawcast',
-          url: gameUrl,
-          splashImageUrl: 'https://drawcast.xyz/splash.png',
-          splashBackgroundColor: '#FFF'
-        }
-      }
-    }
-  };
-  
   return {
     metadataBase: new URL('https://drawcast.xyz'),
-    title: metadata.title,
-    description: metadata.description,
+    title: `Drawcast - Game ${resolvedParams.gameId}`,
+    description: 'Can you guess what this drawing is?',
     openGraph: {
-      title: metadata.title,
-      description: metadata.description,
-      images: [metadata.image],
-      url: metadata.url,
+      title: `Drawcast - Game ${resolvedParams.gameId}`,
+      description: 'Can you guess what this drawing is?',
+      images: ['/image.png'],
+      url: gameUrl,
       type: 'website',
       siteName: 'Drawcast'
     },
     other: {
-      'fc:frame': JSON.stringify(metadata.frame),
-      'og:frame': JSON.stringify(metadata.frame)
+      'fc:frame': 'next',
+      'fc:frame:image': 'https://drawcast.xyz/image.png',
+      'fc:frame:button:1': 'Guess the Drawing!',
+      'fc:frame:post_url': gameUrl
     },
     alternates: {
-      canonical: metadata.url
+      canonical: gameUrl
     }
   };
 }
