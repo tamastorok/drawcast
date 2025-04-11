@@ -36,8 +36,8 @@ export async function POST(request: Request) {
     const maxWidth = canvas.width * 0.8;
     const maxHeight = canvas.height * 0.8;
     
-    let width = image.width;
-    let height = image.height;
+    let width = image.width; 
+    let height = image.height; 
     
     if (width > maxWidth) {
       const ratio = maxWidth / width;

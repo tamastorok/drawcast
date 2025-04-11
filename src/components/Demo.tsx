@@ -288,10 +288,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        // Set canvas size to match its display size
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
+        // Set display size to match container
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        // Set actual pixel dimensions to 600x600
+        canvas.width = 600;
+        canvas.height = 600;
         
         // Fill canvas with white background
         ctx.fillStyle = 'white';
