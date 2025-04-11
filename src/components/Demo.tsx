@@ -1255,6 +1255,19 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               </button>
             </>
           )}
+
+          {/* Share on Warpcast button */}
+          <button
+            onClick={() => {
+              const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
+              const castText = `Can you guess what this drawing is? 🎨\n\n${gameUrl}`;
+              const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`;
+              window.open(composeUrl, '_blank');
+            }}
+            className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <span>Share on Warpcast</span>
+          </button>
         </div>
       </div>
     );
@@ -1352,7 +1365,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       {/* Main Content Area - Scrollable */}
       <div className="w-full h-full overflow-y-auto bg-white" style={{ 
         paddingTop: "72px",
-        paddingBottom: "64px",
+        paddingBottom: "80px",
         backgroundColor: 'white',
         position: 'relative',
         zIndex: 1
@@ -1395,7 +1408,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       {/* Bottom navigation - Fixed */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
         <div className="w-[300px] mx-auto">
-          <div className="flex justify-around items-center h-14">
+          <div className="flex justify-around items-center h-[70px]">
             <button 
               className={`flex flex-col items-center justify-center w-full h-full ${!showLeaderboard && !showProfile && !isDrawing && !showGuess ? 'bg-green-100' : ''}`}
               onClick={() => {
