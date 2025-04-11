@@ -778,6 +778,17 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const imageUrl = await getDownloadURL(storageRef);
       console.log('Got download URL:', imageUrl);
 
+      let shareImageUrl = 'https://drawcast.xyz/image.png'; // Default fallback URL
+      try {
+        // Generate and upload share image
+        console.log('Starting share image generation...');
+        shareImageUrl = await generateShareImage(imageUrl, `${context.user.fid}_${timestamp}`);
+        console.log('Share image generated and uploaded:', shareImageUrl);
+      } catch (error) {
+        console.error('Error generating share image:', error);
+        // Continue with the fallback URL
+      }
+
       // Create new game document with initialized guesses array and counts
       const createdAt = new Date();
       const expiredAt = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000); // 24 hours later
@@ -786,6 +797,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         createdAt,
         expiredAt,
         imageUrl: imageUrl,
+        shareImageUrl: shareImageUrl,
         prompt: currentPrompt,
         userFid: context.user.fid.toString(),
         username: context.user.username || 'Anonymous',
@@ -809,7 +821,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       });
 
       // Commit both operations
+      console.log('Committing batch...');
       await batch.commit();
+      console.log('Batch committed successfully');
       console.log('Game document created and user stats updated');
 
       // Store the new game ID for sharing
@@ -837,6 +851,101 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       setIsUploading(false);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const generateShareImage = async (drawingUrl: string, gameId: string): Promise<string> => {
+    try {
+      console.log('Starting share image generation with URL:', drawingUrl);
+      
+      // Create a canvas for the share image
+      console.log('Creating canvas...');
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 720;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        console.error('Could not get canvas context');
+        throw new Error('Could not get canvas context');
+      }
+
+      // Fill background with #ffbd59
+      console.log('Filling background...');
+      ctx.fillStyle = '#ffbd59';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Load the drawing image
+      console.log('Creating image element...');
+      const drawing = document.createElement('img');
+      drawing.crossOrigin = 'anonymous';
+      
+      // Wait for the image to load
+      console.log('Loading image...');
+      await new Promise<void>((resolve, reject) => {
+        drawing.onload = () => {
+          console.log('Image loaded successfully');
+          resolve();
+        };
+        drawing.onerror = (error: Event | string) => {
+          console.error('Error loading image:', error);
+          reject(error);
+        };
+        drawing.src = drawingUrl;
+      });
+
+      // Calculate dimensions to fit the drawing in the center
+      console.log('Calculating dimensions...');
+      const maxWidth = canvas.width * 0.8; // 80% of canvas width
+      const maxHeight = canvas.height * 0.8; // 80% of canvas height
+      
+      let width = drawing.width;
+      let height = drawing.height;
+      
+      // Maintain aspect ratio while fitting within max dimensions
+      if (width > maxWidth) {
+        const ratio = maxWidth / width;
+        width *= ratio;
+        height *= ratio;
+      }
+      if (height > maxHeight) {
+        const ratio = maxHeight / height;
+        width *= ratio;
+        height *= ratio;
+      }
+
+      // Calculate position to center the drawing
+      const x = (canvas.width - width) / 2;
+      const y = (canvas.height - height) / 2;
+
+      // Draw the image
+      console.log('Drawing image onto canvas...');
+      ctx.drawImage(drawing, x, y, width, height);
+
+      // Convert canvas to base64
+      console.log('Converting canvas to base64...');
+      const shareImageData = canvas.toDataURL('image/png');
+      const base64Data = shareImageData.split(',')[1];
+
+      // Upload to Firebase Storage
+      console.log('Creating storage reference...');
+      const shareImageRef = ref(storage, `shareImages/${gameId}.png`);
+      
+      console.log('Uploading to Firebase Storage...');
+      await uploadString(shareImageRef, base64Data, 'base64', {
+        contentType: 'image/png'
+      });
+      console.log('Upload completed');
+
+      // Get and return the download URL
+      console.log('Getting download URL...');
+      const downloadUrl = await getDownloadURL(shareImageRef);
+      console.log('Download URL:', downloadUrl);
+      return downloadUrl;
+    } catch (error) {
+      console.error('Error in generateShareImage:', error);
+      // Return a fallback URL if there's an error
+      return 'https://drawcast.xyz/image.png';
     }
   };
 

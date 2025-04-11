@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
 import Demo from '~/components/Demo';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 type Props = {
   params: Promise<{ gameId: string }>;
@@ -14,10 +16,25 @@ export async function generateMetadata(
   const gameTitle = `Drawcast - Game ${resolvedParams.gameId}`;
   const gameDescription = 'Can you guess what this drawing is?';
 
+  // Fetch game data to get the share image URL
+  const app = initializeApp({
+    apiKey: "AIzaSyBlL2CIZTb-crfirYJ6ym6j6G4uQewu59k",
+    authDomain: "drawcast-ae4cf.firebaseapp.com",
+    projectId: "drawcast-ae4cf",
+    storageBucket: "drawcast-ae4cf.firebasestorage.app",
+    messagingSenderId: "998299398034",
+    appId: "1:998299398034:web:0f8e8a516d69e8ecf9db4b",
+    measurementId: "G-B6N4RGK1M5"
+  });
+  const db = getFirestore(app);
+  const gameRef = doc(db, 'games', resolvedParams.gameId);
+  const gameDoc = await getDoc(gameRef);
+  const gameData = gameDoc.data();
+
   // Generate frame metadata
   const frameMetadata = {
     version: "next",
-    imageUrl: `https://drawcast.xyz/games/${resolvedParams.gameId}/opengraph-image`,
+    imageUrl: gameData?.shareImageUrl || `https://drawcast.xyz/image.png`,
     aspectRatio: "3:2",
     button: {
       title: "Guess the Drawing!",
@@ -40,7 +57,7 @@ export async function generateMetadata(
       description: gameDescription,
       images: [
         {
-          url: `/games/${resolvedParams.gameId}/opengraph-image`,
+          url: gameData?.shareImageUrl || `/games/${resolvedParams.gameId}/opengraph-image`,
           width: 1200,
           height: 630,
           alt: gameTitle,
