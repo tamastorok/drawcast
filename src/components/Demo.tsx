@@ -856,82 +856,28 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
   const generateShareImage = async (drawingUrl: string, gameId: string): Promise<string> => {
     try {
-      console.log('Starting share image generation with URL:', drawingUrl);
+      console.log('Starting share image generation...');
       
-      // Create a canvas for the share image
-      console.log('Creating canvas...');
-      const canvas = document.createElement('canvas');
-      canvas.width = 1080;
-      canvas.height = 720;
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        console.error('Could not get canvas context');
-        throw new Error('Could not get canvas context');
-      }
-
-      // Fill background with #ffbd59
-      console.log('Filling background...');
-      ctx.fillStyle = '#ffbd59';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Load the drawing image using fetch
-      console.log('Fetching image data...');
-      const response = await fetch(drawingUrl);
-      const blob = await response.blob();
-      const imageBitmap = await createImageBitmap(blob);
-      
-      // Calculate dimensions to fit the drawing in the center
-      console.log('Calculating dimensions...');
-      const maxWidth = canvas.width * 0.8; // 80% of canvas width
-      const maxHeight = canvas.height * 0.8; // 80% of canvas height
-      
-      let width = imageBitmap.width;
-      let height = imageBitmap.height;
-      
-      // Maintain aspect ratio while fitting within max dimensions
-      if (width > maxWidth) {
-        const ratio = maxWidth / width;
-        width *= ratio;
-        height *= ratio;
-      }
-      if (height > maxHeight) {
-        const ratio = maxHeight / height;
-        width *= ratio;
-        height *= ratio;
-      }
-
-      // Calculate position to center the drawing
-      const x = (canvas.width - width) / 2;
-      const y = (canvas.height - height) / 2;
-
-      // Draw the image
-      console.log('Drawing image onto canvas...');
-      ctx.drawImage(imageBitmap, x, y, width, height);
-
-      // Convert canvas to base64
-      console.log('Converting canvas to base64...');
-      const shareImageData = canvas.toDataURL('image/png');
-      const base64Data = shareImageData.split(',')[1];
-
-      // Upload to Firebase Storage
-      console.log('Creating storage reference...');
-      const shareImageRef = ref(storage, `shareImages/${gameId}.png`);
-      
-      console.log('Uploading to Firebase Storage...');
-      await uploadString(shareImageRef, base64Data, 'base64', {
-        contentType: 'image/png'
+      const response = await fetch('/api/generate-share-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          drawingUrl,
+          gameId,
+        }),
       });
-      console.log('Upload completed');
 
-      // Get and return the download URL
-      console.log('Getting download URL...');
-      const downloadUrl = await getDownloadURL(shareImageRef);
-      console.log('Download URL:', downloadUrl);
-      return downloadUrl;
+      if (!response.ok) {
+        throw new Error('Failed to generate share image');
+      }
+
+      const data = await response.json();
+      console.log('Share image generated:', data.shareImageUrl);
+      return data.shareImageUrl;
     } catch (error) {
       console.error('Error in generateShareImage:', error);
-      // Return a fallback URL if there's an error
       return 'https://drawcast.xyz/image.png';
     }
   };
