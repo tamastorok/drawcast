@@ -44,17 +44,8 @@ export async function generateMetadata(
       siteName: 'Drawcast'
     },
     other: {
-      // Use the generated frame metadata
-      'fc:frame': JSON.stringify(frameMetadata),
-      // Additional meta tags
-      'og:title': gameTitle,
-      'og:description': gameDescription,
-      'og:image': 'https://drawcast.xyz/image.png',
-      'og:url': gameUrl,
-      'twitter:card': 'summary_large_image',
-      'twitter:title': gameTitle,
-      'twitter:description': gameDescription,
-      'twitter:image': 'https://drawcast.xyz/image.png'
+      // Only include the stringified frame metadata
+      'fc:frame': JSON.stringify(frameMetadata)
     },
     alternates: {
       canonical: gameUrl
