@@ -875,32 +875,19 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       ctx.fillStyle = '#ffbd59';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Load the drawing image
-      console.log('Creating image element...');
-      const drawing = document.createElement('img');
-      drawing.crossOrigin = 'anonymous';
+      // Load the drawing image using fetch
+      console.log('Fetching image data...');
+      const response = await fetch(drawingUrl);
+      const blob = await response.blob();
+      const imageBitmap = await createImageBitmap(blob);
       
-      // Wait for the image to load
-      console.log('Loading image...');
-      await new Promise<void>((resolve, reject) => {
-        drawing.onload = () => {
-          console.log('Image loaded successfully');
-          resolve();
-        };
-        drawing.onerror = (error: Event | string) => {
-          console.error('Error loading image:', error);
-          reject(error);
-        };
-        drawing.src = drawingUrl;
-      });
-
       // Calculate dimensions to fit the drawing in the center
       console.log('Calculating dimensions...');
       const maxWidth = canvas.width * 0.8; // 80% of canvas width
       const maxHeight = canvas.height * 0.8; // 80% of canvas height
       
-      let width = drawing.width;
-      let height = drawing.height;
+      let width = imageBitmap.width;
+      let height = imageBitmap.height;
       
       // Maintain aspect ratio while fitting within max dimensions
       if (width > maxWidth) {
@@ -920,7 +907,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       // Draw the image
       console.log('Drawing image onto canvas...');
-      ctx.drawImage(drawing, x, y, width, height);
+      ctx.drawImage(imageBitmap, x, y, width, height);
 
       // Convert canvas to base64
       console.log('Converting canvas to base64...');
