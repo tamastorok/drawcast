@@ -568,41 +568,41 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         </h2>
 
         {/* Leaderboard Position */}
-        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-center mb-6 text-gray-600">
+        <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 text-gray-600">
           <div className="text-2xl font-bold text-gray-600">
             {mockLeaderboardData.currentUser?.rank ? `#${mockLeaderboardData.currentUser.rank}` : 'Not ranked'}
           </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="text-sm text-gray-600">
             Leaderboard Position
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-center">
+          <div className="bg-gray-100 p-4 rounded-lg text-center">
             <div className="text-2xl font-bold text-gray-600">
               {userStats?.correctGuesses || 0}
             </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-gray-600">
               Solved
             </div>
           </div>
-          <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-center">
+          <div className="bg-gray-100 p-4 rounded-lg text-center">
             <div className="text-2xl font-bold text-gray-600">
               {userStats?.created || 0}
             </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-gray-600">
               Created
             </div>
           </div>
         </div>
 
         {/* Points */}
-        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-center mb-6">
+        <div className="bg-gray-100 p-4 rounded-lg text-center mb-6">
           <div className="text-2xl font-bold text-gray-600">
             {userStats?.points || 0}
           </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="text-sm text-gray-600">
             Points
           </div>
         </div>
@@ -611,9 +611,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         <div className="mb-6">
           <button
             onClick={() => setIsDrawingsExpanded(!isDrawingsExpanded)}
-            className="w-full flex justify-between items-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="w-full flex justify-between items-center p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
           >
-            <h3 className="text-lg font-bold text-gray-600 dark:text-gray-100">Your Drawings</h3>
+            <h3 className="text-lg font-bold text-gray-600">Your Drawings</h3>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -633,7 +633,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           {isDrawingsExpanded && (
             <div className="mt-2">
               {isLoadingGames ? (
-                <div className="text-center text-gray-600 dark:text-gray-400 p-4">
+                <div className="text-center text-gray-600 p-4">
                   Loading your drawings...
                 </div>
               ) : (
@@ -641,11 +641,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   {createdGames.map((game) => (
                     <div 
                       key={game.id}
-                      className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg"
+                      className="p-4 rounded-lg"
                     >
                       <div className="flex justify-between items-center">
                         <div>
-                          <div className="text-gray-600 dark:text-gray-400">
+                          <div className="text-gray-600">
                             {game.prompt}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
@@ -656,10 +656,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                          <div className="text-sm text-gray-600">
                             {game.totalGuesses} guesses
                           </div>
-                          <div className="text-sm text-green-600 dark:text-green-400">
+                          <div className="text-sm text-green-600">
                             {game.correctGuesses} correct
                           </div>
                         </div>
@@ -667,7 +667,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     </div>
                   ))}
                   {createdGames.length === 0 && (
-                    <div className="text-center text-gray-600 dark:text-gray-400 p-4">
+                    <div className="text-center text-gray-600 p-4">
                       No drawings created yet
                     </div>
                   )}
@@ -689,8 +689,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               key={user.fid}
               className={`p-3 rounded-lg flex items-center gap-3 ${
                 context?.user?.fid === user.fid 
-                  ? 'bg-green-100 dark:bg-green-100' 
-                  : 'bg-gray-100 dark:bg-gray-800'
+                  ? 'bg-green-100' 
+                  : 'bg-gray-100'
               }`}
             >
               <div className="text-lg font-bold w-8">{index + 1}</div>
@@ -704,8 +704,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 />
               )}
               <div className="flex-1">
-                <div className="font-bold">{user.username}{user.isPremium && <span className="text-xs text-gray-500" title="Premium user"> ⭐</span>}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">{user.points} points</div>
+                <div className="font-bold">{user.username}{user.isPremium && <span className="text-xs" title="Premium user"> ⭐</span>}</div>
+                <div className="text-sm text-gray-600">{user.points} points</div>
               </div>
             </div>
           ))}
@@ -714,9 +714,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           {mockLeaderboardData.currentUser && (
             <>
               <div className="h-4"></div>
-              <div className="border-t border-gray-300 dark:border-gray-600 my-2"></div>
+              <div className="border-t border-gray-300 my-2"></div>
               <div 
-                className="p-3 bg-green-100 dark:bg-green-900 rounded-lg flex items-center gap-3"
+                className="p-3 bg-green-100 rounded-lg flex items-center gap-3"
               >
                 <div className="text-lg font-bold w-8">{mockLeaderboardData.currentUser.rank}</div>
                 {mockLeaderboardData.currentUser.pfpUrl && (
@@ -730,7 +730,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 )}
                 <div className="flex-1">
                   <div className="font-bold">{mockLeaderboardData.currentUser.username}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">{mockLeaderboardData.currentUser.points} points</div>
+                  <div className="text-sm text-gray-600">{mockLeaderboardData.currentUser.points} points</div>
                 </div>
               </div>
             </>
@@ -856,39 +856,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     }
   };
 
-  // Add effect to handle pull-to-refresh prevention
-  useEffect(() => {
-    if (isDrawing) {
-      const preventDefault = (e: TouchEvent) => {
-        // Only prevent if we're at the top of the page
-        if (window.scrollY === 0) {
-          e.preventDefault();
-        }
-      };
-
-      // Add event listeners
-      document.addEventListener('touchmove', preventDefault, { passive: false });
-      document.body.style.overscrollBehavior = 'none';
-      document.body.style.touchAction = 'none';
-      document.body.style.overflow = 'hidden';
-
-      // Cleanup
-      return () => {
-        document.removeEventListener('touchmove', preventDefault);
-        document.body.style.overscrollBehavior = '';
-        document.body.style.touchAction = '';
-        document.body.style.overflow = '';
-      };
-    }
-  }, [isDrawing]);
-
   const renderDrawingPage = () => {
     return (
       <div 
-        className="fixed inset-0 bg-white dark:bg-gray-800" 
+        className="fixed inset-0 bg-white" 
         style={{ 
-          paddingTop: "72px", // Height of header
-          paddingBottom: "64px", // Height of bottom nav
+          paddingTop: "72px",
+          paddingBottom: "64px",
           position: 'fixed',
           top: 0,
           left: 0,
@@ -906,25 +880,24 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               setIsDrawing(false);
               setShowTimeUpPopup(false);
             }}
-            className="flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 mb-2 transition-colors"
+            className="flex items-center gap-1 text-gray-600 hover:text-gray-800 mb-2 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
             <span>Back to home</span>
           </button>
-          <h1 className="text-2xl font-bold text-center mb-4 text-gray-600 dark:text-gray-100">Draw: {currentPrompt || 'Loading...'}</h1>
-          <div className="text-center mb-4 text-gray-600 dark:text-gray-100">
+          <h1 className="text-2xl font-bold text-center mb-4 text-gray-600">Draw: {currentPrompt || 'Loading...'}</h1>
+          <div className="text-center mb-4 text-gray-600">
             Time left: {timeLeft}s
           </div>
 
           {/* Drawing Canvas Area */}
-          <div className="w-full aspect-square bg-white dark:bg-gray-700 rounded-lg mb-4 border-2 border-gray-300 dark:border-gray-600 overflow-hidden touch-none select-none"
+          <div className="w-full aspect-square bg-white rounded-lg mb-4 border-2 border-gray-300 overflow-hidden select-none"
                style={{ touchAction: 'none' }}>
             <canvas
               ref={canvasRef}
-              className="w-full h-full touch-none"
-              style={{ touchAction: 'none' }}
+              className="w-full h-full"
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
@@ -936,7 +909,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           </div>
           
           <div className="space-y-4">
-            <p className="text-sm text-center text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-center text-gray-600">
               You&apos;ll earn 10 points after each successful guesses
             </p>
             <button 
@@ -952,7 +925,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         {/* Time Up Popup */}
         {showTimeUpPopup && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-sm w-full mx-4">
+            <div className="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
               <h2 className="text-xl font-bold text-center mb-4 text-gray-600">Time is up!</h2>
               <p className="text-center mb-6 text-gray-800">Do you want to submit?</p>
               <div className="flex gap-4">
@@ -1167,7 +1140,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             setCurrentGuess('');
             setGuessError(null);
           }}
-          className="flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200 mb-2 transition-colors"
+          className="flex items-center gap-1 text-gray-600 hover:text-gray-800 mb-2 transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -1175,13 +1148,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           <span>Back to list</span>
         </button>
         <h1 className="text-2xl font-bold text-center mb-4">Make your guess!</h1>
-        <div className="text-center text-gray-600 dark:text-gray-400 mb-4">
+        <div className="text-center text-gray-600 mb-4">
           Drawing by {selectedGame.username}
         </div>
-        <div className="text-center text-gray-600 dark:text-gray-400 mb-4">
+        <div className="text-center text-gray-600 mb-4">
           {selectedGame.totalGuesses}/10 players
         </div>
-        <div className="aspect-square relative bg-white dark:bg-gray-700 rounded-lg overflow-hidden">
+        <div className="aspect-square relative bg-white rounded-lg overflow-hidden">
           <Image
             src={selectedGame.imageUrl}
             alt="Drawing to guess"
@@ -1189,20 +1162,20 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             className="object-contain"
           />
         </div>
-        <p className="text-sm text-center text-gray-600 dark:text-gray-400 mb-4">
+        <p className="text-sm text-center text-gray-600 mb-4">
           You will earn 10 points for successfully guessing this drawing.
         </p>
             
         <div className="space-y-4">
           {isExpired ? (
-            <div className="p-4 rounded-lg text-center bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100">
+            <div className="p-4 rounded-lg text-center bg-red-100 text-red-800">
               This game has ended
             </div>
           ) : userGuess ? (
             <div className={`p-4 rounded-lg text-center ${
               userGuess.isCorrect 
-                ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' 
-                : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100'
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
             }`}>
               <p className="font-medium">You guessed: {userGuess.guess}</p>
               <p className="text-lg font-bold mt-2">
@@ -1217,14 +1190,14 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   id="guess"
                   value={currentGuess}
                   onChange={(e) => setCurrentGuess(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Type your guess here..."
                   disabled={isSubmittingGuess}
                 />
               </div>
               
               {guessError && (
-                <div className="p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded-md text-sm">
+                <div className="p-3 bg-red-100 text-red-700 rounded-md text-sm">
                   {guessError}
                 </div>
               )}
@@ -1246,7 +1219,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const renderGuessPage = () => {
     return (
       <div>
-        <h1 className="text-l text-center mb-6 text-gray-600 dark:text-gray-100">Guess the drawings, earn points and climb the leaderboard!</h1>
+        <h1 className="text-l text-center mb-6 text-gray-600">Guess the drawings, earn points and climb the leaderboard!</h1>
         <div className="space-y-2">
           {games.map((game) => {
             // Check if current user has already guessed this game
@@ -1264,14 +1237,14 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 className={`w-full p-4 ${
                   userGuess 
                     ? userGuess.isCorrect
-                      ? 'bg-green-100 dark:bg-green-900'
-                      : 'bg-red-100 dark:bg-red-900'
-                    : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      ? 'bg-green-100'
+                      : 'bg-red-100'
+                    : 'bg-gray-100 hover:bg-gray-200'
                 } rounded-lg text-left transition-colors`}
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="text-gray-600 dark:text-gray-400">
+                    <div className="text-gray-600">
                       Drawing by {game.username}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
@@ -1306,19 +1279,18 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         paddingBottom: context?.client.safeAreaInsets?.bottom ?? 0,
         paddingLeft: context?.client.safeAreaInsets?.left ?? 0,
         paddingRight: context?.client.safeAreaInsets?.right ?? 0,
-        touchAction: isDrawing ? 'none' : undefined,
-        overscrollBehavior: isDrawing ? 'none' : undefined,
-        overflow: isDrawing ? 'hidden' : undefined,
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
+        backgroundColor: 'white',
+        zIndex: 0
       }}
-      className="touch-none"
+      className="bg-white"
     >
       {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="fixed top-0 left-0 right-0 z-10 bg-white border-b border-gray-200">
         <div className="w-[300px] mx-auto py-3">
           <div className="flex justify-center items-center gap-2">
             <Image
@@ -1328,18 +1300,20 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               height={40}
               priority
             />
-            <span className="text-2xl font-bold text-gray-600 dark:text-gray-100 font-mono">drawcast</span><sup className="text-xs text-gray-600">beta</sup>
+            <span className="text-2xl font-bold text-gray-600 font-mono">drawcast</span><sup className="text-xs text-gray-600">beta</sup>
           </div>
         </div>
       </div>
 
       {/* Main Content Area - Scrollable */}
-      <div className="w-full h-full overflow-y-auto" style={{ 
-        paddingTop: "72px", // Height of header
-        paddingBottom: "64px", // Height of bottom nav
-        touchAction: "pan-y" 
+      <div className="w-full h-full overflow-y-auto bg-white" style={{ 
+        paddingTop: "72px",
+        paddingBottom: "64px",
+        backgroundColor: 'white',
+        position: 'relative',
+        zIndex: 1
       }}>
-        <div className="w-[300px] mx-auto px-2">
+        <div className="w-[300px] mx-auto px-2 bg-white">
           {showLeaderboard ? (
             renderLeaderboard()
           ) : showProfile ? (
@@ -1351,7 +1325,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           ) : (
             // Main Draw Page
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
-              <h2 className="text-2xl font-bold text-center text-gray-600 dark:text-gray-100">Draw & challenge others!</h2>
+              <h2 className="text-2xl font-bold text-center text-gray-600">Draw & challenge others!</h2>
               <p className="text-m text-gray-500 text-center mb-8">Earn 10 points after each successful guess.</p>
               <div className="flex flex-col items-center gap-6">
                 <button
@@ -1375,11 +1349,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       </div>
 
       {/* Bottom navigation - Fixed */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
         <div className="w-[300px] mx-auto">
           <div className="flex justify-around items-center h-14">
             <button 
-              className={`flex flex-col items-center justify-center w-full h-full ${!showLeaderboard && !showProfile && !isDrawing && !showGuess ? 'bg-green-100 dark:bg-green-900' : ''}`}
+              className={`flex flex-col items-center justify-center w-full h-full ${!showLeaderboard && !showProfile && !isDrawing && !showGuess ? 'bg-green-100' : ''}`}
               onClick={() => {
                 setShowLeaderboard(false);
                 setShowProfile(false);
@@ -1394,7 +1368,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               <span className="text-xs">Draw</span>
             </button>
             <button 
-              className={`flex flex-col items-center justify-center w-full h-full ${showGuess ? 'bg-green-100 dark:bg-green-900' : ''}`}
+              className={`flex flex-col items-center justify-center w-full h-full ${showGuess ? 'bg-green-100' : ''}`}
               onClick={() => {
                 setShowLeaderboard(false);
                 setShowProfile(false);
@@ -1409,7 +1383,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               <span className="text-xs">Guess</span>
             </button>
             <button 
-              className={`flex flex-col items-center justify-center w-full h-full ${showLeaderboard ? 'bg-green-100 dark:bg-green-900' : ''}`}
+              className={`flex flex-col items-center justify-center w-full h-full ${showLeaderboard ? 'bg-green-100' : ''}`}
               onClick={() => {
                 setShowLeaderboard(true);
                 setShowProfile(false);
@@ -1422,7 +1396,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               <span className="text-xs">Top</span>
             </button>
             <button 
-              className={`flex flex-col items-center justify-center w-full h-full ${showProfile ? 'bg-green-100 dark:bg-green-900' : ''}`}
+              className={`flex flex-col items-center justify-center w-full h-full ${showProfile ? 'bg-green-100' : ''}`}
               onClick={() => {
                 setShowLeaderboard(false);
                 setShowProfile(true);
@@ -1443,11 +1417,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       {/* Share Popup */}
       {showSharePopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-sm w-full mx-4 relative">
+          <div className="bg-white p-6 rounded-lg max-w-sm w-full mx-4 relative">
             {/* Close button */}
             <button
               onClick={() => setShowSharePopup(false)}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1455,8 +1429,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               </svg>
             </button>
 
-            <h2 className="text-xl font-bold text-center mb-2 text-gray-600 dark:text-gray-100">Drawing Submitted!</h2>
-            <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+            <h2 className="text-xl font-bold text-center mb-2 text-gray-600">Drawing Submitted!</h2>
+            <p className="text-center text-gray-600 mb-6">
               Can other guess it?Share your drawing on Warpcast to challenge others and earn more points!
             </p>
 

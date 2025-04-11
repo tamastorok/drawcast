@@ -4,23 +4,30 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --background: white;
+}
+
+html {
+  background: white;
+}
+
 html, body {
-  overscroll-behavior: none;
-  overflow: hidden;
-  position: fixed;
   width: 100%;
   height: 100%;
-  touch-action: none;
+  background-color: white;
 }
 
 body {
-  -webkit-overflow-scrolling: touch;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  color: var(--foreground);
-  background: var(--background);
+  background: white;
   font-family: 'Inter', Helvetica, Arial, sans-serif;
+  color: var(--foreground);
+}
+
+#__next {
+  background: white;
+  min-height: 100vh;
+  width: 100%;
 }
 
 * {
@@ -35,5 +42,9 @@ body {
 @layer base {
   :root {
     --radius: 0.5rem;
+  }
+  
+  body {
+    background-color: white;
   }
 }

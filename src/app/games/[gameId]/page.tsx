@@ -17,7 +17,7 @@ export async function generateMetadata(
   // Generate frame metadata
   const frameMetadata = {
     version: "next",
-    imageUrl: "https://drawcast.xyz/image.png",
+    imageUrl: `https://drawcast.xyz/games/${resolvedParams.gameId}/opengraph-image`,
     aspectRatio: "3:2",
     button: {
       title: "Guess the Drawing!",
@@ -38,7 +38,14 @@ export async function generateMetadata(
     openGraph: {
       title: gameTitle,
       description: gameDescription,
-      images: ['/image.png'],
+      images: [
+        {
+          url: `/games/${resolvedParams.gameId}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: gameTitle,
+        }
+      ],
       url: gameUrl,
       type: 'website',
       siteName: 'Drawcast'
