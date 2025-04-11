@@ -11,28 +11,50 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const resolvedParams = await params;
   const gameUrl = `https://drawcast.xyz/games/${resolvedParams.gameId}`;
+  const gameTitle = `Drawcast - Game ${resolvedParams.gameId}`;
+  const gameDescription = 'Can you guess what this drawing is?';
+
+  // Generate frame metadata
+  const frameMetadata = {
+    version: "next",
+    imageUrl: "https://drawcast.xyz/image.png",
+    aspectRatio: "3:2",
+    button: {
+      title: "Guess the Drawing!",
+      action: {
+        type: "launch_frame",
+        name: "Drawcast",
+        url: gameUrl,
+        splashImageUrl: "https://drawcast.xyz/splash.png",
+        splashBackgroundColor: "#FFF"
+      }
+    }
+  };
   
   return {
     metadataBase: new URL('https://drawcast.xyz'),
-    title: `Drawcast - Game ${resolvedParams.gameId}`,
-    description: 'Can you guess what this drawing is?',
+    title: gameTitle,
+    description: gameDescription,
     openGraph: {
-      title: `Drawcast - Game ${resolvedParams.gameId}`,
-      description: 'Can you guess what this drawing is?',
+      title: gameTitle,
+      description: gameDescription,
       images: ['/image.png'],
       url: gameUrl,
       type: 'website',
       siteName: 'Drawcast'
     },
     other: {
-      'fc:frame': 'next',
-      'fc:frame:image': 'https://drawcast.xyz/image.png',
-      'fc:frame:button:1': 'Guess the Drawing!',
-      'fc:frame:post_url': gameUrl,
-      'og:title': `Drawcast - Game ${resolvedParams.gameId}`,
-      'og:description': 'Can you guess what this drawing is?',
+      // Use the generated frame metadata
+      'fc:frame': JSON.stringify(frameMetadata),
+      // Additional meta tags
+      'og:title': gameTitle,
+      'og:description': gameDescription,
       'og:image': 'https://drawcast.xyz/image.png',
-      'og:url': gameUrl
+      'og:url': gameUrl,
+      'twitter:card': 'summary_large_image',
+      'twitter:title': gameTitle,
+      'twitter:description': gameDescription,
+      'twitter:image': 'https://drawcast.xyz/image.png'
     },
     alternates: {
       canonical: gameUrl
