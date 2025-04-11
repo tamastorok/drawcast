@@ -44,9 +44,12 @@ export async function generateMetadata(
       description: metadata.description,
       images: [metadata.image],
       url: metadata.url,
+      type: 'website',
+      siteName: 'Drawcast'
     },
     other: {
-      'fc:frame': JSON.stringify(metadata.frame)
+      'fc:frame': JSON.stringify(metadata.frame),
+      'og:frame': JSON.stringify(metadata.frame)
     },
     alternates: {
       canonical: metadata.url
