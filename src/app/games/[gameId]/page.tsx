@@ -28,7 +28,11 @@ export async function generateMetadata(
       'fc:frame': 'next',
       'fc:frame:image': 'https://drawcast.xyz/image.png',
       'fc:frame:button:1': 'Guess the Drawing!',
-      'fc:frame:post_url': gameUrl
+      'fc:frame:post_url': gameUrl,
+      'og:title': `Drawcast - Game ${resolvedParams.gameId}`,
+      'og:description': 'Can you guess what this drawing is?',
+      'og:image': 'https://drawcast.xyz/image.png',
+      'og:url': gameUrl
     },
     alternates: {
       canonical: gameUrl
