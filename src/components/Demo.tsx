@@ -358,21 +358,17 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       ]);
       
       if (adjectivesDoc.exists() && nounsDoc.exists()) {
-        const adjectivesData = adjectivesDoc.data();
-        const nounsData = nounsDoc.data();
+        const adjectives = adjectivesDoc.data().words || [];
+        const nouns = nounsDoc.data().words || [];
         
-        // Get all fields from both documents
-        const adjectiveFields = Object.values(adjectivesData);
-        const nounFields = Object.values(nounsData);
-        
-        if (adjectiveFields.length > 0 && nounFields.length > 0) {
+        if (adjectives.length > 0 && nouns.length > 0) {
           // Get random values
-          const randomAdjective = adjectiveFields[Math.floor(Math.random() * adjectiveFields.length)];
-          const randomNoun = nounFields[Math.floor(Math.random() * nounFields.length)];
+          const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+          const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
           
           setCurrentPrompt(`${randomAdjective} ${randomNoun}`);
         } else {
-          console.log('No fields found in adjectives or nouns documents');
+          console.log('No words found in adjectives or nouns arrays');
           setCurrentPrompt('Error loading prompt');
         }
       } else {
