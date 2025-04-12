@@ -559,52 +559,52 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               alt="Profile" 
               width={96} 
               height={96} 
-              className="rounded-full"
+              className="rounded-full transform rotate-[-2deg] border-4 border-dashed border-gray-800"
             />
           )}
         </div>
 
         {/* Username */}
-        <h2 className="text-xl font-bold text-center mb-2 text-gray-600">
+        <h2 className="text-xl font-bold text-center mb-2 text-gray-800 transform rotate-[1deg]">
           {context?.user?.username || 'Anonymous'}
         </h2>
 
         {/* Leaderboard Position */}
-        <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 text-gray-600">
-          <div className="text-2xl font-bold text-gray-600">
+        <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 text-gray-800 transform rotate-[-1deg] border-2 border-dashed border-gray-800">
+          <div className="text-2xl font-bold text-gray-800">
             {mockLeaderboardData.currentUser?.rank ? `#${mockLeaderboardData.currentUser.rank}` : 'Not ranked'}
           </div>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-800">
             Leaderboard Position
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="bg-gray-100 p-4 rounded-lg text-center">
-            <div className="text-2xl font-bold text-gray-600">
+          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[2deg] border-2 border-dashed border-gray-800">
+            <div className="text-2xl font-bold text-gray-800">
               {userStats?.correctGuesses || 0}
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-800">
               Solved
             </div>
           </div>
-          <div className="bg-gray-100 p-4 rounded-lg text-center">
-            <div className="text-2xl font-bold text-gray-600">
+          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-2deg] border-2 border-dashed border-gray-800">
+            <div className="text-2xl font-bold text-gray-800">
               {userStats?.created || 0}
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-800">
               Created
             </div>
           </div>
         </div>
 
         {/* Points */}
-        <div className="bg-gray-100 p-4 rounded-lg text-center mb-6">
-          <div className="text-2xl font-bold text-gray-600">
+        <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 transform rotate-[1deg] border-2 border-dashed border-gray-800">
+          <div className="text-2xl font-bold text-gray-800">
             {userStats?.points || 0}
           </div>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-800">
             Points
           </div>
         </div>
@@ -613,9 +613,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         <div className="mb-6">
           <button
             onClick={() => setIsDrawingsExpanded(!isDrawingsExpanded)}
-            className="w-full flex justify-between items-center p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            className="w-full flex justify-between items-center p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors transform rotate-[-1deg] border-2 border-dashed border-gray-800"
           >
-            <h3 className="text-lg font-bold text-gray-600">Your Drawings</h3>
+            <h3 className="text-lg font-bold text-gray-800">Your Drawings</h3>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -635,33 +635,33 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           {isDrawingsExpanded && (
             <div className="mt-2">
               {isLoadingGames ? (
-                <div className="text-center text-gray-600 p-4">
+                <div className="text-center text-gray-800 p-4 transform rotate-[2deg]">
                   Loading your drawings...
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {createdGames.map((game) => (
+                  {createdGames.map((game, index) => (
                     <div 
                       key={game.id}
-                      className="p-4 rounded-lg"
+                      className={`p-4 rounded-lg transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} border-2 border-dashed border-gray-800`}
                     >
                       <div className="flex justify-between items-center">
                         <div>
-                          <div className="text-gray-600">
+                          <div className="text-gray-800">
                             {game.prompt}
                           </div>
-                          <div className="text-xs text-gray-500 mt-1">
+                          <div className="text-xs text-gray-600 mt-1">
                             Created {new Date(game.createdAt).toLocaleDateString()}
                           </div>
-                          <div className="text-xs text-gray-500 mt-1">
+                          <div className="text-xs text-gray-600 mt-1">
                             {game.totalGuesses}/10 players
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-gray-800">
                             {game.totalGuesses} guesses
                           </div>
-                          <div className="text-sm text-green-600">
+                          <div className="text-sm text-green-800">
                             {game.correctGuesses} correct
                           </div>
                         </div>
@@ -669,7 +669,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     </div>
                   ))}
                   {createdGames.length === 0 && (
-                    <div className="text-center text-gray-600 p-4">
+                    <div className="text-center text-gray-800 p-4 transform rotate-[1deg]">
                       No drawings created yet
                     </div>
                   )}
@@ -689,11 +689,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           {mockLeaderboardData.topUsers.map((user, index) => (
             <div 
               key={user.fid}
-              className={`p-3 rounded-lg flex items-center gap-3 ${
+              className={`p-3 rounded-lg flex items-center gap-3 transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} ${
                 context?.user?.fid === user.fid 
                   ? 'bg-green-100' 
                   : 'bg-gray-100'
-              }`}
+              } border-2 border-dashed border-gray-800`}
             >
               <div className="text-lg font-bold w-8">{index + 1}</div>
               {user.pfpUrl && (
@@ -702,7 +702,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   alt={user.username} 
                   width={32} 
                   height={32} 
-                  className="rounded-full"
+                  className="rounded-full transform rotate-[2deg]"
                 />
               )}
               <div className="flex-1">
@@ -716,9 +716,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           {mockLeaderboardData.currentUser && (
             <>
               <div className="h-4"></div>
-              <div className="border-t border-gray-300 my-2"></div>
+              <div className="border-t-2 border-dashed border-gray-800 my-2"></div>
               <div 
-                className="p-3 bg-green-100 rounded-lg flex items-center gap-3"
+                className="p-3 bg-green-100 rounded-lg flex items-center gap-3 transform rotate-[1deg] border-2 border-dashed border-gray-800"
               >
                 <div className="text-lg font-bold w-8">{mockLeaderboardData.currentUser.rank}</div>
                 {mockLeaderboardData.currentUser.pfpUrl && (
@@ -727,7 +727,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     alt={mockLeaderboardData.currentUser.username} 
                     width={32} 
                     height={32} 
-                    className="rounded-full"
+                    className="rounded-full transform rotate-[-2deg]"
                   />
                 )}
                 <div className="flex-1">
@@ -924,7 +924,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               setIsDrawing(false);
               setShowTimeUpPopup(false);
             }}
-            className="flex items-center gap-1 text-gray-600 hover:text-gray-800 mb-2 transition-colors"
+            className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] border-2 border-dashed border-gray-800 px-3 py-1 rounded-lg"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -959,7 +959,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             <button 
               onClick={handleDrawingSubmit}
               disabled={isUploading}
-              className="w-full bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed transform rotate-[-1deg] border-4 border-dashed border-white"
             >
               {isUploading ? 'Uploading...' : 'Submit'}
             </button>
@@ -975,13 +975,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               <div className="flex gap-4">
                 <button
                   onClick={handleDrawingSubmit}
-                  className="flex-1 bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors"
+                  className="flex-1 bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors transform rotate-[-1deg] border-4 border-dashed border-white"
                 >
                   Submit
                 </button>
                 <button
                   onClick={handleStartNew}
-                  className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors"
+                  className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors transform rotate-[1deg] border-4 border-dashed border-white"
                 >
                   Start New
                 </button>
@@ -1184,7 +1184,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             setCurrentGuess('');
             setGuessError(null);
           }}
-          className="flex items-center gap-1 text-gray-600 hover:text-gray-800 mb-2 transition-colors"
+          className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] border-2 border-dashed border-gray-800 px-3 py-1 rounded-lg"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -1249,7 +1249,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               <button
                 onClick={handleGuessSubmit}
                 disabled={!currentGuess.trim() || isSubmittingGuess}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed transform rotate-[-1deg] border-4 border-dashed border-white"
               >
                 {isSubmittingGuess ? 'Submitting...' : 'Submit Guess'}
               </button>
@@ -1264,7 +1264,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`;
               window.open(composeUrl, '_blank');
             }}
-            className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white"
           >
             <span>Share on Warpcast</span>
           </button>
@@ -1341,13 +1341,14 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'white',
-        zIndex: 0
+        backgroundColor: '#f9f7f0',
+        zIndex: 0,
+        fontFamily: '"Comic Sans MS", "Marker Felt", cursive'
       }}
-      className="bg-white"
+      className="bg-[#f9f7f0]"
     >
       {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-10 bg-white border-b border-gray-200">
+      <div className="fixed top-0 left-0 right-0 z-10 bg-[#f9f7f0] border-b-4 border-dashed border-gray-800">
         <div className="w-[300px] mx-auto py-3">
           <div className="flex justify-center items-center gap-2">
             <Image
@@ -1356,21 +1357,22 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               width={40}
               height={40}
               priority
+              className="transform rotate-[-5deg]"
             />
-            <span className="text-2xl font-bold text-gray-600 font-mono">drawcast</span><sup className="text-xs text-gray-600">beta</sup>
+            <span className="text-2xl font-bold text-gray-800 font-mono transform rotate-[2deg]">drawcast</span><sup className="text-xs text-gray-800 transform rotate-[-3deg]">beta</sup>
           </div>
         </div>
       </div>
 
       {/* Main Content Area - Scrollable */}
-      <div className="w-full h-full overflow-y-auto bg-white" style={{ 
+      <div className="w-full h-full overflow-y-auto bg-[#f9f7f0]" style={{ 
         paddingTop: "72px",
         paddingBottom: "80px",
-        backgroundColor: 'white',
+        backgroundColor: '#f9f7f0',
         position: 'relative',
         zIndex: 1
       }}>
-        <div className="w-[300px] mx-auto px-2 bg-white">
+        <div className="w-[300px] mx-auto px-2 bg-[#f9f7f0]">
           {showLeaderboard ? (
             renderLeaderboard()
           ) : showProfile ? (
@@ -1382,8 +1384,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           ) : (
             // Main Draw Page
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
-              <h2 className="text-2xl font-bold text-center text-gray-600">Draw & challenge others!</h2>
-              <p className="text-m text-gray-500 text-center mb-8">Earn 10 points after each successful guess.</p>
+              <h2 className="text-2xl font-bold text-center text-gray-800 transform rotate-[-2deg]">Draw & challenge others!</h2>
+              <p className="text-m text-gray-600 text-center mb-8 transform rotate-[1deg]">Earn 10 points after each successful guess.</p>
               <div className="flex flex-col items-center gap-6">
                 <button
                   onClick={() => {
@@ -1394,11 +1396,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                       clearInterval(timerRef.current);
                     }
                   }}
-                  className="bg-[#0c703b] text-white py-4 px-8 rounded-lg text-xl font-bold hover:bg-[#0c703b] transition-colors"
+                  className="bg-[#0c703b] text-white py-4 px-8 rounded-lg text-xl font-bold hover:bg-[#0c703b] transition-colors transform rotate-[-1deg] border-4 border-dashed border-white"
                 >
                   Draw
                 </button>
-                <p className="text-sm text-gray-500 text-center">You&apos;ll have 30 seconds to draw.</p>
+                <p className="text-sm text-gray-600 text-center transform rotate-[2deg]">You&apos;ll have 30 seconds to draw.</p>
               </div>
             </div>
           )}
@@ -1406,11 +1408,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       </div>
 
       {/* Bottom navigation - Fixed */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#f9f7f0] border-t-4 border-dashed border-gray-800 z-10">
         <div className="w-[300px] mx-auto">
           <div className="flex justify-around items-center h-[70px]">
             <button 
-              className={`flex flex-col items-center justify-center w-full h-full ${!showLeaderboard && !showProfile && !isDrawing && !showGuess ? 'bg-green-100' : ''}`}
+              className={`flex flex-col items-center justify-center w-full h-full ${!showLeaderboard && !showProfile && !isDrawing && !showGuess ? 'bg-green-100' : ''} transform rotate-[-1deg]`}
               onClick={() => {
                 setShowLeaderboard(false);
                 setShowProfile(false);
@@ -1420,12 +1422,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               }}
             >
               <span className="text-2xl animate-wiggle">
-                <Image src="/draw.png" alt="Quiz" width={24} height={24} />
+                <Image src="/draw.png" alt="Quiz" width={24} height={24} className="transform rotate-[2deg]" />
               </span>
-              <span className="text-xs">Draw</span>
+              <span className="text-xs">Create</span>
             </button>
             <button 
-              className={`flex flex-col items-center justify-center w-full h-full ${showGuess ? 'bg-green-100' : ''}`}
+              className={`flex flex-col items-center justify-center w-full h-full ${showGuess ? 'bg-green-100' : ''} transform rotate-[1deg]`}
               onClick={() => {
                 setShowLeaderboard(false);
                 setShowProfile(false);
@@ -1435,12 +1437,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               }}
             >
               <span className="text-2xl">
-                <Image src="/guess.png" alt="Guess" width={24} height={24} />
+                <Image src="/guess.png" alt="Guess" width={24} height={24} className="transform rotate-[-2deg]" />
               </span>
-              <span className="text-xs">Guess</span>
+              <span className="text-xs">Join</span>
             </button>
             <button 
-              className={`flex flex-col items-center justify-center w-full h-full ${showLeaderboard ? 'bg-green-100' : ''}`}
+              className={`flex flex-col items-center justify-center w-full h-full ${showLeaderboard ? 'bg-green-100' : ''} transform rotate-[-2deg]`}
               onClick={() => {
                 setShowLeaderboard(true);
                 setShowProfile(false);
@@ -1449,11 +1451,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 setSelectedGame(null);
               }}
             > 
-              <span className="text-2xl"><Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} /></span>
+              <span className="text-2xl"><Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} className="transform rotate-[1deg]" /></span>
               <span className="text-xs">Top</span>
             </button>
             <button 
-              className={`flex flex-col items-center justify-center w-full h-full ${showProfile ? 'bg-green-100' : ''}`}
+              className={`flex flex-col items-center justify-center w-full h-full ${showProfile ? 'bg-green-100' : ''} transform rotate-[2deg]`}
               onClick={() => {
                 setShowLeaderboard(false);
                 setShowProfile(true);
@@ -1463,7 +1465,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               }}
             >
               <div className="text-2xl">
-                <Image src="/profile.png" alt="Profile" width={24} height={24} />
+                <Image src="/profile.png" alt="Profile" width={24} height={24} className="transform rotate-[-1deg]" />
               </div>
               <span className="text-xs">Profile</span>
             </button>
@@ -1474,11 +1476,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       {/* Share Popup */}
       {showSharePopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-sm w-full mx-4 relative">
+          <div className="bg-[#f9f7f0] p-6 rounded-lg max-w-sm w-full mx-4 relative border-4 border-dashed border-gray-800 transform rotate-[-1deg]">
             {/* Close button */}
             <button
               onClick={() => setShowSharePopup(false)}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              className="absolute top-2 right-2 text-gray-800 hover:text-gray-600 transform rotate-[2deg] border-2 border-dashed border-gray-800 px-2 py-1 rounded-lg"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1486,14 +1488,14 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               </svg>
             </button>
 
-            <h2 className="text-xl font-bold text-center mb-2 text-gray-600">Drawing Submitted!</h2>
-            <p className="text-center text-gray-600 mb-6">
-              Can other guess it?Share your drawing on Warpcast to challenge others and earn more points!
+            <h2 className="text-xl font-bold text-center mb-2 text-gray-800 transform rotate-[1deg]">Drawing Submitted!</h2>
+            <p className="text-center text-gray-600 mb-6 transform rotate-[-2deg]">
+              Can others guess it? Share your drawing on Warpcast to challenge others and earn more points!
             </p>
 
             <button
               onClick={handleShareToWarpcast}
-              className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white"
             >
               Share on Warpcast
             </button>
