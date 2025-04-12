@@ -903,7 +903,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const renderDrawingPage = () => {
     return (
       <div 
-        className="fixed inset-0 bg-white" 
+        className="fixed inset-0 bg-[#f9f7f0]" 
         style={{ 
           paddingTop: "72px",
           paddingBottom: "64px",
