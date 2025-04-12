@@ -1254,11 +1254,14 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
           {/* Share on Warpcast button */}
           <button
-            onClick={() => {
+            onClick={async () => {
               const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
               const castText = `Can you guess what this drawing is? 🎨\n\n${gameUrl}`;
-              const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`;
-              window.open(composeUrl, '_blank');
+              try {
+                await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`);
+              } catch (error) {
+                console.error('Error sharing to Warpcast:', error);
+              }
             }}
             className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white"
           >
