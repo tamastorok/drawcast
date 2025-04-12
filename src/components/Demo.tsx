@@ -920,7 +920,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               setIsDrawing(false);
               setShowTimeUpPopup(false);
             }}
-            className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] border-2 border-dashed border-gray-400 px-3 py-1 rounded-lg"
+            className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] px-3 py-1 rounded-lg"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -1180,7 +1180,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             setCurrentGuess('');
             setGuessError(null);
           }}
-          className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] border-2 border-dashed border-gray-400 px-3 py-1 rounded-lg"
+          className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] px-3 py-1 rounded-lg"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -1245,7 +1245,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               <button
                 onClick={handleGuessSubmit}
                 disabled={!currentGuess.trim() || isSubmittingGuess}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed transform rotate-[-1deg] border-4 border-dashed border-white"
+                className="w-full bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed transform rotate-[-1deg] border-4 border-dashed border-white"
               >
                 {isSubmittingGuess ? 'Submitting...' : 'Submit Guess'}
               </button>
@@ -1293,7 +1293,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                       ? 'bg-green-100'
                       : 'bg-red-100'
                     : 'bg-gray-100 hover:bg-gray-200'
-                } rounded-lg text-left transition-colors`}
+                } rounded-lg text-left transition-colors transform rotate-${Math.random() > 0.5 ? '[1deg]' : '[-1deg]'} border-2 border-dashed border-gray-400`}
               >
                 <div className="flex justify-between items-center">
                   <div>
@@ -1344,7 +1344,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       className="bg-[#f9f7f0]"
     >
       {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-10 bg-[#f9f7f0] border-b-4 border-dashed border-gray-400">
+      <div className="fixed top-0 left-0 right-0 z-10 bg-[#f9f7f0] border-b-2 border-dashed border-gray-400">
         <div className="w-[300px] mx-auto py-3">
           <div className="flex justify-center items-center gap-2">
             <Image
@@ -1355,7 +1355,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               priority
               className="transform rotate-[-5deg]"
             />
-            <span className="text-2xl font-bold text-gray-800 font-mono transform rotate-[2deg]">drawcast</span><sup className="text-xs text-gray-800 transform rotate-[-3deg]">beta</sup>
+            <span className="text-2xl font-bold text-gray-800 font-mono">drawcast</span><sup className="text-xs text-gray-800 transform rotate-[-3deg]">beta</sup>
           </div>
         </div>
       </div>
@@ -1396,7 +1396,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 >
                   Draw
                 </button>
-                <p className="text-sm text-gray-600 text-center transform rotate-[2deg]">You&apos;ll have 30 seconds to draw.</p>
+                <p className="text-sm text-gray-600 text-center">You&apos;ll have 30 seconds to draw.</p>
               </div>
             </div>
           )}
@@ -1404,7 +1404,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       </div>
 
       {/* Bottom navigation - Fixed */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#f9f7f0] border-t-4 border-dashed border-gray-400 z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#f9f7f0] border-t-2 border-dashed border-gray-400 z-10">
         <div className="w-[300px] mx-auto">
           <div className="flex justify-around items-center h-[70px]">
             <button 
