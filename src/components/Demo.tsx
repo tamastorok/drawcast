@@ -559,7 +559,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               alt="Profile" 
               width={96} 
               height={96} 
-              className="rounded-full transform rotate-[-2deg] border-4 border-dashed border-gray-800"
+              className="rounded-full transform rotate-[-2deg] border-4 border-dashed border-gray-400"
             />
           )}
         </div>
@@ -570,7 +570,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         </h2>
 
         {/* Leaderboard Position */}
-        <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 text-gray-800 transform rotate-[-1deg] border-2 border-dashed border-gray-800">
+        <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 text-gray-800 transform rotate-[-1deg] border-2 border-dashed border-gray-400">
           <div className="text-2xl font-bold text-gray-800">
             {mockLeaderboardData.currentUser?.rank ? `#${mockLeaderboardData.currentUser.rank}` : 'Not ranked'}
           </div>
@@ -581,7 +581,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[2deg] border-2 border-dashed border-gray-800">
+          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[2deg] border-2 border-dashed border-gray-400">
             <div className="text-2xl font-bold text-gray-800">
               {userStats?.correctGuesses || 0}
             </div>
@@ -589,7 +589,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               Solved
             </div>
           </div>
-          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-2deg] border-2 border-dashed border-gray-800">
+          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-2deg] border-2 border-dashed border-gray-400">
             <div className="text-2xl font-bold text-gray-800">
               {userStats?.created || 0}
             </div>
@@ -600,7 +600,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         </div>
 
         {/* Points */}
-        <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 transform rotate-[1deg] border-2 border-dashed border-gray-800">
+        <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 transform rotate-[1deg] border-2 border-dashed border-gray-400">
           <div className="text-2xl font-bold text-gray-800">
             {userStats?.points || 0}
           </div>
@@ -613,7 +613,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         <div className="mb-6">
           <button
             onClick={() => setIsDrawingsExpanded(!isDrawingsExpanded)}
-            className="w-full flex justify-between items-center p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors transform rotate-[-1deg] border-2 border-dashed border-gray-800"
+            className="w-full flex justify-between items-center p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors transform rotate-[-1deg] border-2 border-dashed border-gray-400"
           >
             <h3 className="text-lg font-bold text-gray-800">Your Drawings</h3>
             <svg
@@ -643,7 +643,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   {createdGames.map((game, index) => (
                     <div 
                       key={game.id}
-                      className={`p-4 rounded-lg transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} border-2 border-dashed border-gray-800`}
+                      className={`p-4 rounded-lg transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} border-2 border-dashed border-gray-400`}
                     >
                       <div className="flex justify-between items-center">
                         <div>
@@ -693,7 +693,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 context?.user?.fid === user.fid 
                   ? 'bg-green-100' 
                   : 'bg-gray-100'
-              } border-2 border-dashed border-gray-800`}
+              } border-2 border-dashed border-gray-400`}
             >
               <div className="text-lg font-bold w-8">{index + 1}</div>
               {user.pfpUrl && (
@@ -716,9 +716,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           {mockLeaderboardData.currentUser && (
             <>
               <div className="h-4"></div>
-              <div className="border-t-2 border-dashed border-gray-800 my-2"></div>
+              <div className="border-t-2 border-dashed border-gray-400 my-2"></div>
               <div 
-                className="p-3 bg-green-100 rounded-lg flex items-center gap-3 transform rotate-[1deg] border-2 border-dashed border-gray-800"
+                className="p-3 bg-green-100 rounded-lg flex items-center gap-3 transform rotate-[1deg] border-2 border-dashed border-gray-400"
               >
                 <div className="text-lg font-bold w-8">{mockLeaderboardData.currentUser.rank}</div>
                 {mockLeaderboardData.currentUser.pfpUrl && (
@@ -924,7 +924,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               setIsDrawing(false);
               setShowTimeUpPopup(false);
             }}
-            className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] border-2 border-dashed border-gray-800 px-3 py-1 rounded-lg"
+            className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] border-2 border-dashed border-gray-400 px-3 py-1 rounded-lg"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -1184,7 +1184,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             setCurrentGuess('');
             setGuessError(null);
           }}
-          className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] border-2 border-dashed border-gray-800 px-3 py-1 rounded-lg"
+          className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] border-2 border-dashed border-gray-400 px-3 py-1 rounded-lg"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -1348,7 +1348,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       className="bg-[#f9f7f0]"
     >
       {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-10 bg-[#f9f7f0] border-b-4 border-dashed border-gray-800">
+      <div className="fixed top-0 left-0 right-0 z-10 bg-[#f9f7f0] border-b-4 border-dashed border-gray-400">
         <div className="w-[300px] mx-auto py-3">
           <div className="flex justify-center items-center gap-2">
             <Image
@@ -1408,7 +1408,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       </div>
 
       {/* Bottom navigation - Fixed */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#f9f7f0] border-t-4 border-dashed border-gray-800 z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#f9f7f0] border-t-4 border-dashed border-gray-400 z-10">
         <div className="w-[300px] mx-auto">
           <div className="flex justify-around items-center h-[70px]">
             <button 
@@ -1476,11 +1476,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       {/* Share Popup */}
       {showSharePopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#f9f7f0] p-6 rounded-lg max-w-sm w-full mx-4 relative border-4 border-dashed border-gray-800 transform rotate-[-1deg]">
+          <div className="bg-[#f9f7f0] p-6 rounded-lg max-w-sm w-full mx-4 relative border-4 border-dashed border-gray-400 transform rotate-[-1deg]">
             {/* Close button */}
             <button
               onClick={() => setShowSharePopup(false)}
-              className="absolute top-2 right-2 text-gray-800 hover:text-gray-600 transform rotate-[2deg] border-2 border-dashed border-gray-800 px-2 py-1 rounded-lg"
+              className="absolute top-2 right-2 text-gray-800 hover:text-gray-600 transform rotate-[2deg] border-2 border-dashed border-gray-400 px-2 py-1 rounded-lg"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
