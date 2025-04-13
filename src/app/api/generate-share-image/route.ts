@@ -20,8 +20,8 @@ const storage = getStorage(app);
 export async function POST(request: Request) {
   try {
     console.log('Starting share image generation...');
-    const { drawingUrl, gameId, userId } = await request.json();
-    console.log('Received data:', { drawingUrl, gameId, userId });
+    const { drawingUrl, filename, userId } = await request.json();
+    console.log('Received data:', { drawingUrl, filename, userId });
 
     // Verify the user is authenticated
     if (!userId) {
@@ -71,8 +71,8 @@ export async function POST(request: Request) {
     const base64Data = canvas.toBuffer('image/png').toString('base64');
 
     // Upload to Firebase Storage
-    console.log('Uploading to Firebase Storage...');
-    const shareImageRef = ref(storage, `shareImages/${gameId}.png`);
+    console.log('Uploading to Firebase Storage with filename:', filename);
+    const shareImageRef = ref(storage, `shareImages/${filename}`);
     await uploadString(shareImageRef, base64Data, 'base64', {
       contentType: 'image/png',
       customMetadata: {
