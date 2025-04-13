@@ -222,101 +222,97 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
   // Initialize Firebase auth state
   useEffect(() => {
-    const auth = getAuth(app);
-    
-    // Listen for auth state changes
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      console.log('Auth state changed:', { 
-        user: user?.uid, 
-        isAnonymous: user?.isAnonymous,
-        providerData: user?.providerData
+    if (!context?.user?.fid) {
+      // If no FID is available, just handle auth state
+      setAuthState({
+        isLoading: false,
+        isAuthenticated: false,
+        userId: null,
+        error: null
       });
-      
-      if (user) {
-        // User is signed in
-        setAuthState({
-          isLoading: false,
-          isAuthenticated: true,
-          userId: user.uid, // Firebase UID
-          error: null
-        });
-        
-        // If we have Farcaster context, update user data
-        if (context?.user?.fid) {
-          try {
-            // Store user data with both Firebase UID and Farcaster FID
-            await setDoc(doc(db, 'users', user.uid), {
-              fid: context.user.fid.toString(), // Farcaster FID
-              username: context.user.username || 'Anonymous',
-              pfpUrl: context.user.pfpUrl || '',
-              lastSeen: new Date(),
-              isAnonymous: true,
-              firebaseUid: user.uid // Firebase UID
-            }, { merge: true });
-          } catch (error) {
-            console.error('Error updating user data:', error);
-          }
-        }
-      } else {
-        // No user is signed in, attempt anonymous auth
-        try {
-          console.log('Attempting anonymous sign in...');
-          const credential = await signInAnonymously(auth);
-          console.log('Anonymous auth successful:', {
-            uid: credential.user.uid,
-            isAnonymous: credential.user.isAnonymous
-          });
-          
-          setAuthState({
-            isLoading: false,
-            isAuthenticated: true,
-            userId: credential.user.uid, // Firebase UID
-            error: null
-          });
-          
-          // Create initial user document with Firebase UID
-          await setDoc(doc(db, 'users', credential.user.uid), {
-            createdAt: new Date(),
-            isAnonymous: true,
-            lastSeen: new Date(),
-            firebaseUid: credential.user.uid // Firebase UID
-          });
-        } catch (error) {
-          console.error('Anonymous auth failed:', error);
-          setAuthState({
-            isLoading: false,
-            isAuthenticated: false,
-            userId: null,
-            error: 'Failed to authenticate anonymously'
-          });
-        }
-      }
-    });
+      return;
+    }
 
-    // Cleanup subscription
-    return () => unsubscribe();
-  }, [app, context?.user]);
-
-  // Handle Farcaster context changes
-  useEffect(() => {
-    const updateUserData = async () => {
-      if (!context?.user?.fid || !authState.userId) return;
-
+    const fid = context.user.fid.toString();
+    
+    const initializeUser = async () => {
       try {
-        await setDoc(doc(db, 'users', authState.userId), {
-          fid: context.user.fid.toString(),
+        // Always use FID as document ID
+        const userRef = doc(db, 'users', fid);
+        const userDoc = await getDoc(userRef);
+        
+        const userData = {
           username: context.user.username || 'Anonymous',
           pfpUrl: context.user.pfpUrl || '',
           lastSeen: new Date(),
           isAnonymous: true
-        }, { merge: true });
+        };
+
+        if (!userDoc.exists()) {
+          // Create new document with FID as document ID
+          await setDoc(userRef, {
+            ...userData,
+            createdAt: new Date()
+          });
+        } else {
+          // Update existing document
+          await setDoc(userRef, userData, { merge: true });
+        }
+
+        setAuthState({
+          isLoading: false,
+          isAuthenticated: true,
+          userId: fid,
+          error: null
+        });
+      } catch (error) {
+        console.error('Error managing user data:', error);
+        setAuthState({
+          isLoading: false,
+          isAuthenticated: false,
+          userId: null,
+          error: 'Failed to manage user data'
+        });
+      }
+    };
+
+    initializeUser();
+  }, [context?.user, db]);
+
+  // Handle Farcaster context changes
+  useEffect(() => {
+    const updateUserData = async () => {
+      if (!context?.user?.fid) return;
+
+      try {
+        // Always use FID as document ID
+        const userRef = doc(db, 'users', context.user.fid.toString());
+        const userDoc = await getDoc(userRef);
+        
+        const userData = {
+          username: context.user.username || 'Anonymous',
+          pfpUrl: context.user.pfpUrl || '',
+          lastSeen: new Date(),
+          isAnonymous: true
+        };
+
+        if (userDoc.exists()) {
+          // Update existing document
+          await setDoc(userRef, userData, { merge: true });
+        } else {
+          // Create new document with FID as document ID
+          await setDoc(userRef, {
+            ...userData,
+            createdAt: new Date()
+          });
+        }
       } catch (error) {
         console.error('Error updating user data with Farcaster context:', error);
       }
     };
 
     updateUserData();
-  }, [context?.user, authState.userId]);
+  }, [context?.user]);
 
   // Fetch and generate random prompt
   useEffect(() => {
@@ -822,13 +818,20 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       return;
     }
 
+    // Ensure we have a FID
+    if (!context?.user?.fid) {
+      console.error('No Farcaster FID available');
+      setGuessError('Please connect with Farcaster to upload drawings');
+      return;
+    }
+
     // Ensure we're authenticated
     const auth = getAuth(app);
     if (!auth.currentUser) {
       console.log('No current user, attempting anonymous sign in...');
       try {
-        const credential = await signInAnonymously(auth);
-        console.log('Anonymous sign in successful:', credential.user.uid);
+        await signInAnonymously(auth);
+        console.log('Anonymous sign in successful');
       } catch (error) {
         console.error('Failed to sign in anonymously:', error);
         setGuessError('Failed to authenticate. Please try again.');
@@ -845,24 +848,16 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     try {
       setIsUploading(true);
       
-      // Log current auth state
-      console.log('Current auth state:', {
-        currentUser: auth.currentUser ? {
-          uid: auth.currentUser.uid,
-          isAnonymous: auth.currentUser.isAnonymous
-        } : null
-      });
-      
       // Get the canvas data and upload
       const dataUrl = canvasRef.current.toDataURL('image/png');
       const base64Data = dataUrl.split(',')[1];
       const timestamp = new Date().getTime();
-      const filename = `drawings/${auth.currentUser.uid}_${timestamp}.png`; // Use Firebase UID
-      const storageRef = ref(storage, filename);
+      const drawingFilename = `drawings/${context.user.fid.toString()}_${timestamp}.png`;
+      const storageRef = ref(storage, drawingFilename);
       
       console.log('Attempting upload with:', {
-        filename,
-        userId: auth.currentUser.uid, // Firebase UID
+        filename: drawingFilename,
+        userId: context.user.fid.toString(),
         isAnonymous: auth.currentUser.isAnonymous,
         storageBucket: storage.app.options.storageBucket
       });
@@ -870,7 +865,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       await uploadString(storageRef, base64Data, 'base64', {
         contentType: 'image/png',
         customMetadata: {
-          uploadedBy: auth.currentUser.uid, // Firebase UID
+          uploadedBy: context.user.fid.toString(),
           type: 'drawing',
           isAnonymous: 'true'
         }
@@ -881,13 +876,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       
       let shareImageUrl = 'https://drawcast.xyz/image.png'; // Default fallback URL
       
-      // Generate share image if we have user context
-      if (context?.user) {
-        try {
-          shareImageUrl = await generateShareImage(imageUrl, auth.currentUser.uid); // Use Firebase UID
-        } catch (error) {
-          console.error('Error generating share image:', error);
-        }
+      // Generate share image
+      try {
+        shareImageUrl = await generateShareImage(imageUrl, context.user.fid.toString());
+      } catch (error) {
+        console.error('Error generating share image:', error);
       }
 
       // Create game data
@@ -900,12 +893,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         imageUrl: imageUrl,
         shareImageUrl: shareImageUrl,
         prompt: currentPrompt,
-        userFid: context?.user?.fid?.toString() || 'anonymous', // Farcaster FID
-        username: context?.user?.username || 'Anonymous',
+        userFid: context.user.fid.toString(),
+        username: context.user.username || 'Anonymous',
         guesses: [],
         totalGuesses: 0,
-        correctGuesses: 0,
-        firebaseUid: auth.currentUser.uid // Firebase UID
+        correctGuesses: 0
       };
 
       // Add the game document to Firestore and update user's gamesCreated count
@@ -916,11 +908,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const newGameRef = doc(gamesRef);
       batch.set(newGameRef, gameData);
 
-      // Update user's gamesCreated count using Firebase UID
-      const userRef = doc(db, 'users', auth.currentUser.uid);
+      // Update user's gamesCreated count using FID
+      const userRef = doc(db, 'users', context.user.fid.toString());
       batch.update(userRef, {
-        gamesCreated: increment(1),
-        firebaseUid: auth.currentUser.uid // Firebase UID
+        gamesCreated: increment(1)
       });
 
       // Commit both operations
