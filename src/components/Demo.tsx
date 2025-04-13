@@ -107,7 +107,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const storage = getStorage(app);
-  //const analytics = getAnalytics(app);
 
   const castTextVariations = [
     "Think you can crack this drawing on Drawcast? Prove it and earn points. 🎨🕵️",
@@ -222,7 +221,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   // Initialize Firebase auth state
   useEffect(() => {
     const initializeUser = async () => {
+      console.log('Initializing user with context:', context?.user);
+      
       if (!context?.user?.fid) {
+        console.log('No Farcaster user context available');
         setAuthState({
           isLoading: false,
           isAuthenticated: false,
@@ -234,32 +236,38 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       try {
         const fid = context.user.fid.toString();
+        console.log('Attempting to update user document for FID:', fid);
+        
         const userRef = doc(db, 'users', fid);
         const userDoc = await getDoc(userRef);
+        console.log('User document exists:', userDoc.exists());
         
         const userData = {
           username: context.user.username || 'Anonymous',
           pfpUrl: context.user.pfpUrl || '',
           lastSeen: new Date(),
-          isAnonymous: true
+          isAnonymous: true,
+          fid: fid
         };
 
         if (!userDoc.exists()) {
+          console.log('Creating new user document');
           await setDoc(userRef, {
             ...userData,
             createdAt: new Date()
           });
         } else {
+          console.log('Updating existing user document');
           await setDoc(userRef, userData, { merge: true });
         }
 
+        console.log('User document updated successfully');
         setAuthState({
           isLoading: false,
           isAuthenticated: true,
           userId: fid,
           error: null
         });
-
       } catch (error) {
         console.error('Error managing user data:', error);
         setAuthState({
@@ -280,26 +288,25 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       if (!context?.user?.fid) return;
 
       try {
-        // Always use FID as document ID
-        const userRef = doc(db, 'users', context.user.fid.toString());
+        const fid = context.user.fid.toString();
+        const userRef = doc(db, 'users', fid);
         const userDoc = await getDoc(userRef);
         
         const userData = {
           username: context.user.username || 'Anonymous',
           pfpUrl: context.user.pfpUrl || '',
           lastSeen: new Date(),
-          isAnonymous: true
+          isAnonymous: true,
+          fid: fid
         };
 
-        if (userDoc.exists()) {
-          // Update existing document
-          await setDoc(userRef, userData, { merge: true });
-        } else {
-          // Create new document with FID as document ID
+        if (!userDoc.exists()) {
           await setDoc(userRef, {
             ...userData,
             createdAt: new Date()
           });
+        } else {
+          await setDoc(userRef, userData, { merge: true });
         }
       } catch (error) {
         console.error('Error updating user data with Farcaster context:', error);
@@ -307,7 +314,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     };
 
     updateUserData();
-  }, [context?.user]);
+  }, [context?.user, db]);
 
   // Fetch and generate random prompt
   useEffect(() => {
@@ -827,8 +834,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const dataUrl = canvasRef.current.toDataURL('image/png');
       const base64Data = dataUrl.split(',')[1];
       const timestamp = new Date().getTime();
-      const drawingFilename = `drawings/${context.user.fid.toString()}_${timestamp}.png`;
-      const storageRef = ref(storage, drawingFilename);
+      const filename = `${context.user.fid.toString()}_${timestamp}.png`;
+      const drawingPath = `drawings/${filename}`;
+      const storageRef = ref(storage, drawingPath);
       
       await uploadString(storageRef, base64Data, 'base64', {
         contentType: 'image/png',
@@ -842,9 +850,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       
       let shareImageUrl = 'https://drawcast.xyz/image.png'; // Default fallback URL
       
-      // Generate share image
+      // Generate share image using the same filename
       try {
-        shareImageUrl = await generateShareImage(imageUrl, context.user.fid.toString());
+        shareImageUrl = await generateShareImage(imageUrl, filename);
       } catch (error) {
         console.error('Error generating share image:', error);
       }
@@ -892,8 +900,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     }
   };
 
-  // Update generateShareImage to use FID
-  const generateShareImage = async (drawingUrl: string, gameId: string): Promise<string> => {
+  // Update generateShareImage to use the same filename
+  const generateShareImage = async (drawingUrl: string, filename: string): Promise<string> => {
     try {
       console.log('Starting share image generation...');
       
@@ -908,7 +916,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         },
         body: JSON.stringify({
           drawingUrl,
-          gameId,
+          filename: `drawings/${filename}`, // Pass the full path including the drawings/ directory
           userId: context.user.fid.toString()
         }),
       });
@@ -1097,6 +1105,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       setIsSubmittingGuess(true);
       setGuessError(null);
       
+      const fid = context.user.fid.toString();
+      
       // Check if user has already guessed this game
       const gameRef = doc(db, 'games', selectedGame.id);
       const gameDoc = await getDoc(gameRef);
@@ -1104,7 +1114,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       if (gameDoc.exists()) {
         const gameData = gameDoc.data();
         const existingGuess = gameData.guesses?.find(
-          (guess: Guess) => guess.userId === context.user.fid.toString()
+          (guess: Guess) => guess.userId === fid
         );
         
         if (existingGuess) {
@@ -1117,7 +1127,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       const isCorrect = currentGuess.trim().toLowerCase() === selectedGame.prompt.toLowerCase();
       const guess: Guess = {
-        userId: context.user.fid.toString(),
+        userId: fid,
         username: context.user.username || 'Anonymous',
         guess: currentGuess.trim().toLowerCase(),
         isCorrect,
@@ -1137,7 +1147,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       // If the guess is correct, update both the guesser's and creator's points
       if (isCorrect) {
         // Update guesser's points using FID
-        const guesserRef = doc(db, 'users', context.user.fid.toString());
+        const guesserRef = doc(db, 'users', fid);
         batch.update(guesserRef, {
           points: increment(10),
           correctGuesses: increment(1)

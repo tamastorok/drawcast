@@ -1,27 +1,26 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read access to all authenticated users
+    // Allow read access to all documents
     match /{document=**} {
-      allow read: if request.auth != null;
+      allow read: if true;
     }
     
-    // Allow write access only to authenticated users with matching FID
+    // Users collection rules
     match /users/{fid} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow write: if request.resource.data.fid == fid;
     }
     
+    // Games collection rules
     match /games/{gameId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && 
+      allow create: if request.resource.data.userFid == request.resource.data.fid;
+      allow update: if request.resource.data.userFid == request.resource.data.fid && 
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['guesses', 'totalGuesses', 'correctGuesses']));
     }
     
+    // Prompts collection rules
     match /prompts/{promptId} {
-      allow read: if request.auth != null;
       allow write: if false; // Only admin can write prompts
     }
   }
-} 
+}

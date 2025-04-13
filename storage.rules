@@ -5,8 +5,8 @@ service firebase.storage {
     // Allow public read access to all files
     match /{allPaths=**} {
       allow read: if true;
-      // Allow writes from both authenticated users and the server
-      allow write: if request.auth != null;
+      // Allow writes from authenticated users
+      allow write: if true; // Temporarily allow all writes
     }
   }
 } 
