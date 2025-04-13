@@ -19,7 +19,12 @@ const storage = getStorage(app);
 
 export async function POST(request: Request) {
   try {
-    const { drawingUrl, gameId } = await request.json();
+    const { drawingUrl, gameId, userId } = await request.json();
+
+    // Verify the user is authenticated
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     // Create canvas
     const canvas = createCanvas(1080, 720);
@@ -58,10 +63,14 @@ export async function POST(request: Request) {
     // Convert to base64
     const base64Data = canvas.toBuffer('image/png').toString('base64');
 
-    // Upload to Firebase Storage
+    // Upload to Firebase Storage with authentication metadata
     const shareImageRef = ref(storage, `shareImages/${gameId}.png`);
     await uploadString(shareImageRef, base64Data, 'base64', {
-      contentType: 'image/png'
+      contentType: 'image/png',
+      customMetadata: {
+        uploadedBy: userId,
+        type: 'shareImage'
+      }
     });
 
     // Get download URL
@@ -70,9 +79,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ shareImageUrl: downloadUrl });
   } catch (error) {
     console.error('Error generating share image:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate share image' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to generate share image' }, { status: 500 });
   }
 } 

@@ -7,6 +7,7 @@ import { sdk } from '@farcaster/frame-sdk'
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
+import { getAuth, signInAnonymously } from "firebase/auth";
 //import { getAnalytics } from "firebase/analytics";
 
 interface LeaderboardUser {
@@ -29,6 +30,13 @@ interface Guess {
   guess: string;
   isCorrect: boolean;
   createdAt: Date;
+}
+
+interface AuthState {
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  userId: string | null;
+  error: string | null;
 }
 
 export default function Demo({ initialGameId }: { initialGameId?: string }) {
@@ -79,6 +87,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [lastCreatedGameId, setLastCreatedGameId] = useState<string | null>(null);
   const [isDrawingsExpanded, setIsDrawingsExpanded] = useState(false);
   const [showWarpcastModal, setShowWarpcastModal] = useState(false);
+  const [authState, setAuthState] = useState<AuthState>({
+    isLoading: true,
+    isAuthenticated: false,
+    userId: null,
+    error: null
+  });
 
   const firebaseConfig = {
     apiKey: "AIzaSyBlL2CIZTb-crfirYJ6ym6j6G4uQewu59k",
@@ -206,39 +220,103 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     initializeFrame();
   }, [isSDKLoaded, context]);
 
-  // Handle user data storage when context changes
+  // Initialize Firebase auth state
   useEffect(() => {
-    const storeUserData = async () => {
-      if (!context?.user?.fid) return;
+    const auth = getAuth(app);
+    
+    // Listen for auth state changes
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      console.log('Auth state changed:', { 
+        user: user?.uid, 
+        isAnonymous: user?.isAnonymous,
+        providerData: user?.providerData
+      });
+      
+      if (user) {
+        // User is signed in
+        setAuthState({
+          isLoading: false,
+          isAuthenticated: true,
+          userId: user.uid, // Firebase UID
+          error: null
+        });
+        
+        // If we have Farcaster context, update user data
+        if (context?.user?.fid) {
+          try {
+            // Store user data with both Firebase UID and Farcaster FID
+            await setDoc(doc(db, 'users', user.uid), {
+              fid: context.user.fid.toString(), // Farcaster FID
+              username: context.user.username || 'Anonymous',
+              pfpUrl: context.user.pfpUrl || '',
+              lastSeen: new Date(),
+              isAnonymous: true,
+              firebaseUid: user.uid // Firebase UID
+            }, { merge: true });
+          } catch (error) {
+            console.error('Error updating user data:', error);
+          }
+        }
+      } else {
+        // No user is signed in, attempt anonymous auth
+        try {
+          console.log('Attempting anonymous sign in...');
+          const credential = await signInAnonymously(auth);
+          console.log('Anonymous auth successful:', {
+            uid: credential.user.uid,
+            isAnonymous: credential.user.isAnonymous
+          });
+          
+          setAuthState({
+            isLoading: false,
+            isAuthenticated: true,
+            userId: credential.user.uid, // Firebase UID
+            error: null
+          });
+          
+          // Create initial user document with Firebase UID
+          await setDoc(doc(db, 'users', credential.user.uid), {
+            createdAt: new Date(),
+            isAnonymous: true,
+            lastSeen: new Date(),
+            firebaseUid: credential.user.uid // Firebase UID
+          });
+        } catch (error) {
+          console.error('Anonymous auth failed:', error);
+          setAuthState({
+            isLoading: false,
+            isAuthenticated: false,
+            userId: null,
+            error: 'Failed to authenticate anonymously'
+          });
+        }
+      }
+    });
+
+    // Cleanup subscription
+    return () => unsubscribe();
+  }, [app, context?.user]);
+
+  // Handle Farcaster context changes
+  useEffect(() => {
+    const updateUserData = async () => {
+      if (!context?.user?.fid || !authState.userId) return;
 
       try {
-        const userRef = doc(db, 'users', context.user.fid.toString());
-        const userDoc = await getDoc(userRef);
-        
-        if (!userDoc.exists()) {
-          // New user - store initial data
-          await setDoc(userRef, {
-            fid: context.user.fid.toString(),
-            username: context.user.username || '',
-            pfpUrl: context.user.pfpUrl || '',
-            joinedAt: new Date()
-          });
-          console.log('New user data stored:', context.user.fid);
-        } else {
-          // Existing user - update profile data
-          await setDoc(userRef, {
-            username: context.user.username || '',
-            pfpUrl: context.user.pfpUrl || '',
-          }, { merge: true });
-          console.log('User data updated:', context.user.fid);
-        }
+        await setDoc(doc(db, 'users', authState.userId), {
+          fid: context.user.fid.toString(),
+          username: context.user.username || 'Anonymous',
+          pfpUrl: context.user.pfpUrl || '',
+          lastSeen: new Date(),
+          isAnonymous: true
+        }, { merge: true });
       } catch (error) {
-        console.error('Error storing user data:', error);
+        console.error('Error updating user data with Farcaster context:', error);
       }
     };
 
-    storeUserData();
-  }, [context?.user, db]);
+    updateUserData();
+  }, [context?.user, authState.userId]);
 
   // Fetch and generate random prompt
   useEffect(() => {
@@ -738,57 +816,83 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   };
 
   const handleDrawingSubmit = async () => {
-    if (!canvasRef.current || !context?.user?.fid) {
-      console.error('Missing canvas reference or user FID');
+    if (!canvasRef.current) {
+      console.error('No canvas reference');
+      setGuessError('Please try drawing again');
+      return;
+    }
+
+    // Ensure we're authenticated
+    const auth = getAuth(app);
+    if (!auth.currentUser) {
+      console.log('No current user, attempting anonymous sign in...');
+      try {
+        const credential = await signInAnonymously(auth);
+        console.log('Anonymous sign in successful:', credential.user.uid);
+      } catch (error) {
+        console.error('Failed to sign in anonymously:', error);
+        setGuessError('Failed to authenticate. Please try again.');
+        return;
+      }
+    }
+
+    if (!auth.currentUser?.isAnonymous) {
+      console.error('User is not anonymous:', auth.currentUser);
+      setGuessError('Authentication error. Please try again.');
       return;
     }
 
     try {
       setIsUploading(true);
-      console.log('Starting upload process...');
-
-      // Get the canvas data as base64 string
-      const dataUrl = canvasRef.current.toDataURL('image/png');
-      console.log('Canvas data URL generated');
-
-      // Remove the data URL prefix to get just the base64 data
-      const base64Data = dataUrl.split(',')[1];
-      console.log('Base64 data extracted');
-
-      // Create a unique filename using timestamp and user ID
-      const timestamp = new Date().getTime();
-      const filename = `drawings/${context.user.fid}_${timestamp}.png`;
-      console.log('Generated filename:', filename);
-
-      // Create a reference to the file location
-      const storageRef = ref(storage, filename);
-      console.log('Storage reference created');
-
-      // Upload the image
-      console.log('Starting uploadString...');
-      const snapshot = await uploadString(storageRef, base64Data, 'base64', {
-        contentType: 'image/png'
+      
+      // Log current auth state
+      console.log('Current auth state:', {
+        currentUser: auth.currentUser ? {
+          uid: auth.currentUser.uid,
+          isAnonymous: auth.currentUser.isAnonymous
+        } : null
       });
-      console.log('Upload completed successfully:', snapshot);
+      
+      // Get the canvas data and upload
+      const dataUrl = canvasRef.current.toDataURL('image/png');
+      const base64Data = dataUrl.split(',')[1];
+      const timestamp = new Date().getTime();
+      const filename = `drawings/${auth.currentUser.uid}_${timestamp}.png`; // Use Firebase UID
+      const storageRef = ref(storage, filename);
+      
+      console.log('Attempting upload with:', {
+        filename,
+        userId: auth.currentUser.uid, // Firebase UID
+        isAnonymous: auth.currentUser.isAnonymous,
+        storageBucket: storage.app.options.storageBucket
+      });
+      
+      await uploadString(storageRef, base64Data, 'base64', {
+        contentType: 'image/png',
+        customMetadata: {
+          uploadedBy: auth.currentUser.uid, // Firebase UID
+          type: 'drawing',
+          isAnonymous: 'true'
+        }
+      });
 
       // Get the download URL
       const imageUrl = await getDownloadURL(storageRef);
-      console.log('Got download URL:', imageUrl);
-
+      
       let shareImageUrl = 'https://drawcast.xyz/image.png'; // Default fallback URL
-      try {
-        // Generate and upload share image
-        console.log('Starting share image generation...');
-        shareImageUrl = await generateShareImage(imageUrl, `${context.user.fid}_${timestamp}`);
-        console.log('Share image generated and uploaded:', shareImageUrl);
-      } catch (error) {
-        console.error('Error generating share image:', error);
-        // Continue with the fallback URL
+      
+      // Generate share image if we have user context
+      if (context?.user) {
+        try {
+          shareImageUrl = await generateShareImage(imageUrl, auth.currentUser.uid); // Use Firebase UID
+        } catch (error) {
+          console.error('Error generating share image:', error);
+        }
       }
 
-      // Create new game document with initialized guesses array and counts
+      // Create game data
       const createdAt = new Date();
-      const expiredAt = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000); // 24 hours later
+      const expiredAt = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
 
       const gameData = {
         createdAt,
@@ -796,11 +900,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         imageUrl: imageUrl,
         shareImageUrl: shareImageUrl,
         prompt: currentPrompt,
-        userFid: context.user.fid.toString(),
-        username: context.user.username || 'Anonymous',
+        userFid: context?.user?.fid?.toString() || 'anonymous', // Farcaster FID
+        username: context?.user?.username || 'Anonymous',
         guesses: [],
         totalGuesses: 0,
-        correctGuesses: 0
+        correctGuesses: 0,
+        firebaseUid: auth.currentUser.uid // Firebase UID
       };
 
       // Add the game document to Firestore and update user's gamesCreated count
@@ -811,17 +916,15 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const newGameRef = doc(gamesRef);
       batch.set(newGameRef, gameData);
 
-      // Update user's gamesCreated count
-      const userRef = doc(db, 'users', context.user.fid.toString());
+      // Update user's gamesCreated count using Firebase UID
+      const userRef = doc(db, 'users', auth.currentUser.uid);
       batch.update(userRef, {
-        gamesCreated: increment(1)
+        gamesCreated: increment(1),
+        firebaseUid: auth.currentUser.uid // Firebase UID
       });
 
       // Commit both operations
-      console.log('Committing batch...');
       await batch.commit();
-      console.log('Batch committed successfully');
-      console.log('Game document created and user stats updated');
 
       // Store the new game ID for sharing
       setLastCreatedGameId(newGameRef.id);
@@ -845,15 +948,26 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
     } catch (error) {
       console.error('Error uploading drawing or creating game:', error);
-      setIsUploading(false);
+      if (error instanceof Error) {
+        if (error.message.includes('not authenticated')) {
+          setGuessError('Please sign in to upload drawings');
+        } else {
+          setGuessError('Failed to upload drawing. Please try again.');
+        }
+      }
     } finally {
       setIsUploading(false);
     }
   };
 
+  // Update generateShareImage to use FID
   const generateShareImage = async (drawingUrl: string, gameId: string): Promise<string> => {
     try {
       console.log('Starting share image generation...');
+      
+      if (!context?.user?.fid) {
+        throw new Error('User not authenticated');
+      }
       
       const response = await fetch('/api/generate-share-image', {
         method: 'POST',
@@ -863,6 +977,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         body: JSON.stringify({
           drawingUrl,
           gameId,
+          userId: context.user.fid.toString()
         }),
       });
 
@@ -1083,7 +1198,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       // If the guess is correct, update both the guesser's and creator's points
       if (isCorrect) {
-        // Update guesser's points
+        // Update guesser's points using FID
         const guesserRef = doc(db, 'users', context.user.fid.toString());
         batch.update(guesserRef, {
           points: increment(10),
@@ -1555,4 +1670,5 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     </div>
   );
 }
+
 
