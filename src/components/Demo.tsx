@@ -7,7 +7,6 @@ import { sdk } from '@farcaster/frame-sdk'
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
-import { getAuth, signInAnonymously } from "firebase/auth";
 //import { getAnalytics } from "firebase/analytics";
 
 interface LeaderboardUser {
@@ -222,22 +221,19 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
   // Initialize Firebase auth state
   useEffect(() => {
-    if (!context?.user?.fid) {
-      // If no FID is available, just handle auth state
-      setAuthState({
-        isLoading: false,
-        isAuthenticated: false,
-        userId: null,
-        error: null
-      });
-      return;
-    }
-
-    const fid = context.user.fid.toString();
-    
     const initializeUser = async () => {
+      if (!context?.user?.fid) {
+        setAuthState({
+          isLoading: false,
+          isAuthenticated: false,
+          userId: null,
+          error: null
+        });
+        return;
+      }
+
       try {
-        // Always use FID as document ID
+        const fid = context.user.fid.toString();
         const userRef = doc(db, 'users', fid);
         const userDoc = await getDoc(userRef);
         
@@ -245,17 +241,16 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           username: context.user.username || 'Anonymous',
           pfpUrl: context.user.pfpUrl || '',
           lastSeen: new Date(),
-          isAnonymous: true
+          isAnonymous: true,
+          fid: fid // Store FID in the document
         };
 
         if (!userDoc.exists()) {
-          // Create new document with FID as document ID
           await setDoc(userRef, {
             ...userData,
             createdAt: new Date()
           });
         } else {
-          // Update existing document
           await setDoc(userRef, userData, { merge: true });
         }
 
@@ -265,6 +260,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           userId: fid,
           error: null
         });
+
       } catch (error) {
         console.error('Error managing user data:', error);
         setAuthState({
@@ -285,26 +281,25 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       if (!context?.user?.fid) return;
 
       try {
-        // Always use FID as document ID
-        const userRef = doc(db, 'users', context.user.fid.toString());
+        const fid = context.user.fid.toString();
+        const userRef = doc(db, 'users', fid);
         const userDoc = await getDoc(userRef);
         
         const userData = {
           username: context.user.username || 'Anonymous',
           pfpUrl: context.user.pfpUrl || '',
           lastSeen: new Date(),
-          isAnonymous: true
+          isAnonymous: true,
+          fid: fid // Store FID in the document
         };
 
-        if (userDoc.exists()) {
-          // Update existing document
-          await setDoc(userRef, userData, { merge: true });
-        } else {
-          // Create new document with FID as document ID
+        if (!userDoc.exists()) {
           await setDoc(userRef, {
             ...userData,
             createdAt: new Date()
           });
+        } else {
+          await setDoc(userRef, userData, { merge: true });
         }
       } catch (error) {
         console.error('Error updating user data with Farcaster context:', error);
@@ -312,7 +307,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     };
 
     updateUserData();
-  }, [context?.user]);
+  }, [context?.user, db]);
 
   // Fetch and generate random prompt
   useEffect(() => {
@@ -818,30 +813,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       return;
     }
 
-    // Ensure we have a FID
-    if (!context?.user?.fid) {
-      console.error('No Farcaster FID available');
+    // Check authentication state
+    if (!authState.isAuthenticated || !context?.user?.fid) {
+      console.error('User not authenticated');
       setGuessError('Please connect with Farcaster to upload drawings');
-      return;
-    }
-
-    // Ensure we're authenticated
-    const auth = getAuth(app);
-    if (!auth.currentUser) {
-      console.log('No current user, attempting anonymous sign in...');
-      try {
-        await signInAnonymously(auth);
-        console.log('Anonymous sign in successful');
-      } catch (error) {
-        console.error('Failed to sign in anonymously:', error);
-        setGuessError('Failed to authenticate. Please try again.');
-        return;
-      }
-    }
-
-    if (!auth.currentUser?.isAnonymous) {
-      console.error('User is not anonymous:', auth.currentUser);
-      setGuessError('Authentication error. Please try again.');
       return;
     }
 
@@ -855,19 +830,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const drawingFilename = `drawings/${context.user.fid.toString()}_${timestamp}.png`;
       const storageRef = ref(storage, drawingFilename);
       
-      console.log('Attempting upload with:', {
-        filename: drawingFilename,
-        userId: context.user.fid.toString(),
-        isAnonymous: auth.currentUser.isAnonymous,
-        storageBucket: storage.app.options.storageBucket
-      });
-      
       await uploadString(storageRef, base64Data, 'base64', {
         contentType: 'image/png',
         customMetadata: {
-          uploadedBy: context.user.fid.toString(),
-          type: 'drawing',
-          isAnonymous: 'true'
+          uploadedBy: context.user.fid.toString()
         }
       });
 
@@ -914,38 +880,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         gamesCreated: increment(1)
       });
 
-      // Commit both operations
       await batch.commit();
-
-      // Store the new game ID for sharing
       setLastCreatedGameId(newGameRef.id);
-
-      // Clear the canvas and return to home
-      const ctx = canvasRef.current.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-      }
-      
-      // Reset all drawing-related states
-      setIsDrawing(false);
-      setShowTimeUpPopup(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-      setTimeLeft(30);
-
-      // Show the share popup
       setShowSharePopup(true);
 
     } catch (error) {
       console.error('Error uploading drawing or creating game:', error);
-      if (error instanceof Error) {
-        if (error.message.includes('not authenticated')) {
-          setGuessError('Please sign in to upload drawings');
-        } else {
-          setGuessError('Failed to upload drawing. Please try again.');
-        }
-      }
+      setGuessError('Failed to upload drawing. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -1144,11 +1085,19 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   }, [showGuess, db, initialGameId]);
 
   const handleGuessSubmit = async () => {
-    if (!selectedGame || !currentGuess.trim() || !context?.user?.fid) return;
+    // Check authentication state
+    if (!authState.isAuthenticated || !context?.user?.fid) {
+      setGuessError('Please connect with Farcaster to make a guess');
+      return;
+    }
+
+    if (!selectedGame || !currentGuess.trim()) return;
 
     try {
       setIsSubmittingGuess(true);
       setGuessError(null);
+      
+      const fid = context.user.fid.toString();
       
       // Check if user has already guessed this game
       const gameRef = doc(db, 'games', selectedGame.id);
@@ -1157,7 +1106,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       if (gameDoc.exists()) {
         const gameData = gameDoc.data();
         const existingGuess = gameData.guesses?.find(
-          (guess: Guess) => guess.userId === context.user.fid.toString()
+          (guess: Guess) => guess.userId === fid
         );
         
         if (existingGuess) {
@@ -1170,7 +1119,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       const isCorrect = currentGuess.trim().toLowerCase() === selectedGame.prompt.toLowerCase();
       const guess: Guess = {
-        userId: context.user.fid.toString(),
+        userId: fid,
         username: context.user.username || 'Anonymous',
         guess: currentGuess.trim().toLowerCase(),
         isCorrect,
@@ -1190,7 +1139,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       // If the guess is correct, update both the guesser's and creator's points
       if (isCorrect) {
         // Update guesser's points using FID
-        const guesserRef = doc(db, 'users', context.user.fid.toString());
+        const guesserRef = doc(db, 'users', fid);
         batch.update(guesserRef, {
           points: increment(10),
           correctGuesses: increment(1)
@@ -1500,164 +1449,172 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       }}
       className="bg-[#f9f7f0]"
     >
-      {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-10 bg-[#f9f7f0] border-b-2 border-dashed border-gray-400">
-        <div className="w-[300px] mx-auto py-3">
-          <div className="flex justify-center items-center gap-2">
-            <Image
-              src="/icon.png"
-              alt="Icon"
-              width={40}
-              height={40}
-              priority
-              className="transform rotate-[-5deg]"
-            />
-            <span className="text-2xl font-bold text-gray-800 font-mono">drawcast</span><sup className="text-xs text-gray-800 transform rotate-[-3deg]">beta</sup>
-          </div>
+      {authState.isLoading ? (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-gray-600">Loading...</div>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="fixed top-0 left-0 right-0 z-10 bg-[#f9f7f0] border-b-2 border-dashed border-gray-400">
+            <div className="w-[300px] mx-auto py-3">
+              <div className="flex justify-center items-center gap-2">
+                <Image
+                  src="/icon.png"
+                  alt="Icon"
+                  width={40}
+                  height={40}
+                  priority
+                  className="transform rotate-[-5deg]"
+                />
+                <span className="text-2xl font-bold text-gray-800 font-mono">drawcast</span><sup className="text-xs text-gray-800 transform rotate-[-3deg]">beta</sup>
+              </div>
+            </div>
+          </div>
 
-      {/* Main Content Area - Scrollable */}
-      <div className="w-full h-full overflow-y-auto bg-[#f9f7f0]" style={{ 
-        paddingTop: "72px",
-        paddingBottom: "80px",
-        backgroundColor: '#f9f7f0',
-        position: 'relative',
-        zIndex: 1
-      }}>
-        <div className="w-[300px] mx-auto px-2 bg-[#f9f7f0]">
-          {showLeaderboard ? (
-            renderLeaderboard()
-          ) : showProfile ? (
-            renderProfile()
-          ) : isDrawing ? (
-            renderDrawingPage()
-          ) : showGuess ? (
-            selectedGame ? renderGuessDetailPage() : renderGuessPage()
-          ) : (
-            // Main Draw Page
-            <div className="flex flex-col items-center justify-center min-h-[60vh]">
-              <h2 className="text-2xl font-bold text-center text-gray-800 transform rotate-[-2deg]">Draw & challenge others!</h2>
-              <p className="text-m text-gray-600 text-center mb-8 transform rotate-[1deg]">Earn 10 points after each successful guess.</p>
-              <div className="flex flex-col items-center gap-6">
-                <button
+          {/* Main Content Area - Scrollable */}
+          <div className="w-full h-full overflow-y-auto bg-[#f9f7f0]" style={{ 
+            paddingTop: "72px",
+            paddingBottom: "80px",
+            backgroundColor: '#f9f7f0',
+            position: 'relative',
+            zIndex: 1
+          }}>
+            <div className="w-[300px] mx-auto px-2 bg-[#f9f7f0]">
+              {showLeaderboard ? (
+                renderLeaderboard()
+              ) : showProfile ? (
+                renderProfile()
+              ) : isDrawing ? (
+                renderDrawingPage()
+              ) : showGuess ? (
+                selectedGame ? renderGuessDetailPage() : renderGuessPage()
+              ) : (
+                // Main Draw Page
+                <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                  <h2 className="text-2xl font-bold text-center text-gray-800 transform rotate-[-2deg]">Draw & challenge others!</h2>
+                  <p className="text-m text-gray-600 text-center mb-8 transform rotate-[1deg]">Earn 10 points after each successful guess.</p>
+                  <div className="flex flex-col items-center gap-6">
+                    <button
+                      onClick={() => {
+                        setIsDrawing(true);
+                        setShowTimeUpPopup(false);
+                        setTimeLeft(30);
+                        if (timerRef.current) {
+                          clearInterval(timerRef.current);
+                        }
+                      }}
+                      className="bg-[#0c703b] text-white py-4 px-8 rounded-lg text-xl font-bold hover:bg-[#0c703b] transition-colors transform rotate-[-1deg] border-4 border-dashed border-white"
+                    >
+                      Draw
+                    </button>
+                    <p className="text-sm text-gray-600 text-center">You&apos;ll have 30 seconds to draw.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom navigation - Fixed */}
+          <div className="fixed bottom-0 left-0 right-0 bg-[#f9f7f0] border-t-2 border-dashed border-gray-400 z-10">
+            <div className="w-[300px] mx-auto">
+              <div className="flex justify-around items-center h-[70px]">
+                <button 
+                  className={`flex flex-col items-center justify-center w-full h-full ${!showLeaderboard && !showProfile && !isDrawing && !showGuess ? 'bg-green-100' : ''} transform rotate-[-1deg]`}
                   onClick={() => {
-                    setIsDrawing(true);
-                    setShowTimeUpPopup(false);
-                    setTimeLeft(30);
-                    if (timerRef.current) {
-                      clearInterval(timerRef.current);
-                    }
+                    setShowLeaderboard(false);
+                    setShowProfile(false);
+                    setIsDrawing(false);
+                    setShowGuess(false);
+                    setSelectedGame(null);
                   }}
-                  className="bg-[#0c703b] text-white py-4 px-8 rounded-lg text-xl font-bold hover:bg-[#0c703b] transition-colors transform rotate-[-1deg] border-4 border-dashed border-white"
                 >
-                  Draw
+                  <span className="text-2xl animate-wiggle">
+                    <Image src="/draw.png" alt="Quiz" width={24} height={24} className="transform rotate-[2deg]" />
+                  </span>
+                  <span className="text-xs">Create</span>
                 </button>
-                <p className="text-sm text-gray-600 text-center">You&apos;ll have 30 seconds to draw.</p>
+                <button 
+                  className={`flex flex-col items-center justify-center w-full h-full ${showGuess ? 'bg-green-100' : ''} transform rotate-[1deg]`}
+                  onClick={() => {
+                    setShowLeaderboard(false);
+                    setShowProfile(false);
+                    setIsDrawing(false);
+                    setShowGuess(true);
+                    setSelectedGame(null);
+                  }}
+                >
+                  <span className="text-2xl">
+                    <Image src="/guess.png" alt="Guess" width={24} height={24} className="transform rotate-[-2deg]" />
+                  </span>
+                  <span className="text-xs">Join</span>
+                </button>
+                <button 
+                  className={`flex flex-col items-center justify-center w-full h-full ${showLeaderboard ? 'bg-green-100' : ''} transform rotate-[-2deg]`}
+                  onClick={() => {
+                    setShowLeaderboard(true);
+                    setShowProfile(false);
+                    setIsDrawing(false);
+                    setShowGuess(false);
+                    setSelectedGame(null);
+                  }}
+                > 
+                  <span className="text-2xl"><Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} className="transform rotate-[1deg]" /></span>
+                  <span className="text-xs">Top</span>
+                </button>
+                <button 
+                  className={`flex flex-col items-center justify-center w-full h-full ${showProfile ? 'bg-green-100' : ''} transform rotate-[2deg]`}
+                  onClick={() => {
+                    setShowLeaderboard(false);
+                    setShowProfile(true);
+                    setIsDrawing(false);
+                    setShowGuess(false);
+                    setSelectedGame(null);
+                  }}
+                >
+                  <div className="text-2xl">
+                    <Image src="/profile.png" alt="Profile" width={24} height={24} className="transform rotate-[-1deg]" />
+                  </div>
+                  <span className="text-xs">Profile</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Share Popup */}
+          {showSharePopup && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-[#f9f7f0] p-6 rounded-lg max-w-sm w-full mx-4 relative border-4 border-dashed border-gray-400 transform rotate-[-1deg]">
+                {/* Close button */}
+                <button
+                  onClick={() => setShowSharePopup(false)}
+                  className="absolute top-2 right-2 text-gray-800 hover:text-gray-600 transform rotate-[2deg] border-2 border-dashed border-gray-400 px-2 py-1 rounded-lg"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+
+                <h2 className="text-xl font-bold text-center mb-2 text-gray-800 transform rotate-[1deg]">Drawing Submitted!</h2>
+                <p className="text-center text-gray-600 mb-6 transform rotate-[-2deg]">
+                Invite your friends and earn points every time they guess correctly! 
+                </p>
+
+                <button
+                  onClick={handleShareToWarpcast}
+                  className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white"
+                >
+                  Share on Warpcast
+                </button>
               </div>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Bottom navigation - Fixed */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#f9f7f0] border-t-2 border-dashed border-gray-400 z-10">
-        <div className="w-[300px] mx-auto">
-          <div className="flex justify-around items-center h-[70px]">
-            <button 
-              className={`flex flex-col items-center justify-center w-full h-full ${!showLeaderboard && !showProfile && !isDrawing && !showGuess ? 'bg-green-100' : ''} transform rotate-[-1deg]`}
-              onClick={() => {
-                setShowLeaderboard(false);
-                setShowProfile(false);
-                setIsDrawing(false);
-                setShowGuess(false);
-                setSelectedGame(null);
-              }}
-            >
-              <span className="text-2xl animate-wiggle">
-                <Image src="/draw.png" alt="Quiz" width={24} height={24} className="transform rotate-[2deg]" />
-              </span>
-              <span className="text-xs">Create</span>
-            </button>
-            <button 
-              className={`flex flex-col items-center justify-center w-full h-full ${showGuess ? 'bg-green-100' : ''} transform rotate-[1deg]`}
-              onClick={() => {
-                setShowLeaderboard(false);
-                setShowProfile(false);
-                setIsDrawing(false);
-                setShowGuess(true);
-                setSelectedGame(null);
-              }}
-            >
-              <span className="text-2xl">
-                <Image src="/guess.png" alt="Guess" width={24} height={24} className="transform rotate-[-2deg]" />
-              </span>
-              <span className="text-xs">Join</span>
-            </button>
-            <button 
-              className={`flex flex-col items-center justify-center w-full h-full ${showLeaderboard ? 'bg-green-100' : ''} transform rotate-[-2deg]`}
-              onClick={() => {
-                setShowLeaderboard(true);
-                setShowProfile(false);
-                setIsDrawing(false);
-                setShowGuess(false);
-                setSelectedGame(null);
-              }}
-            > 
-              <span className="text-2xl"><Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} className="transform rotate-[1deg]" /></span>
-              <span className="text-xs">Top</span>
-            </button>
-            <button 
-              className={`flex flex-col items-center justify-center w-full h-full ${showProfile ? 'bg-green-100' : ''} transform rotate-[2deg]`}
-              onClick={() => {
-                setShowLeaderboard(false);
-                setShowProfile(true);
-                setIsDrawing(false);
-                setShowGuess(false);
-                setSelectedGame(null);
-              }}
-            >
-              <div className="text-2xl">
-                <Image src="/profile.png" alt="Profile" width={24} height={24} className="transform rotate-[-1deg]" />
-              </div>
-              <span className="text-xs">Profile</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Share Popup */}
-      {showSharePopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#f9f7f0] p-6 rounded-lg max-w-sm w-full mx-4 relative border-4 border-dashed border-gray-400 transform rotate-[-1deg]">
-            {/* Close button */}
-            <button
-              onClick={() => setShowSharePopup(false)}
-              className="absolute top-2 right-2 text-gray-800 hover:text-gray-600 transform rotate-[2deg] border-2 border-dashed border-gray-400 px-2 py-1 rounded-lg"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-
-            <h2 className="text-xl font-bold text-center mb-2 text-gray-800 transform rotate-[1deg]">Drawing Submitted!</h2>
-            <p className="text-center text-gray-600 mb-6 transform rotate-[-2deg]">
-            Invite your friends and earn points every time they guess correctly! 
-            </p>
-
-            <button
-              onClick={handleShareToWarpcast}
-              className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white"
-            >
-              Share on Warpcast
-            </button>
-          </div>
-        </div>
+          {/* Warpcast Modal */}
+          {showWarpcastModal && <WarpcastModal />}
+        </>
       )}
-
-      {/* Warpcast Modal */}
-      {showWarpcastModal && <WarpcastModal />}
     </div>
   );
 }
