@@ -19,14 +19,18 @@ const storage = getStorage(app);
 
 export async function POST(request: Request) {
   try {
+    console.log('Starting share image generation...');
     const { drawingUrl, gameId, userId } = await request.json();
+    console.log('Received data:', { drawingUrl, gameId, userId });
 
     // Verify the user is authenticated
     if (!userId) {
+      console.log('No userId provided');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Create canvas
+    console.log('Creating canvas...');
     const canvas = createCanvas(1080, 720);
     const ctx = canvas.getContext('2d');
 
@@ -35,7 +39,9 @@ export async function POST(request: Request) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Load and draw image
+    console.log('Loading image from URL:', drawingUrl);
     const image = await loadImage(drawingUrl);
+    console.log('Image loaded successfully');
     
     // Calculate dimensions
     const maxWidth = canvas.width * 0.8;
@@ -61,9 +67,11 @@ export async function POST(request: Request) {
     ctx.drawImage(image, x, y, width, height);
 
     // Convert to base64
+    console.log('Converting canvas to base64...');
     const base64Data = canvas.toBuffer('image/png').toString('base64');
 
-    // Upload to Firebase Storage with authentication metadata
+    // Upload to Firebase Storage
+    console.log('Uploading to Firebase Storage...');
     const shareImageRef = ref(storage, `shareImages/${gameId}.png`);
     await uploadString(shareImageRef, base64Data, 'base64', {
       contentType: 'image/png',
@@ -74,11 +82,17 @@ export async function POST(request: Request) {
     });
 
     // Get download URL
+    console.log('Getting download URL...');
     const downloadUrl = await getDownloadURL(shareImageRef);
+    console.log('Share image generated successfully:', downloadUrl);
 
     return NextResponse.json({ shareImageUrl: downloadUrl });
   } catch (error) {
     console.error('Error generating share image:', error);
-    return NextResponse.json({ error: 'Failed to generate share image' }, { status: 500 });
+    // Return more detailed error information
+    return NextResponse.json({ 
+      error: 'Failed to generate share image',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 } 
