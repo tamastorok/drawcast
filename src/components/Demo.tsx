@@ -98,14 +98,14 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
   const castTextVariations = [
     "Think you can crack this drawing on Drawcast? Prove it and earn points. 🎨🕵️",
-    "Can you guess what is it? Submit the correct answer to earn points! 🎨✨",
+    "Can you guess what it is? Submit the correct answer to earn points! 🎨✨",
     "Challenge: Guess this drawing and earn points! 🎨🏆",
     "Here is a new drawing puzzle. Can you solve it? 🎨🧩",
     "New sketch dropped on Drawcast! Take a guess 👇🎨",
     "Think you're good at guessing? Try this drawing! 🎨🎯",
     "New drawing challenge: Guess it right and earn points! 🎨💰",
-    "Can you figure out what is it? Take a guess! 🎨🤔",
-    "This masterpiece needs your brainpower. Can you guess what is it? 🎨🧠",
+    "Can you figure out what it is? Take a guess! 🎨🤔",
+    "This masterpiece needs your brainpower. Can you guess what it is? 🎨🧠",
     "I've got a new drawing for you to guess. Ready? 🎨"
   ];
 
@@ -1203,7 +1203,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             className="object-contain"
           />
         </div>
-        {!isExpired && (
+        {!isExpired && !userGuess?.isCorrect && (
           <p className="text-sm text-center text-gray-600 mb-4">
             Earn 10 points for successfully guessing this drawing. <br />
             <span className="font-bold">You can guess only once.</span>
@@ -1257,7 +1257,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           )}
 
           {/* Share on Warpcast button */}
-          {!isExpired && (
+          {!isExpired && !userGuess?.isCorrect && (
             <button
               onClick={async () => {
                 const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
