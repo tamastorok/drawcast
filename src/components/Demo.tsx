@@ -1203,7 +1203,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             className="object-contain"
           />
         </div>
-        {!isExpired && !userGuess?.isCorrect && (
+        {!isExpired && (
           <p className="text-sm text-center text-gray-600 mb-4">
             Earn 10 points for successfully guessing this drawing. <br />
             <span className="font-bold">You can guess only once.</span>
@@ -1257,7 +1257,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           )}
 
           {/* Share on Warpcast button */}
-          {!isExpired && !userGuess?.isCorrect && (
+          {!isExpired && (
             <button
               onClick={async () => {
                 const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
