@@ -78,6 +78,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [showSharePopup, setShowSharePopup] = useState(false);
   const [lastCreatedGameId, setLastCreatedGameId] = useState<string | null>(null);
   const [isDrawingsExpanded, setIsDrawingsExpanded] = useState(false);
+  const [showWarpcastModal, setShowWarpcastModal] = useState(false);
 
   const firebaseConfig = {
     apiKey: "AIzaSyBlL2CIZTb-crfirYJ6ym6j6G4uQewu59k",
@@ -94,6 +95,19 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const db = getFirestore(app);
   const storage = getStorage(app);
   //const analytics = getAnalytics(app);
+
+  const castTextVariations = [
+    "Think you can crack this drawing on Drawcast? Prove it and earn points. 🎨🕵️",
+    "Can you guess what is it? Submit the correct answer to earn points! 🎨✨",
+    "Challenge: Guess this drawing and earn points! 🎨🏆",
+    "Here is a new drawing puzzle. Can you solve it? 🎨🧩",
+    "New sketch dropped on Drawcast! Take a guess 👇🎨",
+    "Think you're good at guessing? Try this drawing! 🎨🎯",
+    "New drawing challenge: Guess it right and earn points! 🎨💰",
+    "Can you figure out what is it? Take a guess! 🎨🤔",
+    "This masterpiece needs your brainpower. Can you guess what is it? 🎨🧠",
+    "I've got a new drawing for you to guess. Ready? 🎨"
+  ];
 
   // Initialize Frame
   useEffect(() => {
@@ -230,34 +244,26 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   useEffect(() => {
     const generatePrompt = async () => {
       try {
-        // Fetch both documents from the prompts collection
-        const adjectivesRef = doc(db, 'prompts', 'adjectives');
+        // Fetch only nouns document from the prompts collection
         const nounsRef = doc(db, 'prompts', 'nouns');
+        const nounsDoc = await getDoc(nounsRef);
         
-        const [adjectivesDoc, nounsDoc] = await Promise.all([
-          getDoc(adjectivesRef),
-          getDoc(nounsRef)
-        ]);
-        
-        if (adjectivesDoc.exists() && nounsDoc.exists()) {
-          const adjectives = adjectivesDoc.data().words || [];
+        if (nounsDoc.exists()) {
           const nouns = nounsDoc.data().words || [];
           
-          if (adjectives.length > 0 && nouns.length > 0) {
-            // Get random values
-            const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+          if (nouns.length > 0) {
+            // Get random noun
             const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
             
-            console.log('Selected adjective:', randomAdjective);
             console.log('Selected noun:', randomNoun);
             
-            setCurrentPrompt(`${randomAdjective} ${randomNoun}`);
+            setCurrentPrompt(randomNoun);
           } else {
-            console.log('No words found in adjectives or nouns arrays');
+            console.log('No words found in nouns array');
             setCurrentPrompt('Error loading prompt');
           }
         } else {
-          console.log('Adjectives or nouns document does not exist');
+          console.log('Nouns document does not exist');
           setCurrentPrompt('Error loading prompt');
         }
       } catch (error) {
@@ -348,31 +354,24 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     }
 
     try {
-      // Fetch both documents
-      const adjectivesRef = doc(db, 'prompts', 'adjectives');
+      // Fetch only nouns document
       const nounsRef = doc(db, 'prompts', 'nouns');
+      const nounsDoc = await getDoc(nounsRef);
       
-      const [adjectivesDoc, nounsDoc] = await Promise.all([
-        getDoc(adjectivesRef),
-        getDoc(nounsRef)
-      ]);
-      
-      if (adjectivesDoc.exists() && nounsDoc.exists()) {
-        const adjectives = adjectivesDoc.data().words || [];
+      if (nounsDoc.exists()) {
         const nouns = nounsDoc.data().words || [];
         
-        if (adjectives.length > 0 && nouns.length > 0) {
-          // Get random values
-          const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+        if (nouns.length > 0) {
+          // Get random noun
           const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
           
-          setCurrentPrompt(`${randomAdjective} ${randomNoun}`);
+          setCurrentPrompt(randomNoun);
         } else {
-          console.log('No words found in adjectives or nouns arrays');
+          console.log('No words found in nouns array');
           setCurrentPrompt('Error loading prompt');
         }
       } else {
-        console.log('One or both documents do not exist');
+        console.log('Nouns document does not exist');
         setCurrentPrompt('Error loading prompt');
       }
     } catch (error) {
@@ -885,7 +884,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     
     // Create the game URL
     const gameUrl = `${window.location.origin}/games/${lastCreatedGameId}`;
-    const castText = `I just created a new drawing in Drawcast! Can you guess what it is? 🎨\n\n${gameUrl}`;
+    // Randomly select a cast text variation
+    const randomCastText = castTextVariations[Math.floor(Math.random() * castTextVariations.length)];
+    const castText = `${randomCastText}\n\n${gameUrl}`;
 
     try {
       // Open the compose window with the game URL
@@ -949,8 +950,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           </div>
           
           <div className="space-y-4">
-            <p className="text-sm text-center text-gray-600">
-              You&apos;ll earn 10 points after each successful guesses
+            <p className="text-sm text-center text-gray-600 font-bold">
+              You will earn 10 points for successfully guessing this drawing. You can guess only once.
             </p>
             <button 
               onClick={handleDrawingSubmit}
@@ -1122,12 +1123,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     const now = new Date();
     const diff = expirationDate.getTime() - now.getTime();
     
-    if (diff <= 0) return 'Game ended';
+    if (diff <= 0) return { text: 'Game ended', isEnded: true };
     
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     
-    return `Game ends in ${hours}h ${minutes}m`;
+    return { text: `Game ends in ${hours}h ${minutes}m`, isEnded: false };
   };
 
   const renderGuessDetailPage = () => {
@@ -1202,13 +1203,16 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             className="object-contain"
           />
         </div>
-        <p className="text-sm text-center text-gray-600 mb-4">
-          You will earn 10 points for successfully guessing this drawing.
-        </p>
+        {!isExpired && (
+          <p className="text-sm text-center text-gray-600 mb-4">
+            Earn 10 points for successfully guessing this drawing. <br />
+            <span className="font-bold">You can guess only once.</span>
+          </p>
+        )}
             
         <div className="space-y-4">
           {isExpired ? (
-            <div className="p-4 rounded-lg text-center bg-red-100 text-red-800">
+            <div className="p-4 rounded-lg text-center bg-red-100 text-red-800 mt-4">
               This game has ended
             </div>
           ) : userGuess ? (
@@ -1253,20 +1257,24 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           )}
 
           {/* Share on Warpcast button */}
-          <button
-            onClick={async () => {
-              const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
-              const castText = `Can you guess what this drawing is? 🎨\n\n${gameUrl}`;
-              try {
-                await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`);
-              } catch (error) {
-                console.error('Error sharing to Warpcast:', error);
-              }
-            }}
-            className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white"
-          >
-            <span>Share on Warpcast</span>
-          </button>
+          {!isExpired && (
+            <button
+              onClick={async () => {
+                const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
+                // Randomly select a cast text variation
+                const randomCastText = castTextVariations[Math.floor(Math.random() * castTextVariations.length)];
+                const castText = `${randomCastText}\n\n${gameUrl}`;
+                try {
+                  await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`);
+                } catch (error) {
+                  console.error('Error sharing to Warpcast:', error);
+                }
+              }}
+              className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white"
+            >
+              <span>Share on Warpcast</span>
+            </button>
+          )}
         </div>
       </div>
     );
@@ -1282,6 +1290,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             const userGuess = game.guesses?.find(
               (guess: Guess) => guess.userId === context?.user?.fid?.toString()
             );
+
+            const timeInfo = formatTimeRemaining(game.expiredAt);
 
             return (
               <button
@@ -1303,8 +1313,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     <div className="text-gray-600">
                       Drawing by {game.username}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {formatTimeRemaining(game.expiredAt)}
+                    <div className={`text-xs mt-1 ${timeInfo.isEnded ? 'text-red-600' : 'text-gray-500'}`}>
+                      {timeInfo.text}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
                       {game.totalGuesses}/10 players
@@ -1323,6 +1333,44 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       </div>
     );
   };
+
+  // Add WarpcastModal component
+  const WarpcastModal = () => {
+    const openInWarpcast = () => {
+      const warpcastUrl = `https://warpcast.com/~/mini-apps/launch?url=https%3A%2F%2Fdrawcast.xyz`;
+      // Open in new tab
+      window.open(warpcastUrl, '_blank');
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-[#f9f7f0] p-6 rounded-lg max-w-sm w-full mx-4 relative border-4 border-dashed border-gray-400 transform rotate-[-1deg]">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-bold mb-2 text-gray-800 transform rotate-[1deg]">Open in Warpcast</h2>
+            <p className="text-gray-600 transform rotate-[-2deg]">
+              To draw, guess, and earn points, please open this app in Warpcast.
+            </p>
+          </div>
+          <button
+            onClick={openInWarpcast}
+            className="w-full bg-[#0c703b] text-white py-3 px-4 rounded-lg hover:bg-[#0c703b] transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white"
+          >
+            <span>Open in Warpcast</span>
+            <span>📱</span>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Show Warpcast modal when there's no user context
+  useEffect(() => {
+    if (isSDKLoaded && !context?.user) {
+      setShowWarpcastModal(true);
+    } else {
+      setShowWarpcastModal(false);
+    }
+  }, [isSDKLoaded, context?.user]);
 
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
@@ -1489,7 +1537,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
             <h2 className="text-xl font-bold text-center mb-2 text-gray-800 transform rotate-[1deg]">Drawing Submitted!</h2>
             <p className="text-center text-gray-600 mb-6 transform rotate-[-2deg]">
-              Can others guess it? Share your drawing on Warpcast to challenge others and earn more points!
+            Invite your friends and earn points every time they guess correctly! 
             </p>
 
             <button
@@ -1501,6 +1549,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           </div>
         </div>
       )}
+
+      {/* Warpcast Modal */}
+      {showWarpcastModal && <WarpcastModal />}
     </div>
   );
 }
