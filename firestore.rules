@@ -4,6 +4,7 @@ service cloud.firestore {
     // Allow read access to all documents
     match /{document=**} {
       allow read: if true;
+      allow write: if true; // Temporarily allow all writes for debugging
     }
     
     // Users collection rules

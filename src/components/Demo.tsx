@@ -827,16 +827,27 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       return;
     }
 
+    // Clear the timer if it exists
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
     try {
       setIsUploading(true);
+      
+      // Generate a unique filename for the drawing
+      const timestamp = new Date().getTime();
+      const randomString = Math.random().toString(36).substring(2, 8);
+      const drawingFilename = `${context.user.fid.toString()}_${timestamp}_${randomString}.png`;
+      const drawingPath = `drawings/${drawingFilename}`;
       
       // Get the canvas data and upload
       const dataUrl = canvasRef.current.toDataURL('image/png');
       const base64Data = dataUrl.split(',')[1];
-      const timestamp = new Date().getTime();
-      const filename = `${context.user.fid.toString()}_${timestamp}.png`;
-      const drawingPath = `drawings/${filename}`;
       const storageRef = ref(storage, drawingPath);
+      
+      console.log('Uploading drawing with filename:', drawingFilename);
       
       await uploadString(storageRef, base64Data, 'base64', {
         contentType: 'image/png',
@@ -847,12 +858,16 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       // Get the download URL
       const imageUrl = await getDownloadURL(storageRef);
+      console.log('Drawing uploaded successfully:', imageUrl);
       
       let shareImageUrl = 'https://drawcast.xyz/image.png'; // Default fallback URL
       
-      // Generate share image using the same filename
+      // Generate share image using fid+timestamp format
+      const shareImageFilename = `${context.user.fid.toString()}_${timestamp}.png`;
       try {
-        shareImageUrl = await generateShareImage(imageUrl, filename);
+        console.log('Generating share image with filename:', shareImageFilename);
+        shareImageUrl = await generateShareImage(imageUrl, shareImageFilename);
+        console.log('Share image URL:', shareImageUrl);
       } catch (error) {
         console.error('Error generating share image:', error);
       }
@@ -874,6 +889,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         correctGuesses: 0
       };
 
+      console.log('Creating game with data:', gameData);
+
       // Add the game document to Firestore and update user's gamesCreated count
       const batch = writeBatch(db);
       
@@ -888,9 +905,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         gamesCreated: increment(1)
       });
 
+      console.log('Committing batch...');
       await batch.commit();
+      console.log('Batch committed successfully');
+      
       setLastCreatedGameId(newGameRef.id);
       setShowSharePopup(true);
+      setIsDrawing(false); // Exit drawing mode after successful submission
 
     } catch (error) {
       console.error('Error uploading drawing or creating game:', error);
@@ -903,7 +924,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   // Update generateShareImage to use the same filename
   const generateShareImage = async (drawingUrl: string, filename: string): Promise<string> => {
     try {
-      console.log('Starting share image generation...');
+      console.log('Starting share image generation with filename:', filename);
       
       if (!context?.user?.fid) {
         throw new Error('User not authenticated');
@@ -916,7 +937,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         },
         body: JSON.stringify({
           drawingUrl,
-          filename: `drawings/${filename}`, // Pass the full path including the drawings/ directory
+          filename: filename,
           userId: context.user.fid.toString()
         }),
       });
