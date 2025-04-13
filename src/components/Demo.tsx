@@ -241,8 +241,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           username: context.user.username || 'Anonymous',
           pfpUrl: context.user.pfpUrl || '',
           lastSeen: new Date(),
-          isAnonymous: true,
-          fid: fid // Store FID in the document
+          isAnonymous: true
         };
 
         if (!userDoc.exists()) {
@@ -281,25 +280,26 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       if (!context?.user?.fid) return;
 
       try {
-        const fid = context.user.fid.toString();
-        const userRef = doc(db, 'users', fid);
+        // Always use FID as document ID
+        const userRef = doc(db, 'users', context.user.fid.toString());
         const userDoc = await getDoc(userRef);
         
         const userData = {
           username: context.user.username || 'Anonymous',
           pfpUrl: context.user.pfpUrl || '',
           lastSeen: new Date(),
-          isAnonymous: true,
-          fid: fid // Store FID in the document
+          isAnonymous: true
         };
 
-        if (!userDoc.exists()) {
+        if (userDoc.exists()) {
+          // Update existing document
+          await setDoc(userRef, userData, { merge: true });
+        } else {
+          // Create new document with FID as document ID
           await setDoc(userRef, {
             ...userData,
             createdAt: new Date()
           });
-        } else {
-          await setDoc(userRef, userData, { merge: true });
         }
       } catch (error) {
         console.error('Error updating user data with Farcaster context:', error);
@@ -307,7 +307,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     };
 
     updateUserData();
-  }, [context?.user, db]);
+  }, [context?.user]);
 
   // Fetch and generate random prompt
   useEffect(() => {
@@ -1097,8 +1097,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       setIsSubmittingGuess(true);
       setGuessError(null);
       
-      const fid = context.user.fid.toString();
-      
       // Check if user has already guessed this game
       const gameRef = doc(db, 'games', selectedGame.id);
       const gameDoc = await getDoc(gameRef);
@@ -1106,7 +1104,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       if (gameDoc.exists()) {
         const gameData = gameDoc.data();
         const existingGuess = gameData.guesses?.find(
-          (guess: Guess) => guess.userId === fid
+          (guess: Guess) => guess.userId === context.user.fid.toString()
         );
         
         if (existingGuess) {
@@ -1119,7 +1117,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       const isCorrect = currentGuess.trim().toLowerCase() === selectedGame.prompt.toLowerCase();
       const guess: Guess = {
-        userId: fid,
+        userId: context.user.fid.toString(),
         username: context.user.username || 'Anonymous',
         guess: currentGuess.trim().toLowerCase(),
         isCorrect,
@@ -1139,7 +1137,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       // If the guess is correct, update both the guesser's and creator's points
       if (isCorrect) {
         // Update guesser's points using FID
-        const guesserRef = doc(db, 'users', fid);
+        const guesserRef = doc(db, 'users', context.user.fid.toString());
         batch.update(guesserRef, {
           points: increment(10),
           correctGuesses: increment(1)
