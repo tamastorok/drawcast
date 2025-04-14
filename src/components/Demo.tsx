@@ -611,7 +611,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           </div>
           <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-2deg] border-2 border-dashed border-gray-400">
             <div className="text-2xl font-bold text-gray-800">
-              {userStats?.created || 0}
+              {userStats?.gameSolutions || 0}
             </div>
             <div className="text-sm text-gray-800">
               Created
