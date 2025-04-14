@@ -902,12 +902,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       };
       
       console.log('Sending request to API with body:', requestBody);
+      console.log('Using FID for authentication:', context.user.fid.toString());
       
       const response = await fetch('/api/generate-share-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${context.user.fid}`
+          'Authorization': `Bearer ${context.user.fid.toString()}`
         },
         body: JSON.stringify(requestBody),
       });
@@ -915,7 +916,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('API response error:', errorData);
-        throw new Error('Failed to generate share image');
+        throw new Error(errorData.error || 'Failed to generate share image');
       }
 
       const data = await response.json();

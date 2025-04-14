@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { createCanvas, loadImage } from 'canvas';
 import { initializeApp as initializeAdminApp, getApps, cert } from 'firebase-admin/app';
 import { getStorage as getAdminStorage } from 'firebase-admin/storage';
-import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 
 // Debug logging for environment variables
 console.log('Environment variables check:');
@@ -48,22 +47,32 @@ if (!getApps().length) {
 }
 
 const adminStorage = getAdminStorage(adminApp);
-const adminAuth = getAdminAuth(adminApp);
-console.log('Admin Storage and Auth initialized');
+console.log('Admin Storage initialized');
 
 export async function POST(request: Request) {
   try {
     console.log('Starting share image generation...');
+    console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+    
     const body = await request.json();
     console.log('Received request body:', body);
     
     const { drawingUrl, filename, userId } = body;
     console.log('Extracted data:', { drawingUrl, filename, userId });
 
+    // Get the authorization header
+    const authHeader = request.headers.get('Authorization');
+    console.log('Authorization header:', authHeader);
+
     // Verify the user is authenticated
     if (!userId) {
       console.log('Authentication failed: No userId provided in request');
       return NextResponse.json({ error: 'Unauthorized - No userId provided' }, { status: 401 });
+    }
+
+    if (!authHeader) {
+      console.log('Authentication failed: No Authorization header provided');
+      return NextResponse.json({ error: 'Unauthorized - No Authorization header' }, { status: 401 });
     }
 
     if (typeof userId !== 'string') {
@@ -76,13 +85,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized - Invalid FID format' }, { status: 401 });
     }
 
-    // Create a custom token for the user
-    try {
-      await adminAuth.createCustomToken(userId);
-      console.log('Custom token created for user:', userId);
-    } catch (authError) {
-      console.error('Error creating custom token:', authError);
-      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
+    // Verify the authorization token matches the userId
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Extracted token:', token);
+    console.log('Expected userId:', userId);
+    
+    if (token !== userId) {
+      console.log('Authentication failed: Token does not match userId');
+      console.log('Token:', token);
+      console.log('UserId:', userId);
+      return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
     }
 
     console.log('User authenticated successfully with FID:', userId);
