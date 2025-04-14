@@ -521,6 +521,40 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             gameSolutions: 0
           });
         }
+
+        // Fetch leaderboard data to get current user's rank
+        const usersRef = collection(db, 'users');
+        const usersSnapshot = await getDocs(usersRef);
+        
+        // Process users
+        const users = usersSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            fid: parseInt(doc.id),
+            username: data.username || 'Anonymous',
+            pfpUrl: data.pfpUrl || '',
+            points: data.points || 0,
+            isPremium: data.isPremium || false
+          };
+        });
+
+        // Sort users by points in descending order
+        const sortedUsers = users.sort((a, b) => b.points - a.points);
+
+        // Add rank to each user
+        const rankedUsers = sortedUsers.map((user, index) => ({
+          ...user,
+          rank: index + 1
+        }));
+
+        // Find current user
+        const currentUser = rankedUsers.find(user => user.fid === context.user.fid) || null;
+
+        // Update leaderboard data with current user's rank
+        setLeaderboardData(prev => ({
+          ...prev,
+          currentUser
+        }));
       } catch (error) {
         console.error('Error fetching user data:', error);
         setUserStats(null);
@@ -606,7 +640,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               {userStats?.correctGuesses || 0}
             </div>
             <div className="text-sm text-gray-800">
-              Solved
+              Correct guesses
             </div>
           </div>
           <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-2deg] border-2 border-dashed border-gray-400">
@@ -614,7 +648,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               {userStats?.gameSolutions || 0}
             </div>
             <div className="text-sm text-gray-800">
-              Created
+              Game solutions
             </div>
           </div>
         </div>
