@@ -907,6 +907,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${context.user.fid}`
         },
         body: JSON.stringify(requestBody),
       });

@@ -1,21 +1,41 @@
 import { NextResponse } from 'next/server';
-import { initializeApp } from 'firebase/app';
-import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { createCanvas, loadImage } from 'canvas';
+import { initializeApp as initializeAdminApp, getApps, cert } from 'firebase-admin/app';
+import { getStorage as getAdminStorage } from 'firebase-admin/storage';
+import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBlL2CIZTb-crfirYJ6ym6j6G4uQewu59k",
-  authDomain: "drawcast-ae4cf.firebaseapp.com",
-  projectId: "drawcast-ae4cf",
-  storageBucket: "drawcast-ae4cf.firebasestorage.app",
-  messagingSenderId: "998299398034",
-  appId: "1:998299398034:web:0f8e8a516d69e8ecf9db4b",
-  measurementId: "G-B6N4RGK1M5"
-};
+// Debug logging for environment variables
+console.log('Environment variables check:');
+console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
+console.log('FIREBASE_CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL);
+console.log('FIREBASE_PRIVATE_KEY exists:', !!process.env.FIREBASE_PRIVATE_KEY);
+console.log('FIREBASE_STORAGE_BUCKET:', process.env.FIREBASE_STORAGE_BUCKET);
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const storage = getStorage(app);
+// Initialize Firebase Admin if not already initialized
+let adminApp;
+if (!getApps().length) {
+  try {
+    console.log('Initializing Firebase Admin...');
+    adminApp = initializeAdminApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      }),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+    });
+    console.log('Firebase Admin initialized successfully');
+  } catch (error) {
+    console.error('Error initializing Firebase Admin:', error);
+    throw error;
+  }
+} else {
+  adminApp = getApps()[0];
+}
+
+const adminStorage = getAdminStorage(adminApp);
+const adminAuth = getAdminAuth(adminApp);
+console.log('Admin Storage and Auth initialized');
 
 export async function POST(request: Request) {
   try {
@@ -40,6 +60,15 @@ export async function POST(request: Request) {
     if (!userId.match(/^\d+$/)) {
       console.log('Authentication failed: userId is not a valid FID:', userId);
       return NextResponse.json({ error: 'Unauthorized - Invalid FID format' }, { status: 401 });
+    }
+
+    // Create a custom token for the user
+    try {
+      await adminAuth.createCustomToken(userId);
+      console.log('Custom token created for user:', userId);
+    } catch (authError) {
+      console.error('Error creating custom token:', authError);
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
     }
 
     console.log('User authenticated successfully with FID:', userId);
@@ -85,20 +114,37 @@ export async function POST(request: Request) {
     console.log('Converting canvas to base64...');
     const base64Data = canvas.toBuffer('image/png').toString('base64');
 
-    // Upload to Firebase Storage
+    // Upload to Firebase Storage using Admin SDK
     console.log('Uploading to Firebase Storage with filename:', filename);
-    const shareImageRef = ref(storage, `shareImages/${filename}`);
-    await uploadString(shareImageRef, base64Data, 'base64', {
-      contentType: 'image/png',
-      customMetadata: {
-        uploadedBy: userId,
-        type: 'shareImage'
-      }
-    });
+    const bucket = adminStorage.bucket();
+    console.log('Bucket name:', bucket.name);
+    
+    const file = bucket.file(`shareImages/${filename}`);
+    console.log('File path:', file.name);
+    
+    try {
+      await file.save(Buffer.from(base64Data, 'base64'), {
+        metadata: {
+          contentType: 'image/png',
+          metadata: {
+            uploadedBy: userId,
+            type: 'shareImage'
+          }
+        }
+      });
+      console.log('File uploaded successfully');
+    } catch (uploadError) {
+      console.error('Error uploading file:', uploadError);
+      throw uploadError;
+    }
 
     // Get download URL
     console.log('Getting download URL...');
-    const downloadUrl = await getDownloadURL(shareImageRef);
+    const [downloadUrl] = await file.getSignedUrl({
+      action: 'read',
+      expires: '03-01-2500' // Far future expiration
+    });
+    
     console.log('Share image generated successfully:', downloadUrl);
 
     return NextResponse.json({ shareImageUrl: downloadUrl });
@@ -107,7 +153,8 @@ export async function POST(request: Request) {
     // Return more detailed error information
     return NextResponse.json({ 
       error: 'Failed to generate share image',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     }, { status: 500 });
   }
 } 
