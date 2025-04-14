@@ -1071,7 +1071,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           
           <div className="space-y-4">
             <p className="text-sm text-center text-gray-600 font-bold">
-              You will earn 10 points for successfully guessing this drawing. You can guess only once.
+              You will earn 10 points after each correct guess.
             </p>
             <button 
               onClick={handleDrawingSubmit}
@@ -1377,7 +1377,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             }`}>
               <p className="font-medium">You guessed: {userGuess.guess}</p>
               <p className="text-lg font-bold mt-2">
-                {userGuess.isCorrect ? '✅ Correct!' : '❌ Wrong'}
+                {userGuess.isCorrect ? '✅ Correct! You earned 10 points.' : '❌ Wrong'}
               </p>
             </div>
           ) : (
@@ -1435,11 +1435,18 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   };
 
   const renderGuessPage = () => {
+    // Filter active games
+    const activeGames = games.filter(game => {
+      const isExpired = game.expiredAt.getTime() <= new Date().getTime();
+      const hasMaxGuesses = game.totalGuesses >= 10;
+      return !isExpired && !hasMaxGuesses;
+    });
+
     return (
       <div>
         <h1 className="text-l text-center mb-6 text-gray-600">Guess the drawings, earn points and climb the leaderboard!</h1>
         <div className="space-y-2">
-          {games.map((game) => {
+          {activeGames.map((game) => {
             // Check if current user has already guessed this game
             const userGuess = game.guesses?.find(
               (guess: Guess) => guess.userId === context?.user?.fid?.toString()
@@ -1483,6 +1490,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               </button>
             );
           })}
+          {activeGames.length === 0 && (
+            <div className="text-center p-4 bg-gray-100 rounded-lg text-gray-600 transform rotate-[1deg] border-2 border-dashed border-gray-400">
+              No active games at the moment. Be the first to create one!
+            </div>
+          )}
         </div>
       </div>
     );
