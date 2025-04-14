@@ -27,7 +27,24 @@ let adminApp;
 if (!getApps().length) {
   try {
     console.log('Initializing Firebase Admin...');
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    
+    // Clean and format the private key
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    if (privateKey) {
+      // Remove any surrounding quotes
+      privateKey = privateKey.replace(/^"|"$/g, '');
+      // Replace escaped newlines with actual newlines
+      privateKey = privateKey.replace(/\\n/g, '\n');
+      // Ensure the key starts and ends with the correct markers
+      if (!privateKey.startsWith('-----BEGIN PRIVATE KEY-----')) {
+        privateKey = '-----BEGIN PRIVATE KEY-----\n' + privateKey;
+      }
+      if (!privateKey.endsWith('-----END PRIVATE KEY-----')) {
+        privateKey = privateKey + '\n-----END PRIVATE KEY-----';
+      }
+    }
+    
+    console.log('Formatted private key:', privateKey ? 'Key present' : 'No key');
     
     adminApp = initializeAdminApp({
       credential: cert({
