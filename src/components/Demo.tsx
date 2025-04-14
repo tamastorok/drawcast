@@ -93,6 +93,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     userId: null,
     error: null
   });
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardData>({
+    topUsers: [],
+    currentUser: null
+  });
 
   const firebaseConfig = {
     apiKey: "AIzaSyBlL2CIZTb-crfirYJ6ym6j6G4uQewu59k",
@@ -491,23 +495,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     stopDrawing();
   };
 
-  // Mock data for testing
-  const mockLeaderboardData: LeaderboardData = {
-    topUsers: [
-      { fid: 1, username: "User1", pfpUrl: "/profile.png", points: 100, isPremium: true },
-      { fid: 2, username: "User2", pfpUrl: "/profile.png", points: 90 },
-      { fid: 3, username: "User3", pfpUrl: "/profile.png", points: 80 },
-    ],
-    currentUser: context?.user ? {
-      fid: context.user.fid,
-      username: context.user.username || '',
-      pfpUrl: context.user.pfpUrl || '',
-      points: 75,
-      rank: 4,
-      isPremium: false
-    } : null
-  };
-
   // Fetch user stats and created games when profile is shown
   useEffect(() => {
     const fetchUserData = async () => {
@@ -606,7 +593,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         {/* Leaderboard Position */}
         <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 text-gray-800 transform rotate-[-1deg] border-2 border-dashed border-gray-400">
           <div className="text-2xl font-bold text-gray-800">
-            {mockLeaderboardData.currentUser?.rank ? `#${mockLeaderboardData.currentUser.rank}` : 'Not ranked'}
+            {leaderboardData.currentUser?.rank ? `#${leaderboardData.currentUser.rank}` : 'Not ranked'}
           </div>
           <div className="text-sm text-gray-800">
             Leaderboard Position
@@ -716,11 +703,62 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     );
   };
 
+  // Fetch leaderboard data
+  useEffect(() => {
+    const fetchLeaderboardData = async () => {
+      if (!context?.user?.fid) return;
+
+      try {
+        // Fetch all users
+        const usersRef = collection(db, 'users');
+        const usersSnapshot = await getDocs(usersRef);
+        
+        // Process users
+        const users = usersSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            fid: parseInt(doc.id),
+            username: data.username || 'Anonymous',
+            pfpUrl: data.pfpUrl || '',
+            points: data.points || 0,
+            isPremium: data.isPremium || false
+          };
+        });
+
+        // Sort users by points in descending order
+        const sortedUsers = users.sort((a, b) => b.points - a.points);
+
+        // Add rank to each user
+        const rankedUsers = sortedUsers.map((user, index) => ({
+          ...user,
+          rank: index + 1
+        }));
+
+        // Find current user
+        const currentUser = rankedUsers.find(user => user.fid === context.user.fid) || null;
+
+        // Get top 10 users
+        const topUsers = rankedUsers.slice(0, 10);
+
+        setLeaderboardData({
+          topUsers,
+          currentUser
+        });
+      } catch (error) {
+        console.error('Error fetching leaderboard data:', error);
+      }
+    };
+
+    if (showLeaderboard) {
+      fetchLeaderboardData();
+    }
+  }, [showLeaderboard, context?.user?.fid, db]);
+
   const renderLeaderboard = () => {
     return (
       <div>
         <div className="space-y-2">
-          {mockLeaderboardData.topUsers.map((user, index) => (
+          {leaderboardData.topUsers.map((user, index) => (
             <div 
               key={user.fid}
               className={`p-3 rounded-lg flex items-center gap-3 transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} ${
@@ -729,7 +767,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   : 'bg-gray-100'
               } border-2 border-dashed border-gray-400`}
             >
-              <div className="text-lg font-bold w-8">{index + 1}</div>
+              <div className="text-lg font-bold w-8">{user.rank}</div>
               {user.pfpUrl && (
                 <Image 
                   src={user.pfpUrl} 
@@ -747,26 +785,26 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           ))}
 
           {/* Show current user's position if not in top 10 */}
-          {mockLeaderboardData.currentUser && (
+          {leaderboardData.currentUser && !leaderboardData.topUsers.some(u => u.fid === leaderboardData.currentUser?.fid) && (
             <>
               <div className="h-4"></div>
               <div className="border-t-2 border-dashed border-gray-400 my-2"></div>
               <div 
                 className="p-3 bg-green-100 rounded-lg flex items-center gap-3 transform rotate-[1deg] border-2 border-dashed border-gray-400"
               >
-                <div className="text-lg font-bold w-8">{mockLeaderboardData.currentUser.rank}</div>
-                {mockLeaderboardData.currentUser.pfpUrl && (
+                <div className="text-lg font-bold w-8">{leaderboardData.currentUser.rank}</div>
+                {leaderboardData.currentUser.pfpUrl && (
                   <Image 
-                    src={mockLeaderboardData.currentUser.pfpUrl} 
-                    alt={mockLeaderboardData.currentUser.username} 
+                    src={leaderboardData.currentUser.pfpUrl} 
+                    alt={leaderboardData.currentUser.username} 
                     width={32} 
                     height={32} 
                     className="rounded-full transform rotate-[-2deg]"
                   />
                 )}
                 <div className="flex-1">
-                  <div className="font-bold">{mockLeaderboardData.currentUser.username}</div>
-                  <div className="text-sm text-gray-600">{mockLeaderboardData.currentUser.points} points</div>
+                  <div className="font-bold">{leaderboardData.currentUser.username}</div>
+                  <div className="text-sm text-gray-600">{leaderboardData.currentUser.points} points</div>
                 </div>
               </div>
             </>
@@ -863,7 +901,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const newGameRef = doc(gamesRef);
       batch.set(newGameRef, gameData);
 
-      // Update user's gamesCreated count using FID
+      // Update user's gamesCreated count
       const userRef = doc(db, 'users', context.user.fid.toString());
       batch.update(userRef, {
         gamesCreated: increment(1)
@@ -1131,31 +1169,57 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       // Use a batch to ensure atomicity
       const batch = writeBatch(db);
 
-      // Update the game document with the new guess
-      batch.update(gameRef, {
-        guesses: arrayUnion(guess),
-        totalGuesses: increment(1),
-        correctGuesses: isCorrect ? increment(1) : increment(0)
-      });
-
       // If the guess is correct, update both the guesser's and creator's points
       if (isCorrect) {
-        // Update guesser's points using FID
+        // First get the current values
         const guesserRef = doc(db, 'users', fid);
-        batch.update(guesserRef, {
-          points: increment(10),
-          correctGuesses: increment(1)
-        });
-
-        // Update creator's points and gameSolutions
         const creatorRef = doc(db, 'users', selectedGame.userFid);
-        batch.update(creatorRef, {
-          gameSolutions: increment(1)
-        });
-      }
+        
+        const guesserDoc = await getDoc(guesserRef);
+        const creatorDoc = await getDoc(creatorRef);
+        
+        // Calculate points using current values
+        let guesserPoints = 0;
+        let creatorPoints = 0;
+        
+        if (guesserDoc.exists()) {
+          const guesserData = guesserDoc.data();
+          guesserPoints = ((guesserData.correctGuesses || 0) + 1) * 10; // Add 1 for the new correct guess
+          if (fid === selectedGame.userFid) {
+            guesserPoints += ((guesserData.gameSolutions || 0) + 1) * 10; // Add 1 for the new game solution
+          } else {
+            guesserPoints += (guesserData.gameSolutions || 0) * 10;
+          }
+        }
+        
+        if (creatorDoc.exists()) {
+          const creatorData = creatorDoc.data();
+          creatorPoints = (creatorData.correctGuesses || 0) * 10;
+          creatorPoints += ((creatorData.gameSolutions || 0) + 1) * 10; // Add 1 for the new game solution
+        }
 
-      // Commit all updates
-      await batch.commit();
+        // Update all fields in a single batch
+        batch.update(guesserRef, {
+          correctGuesses: increment(1),
+          points: guesserPoints
+        });
+
+        // Update creator's fields
+        batch.update(creatorRef, {
+          gameSolutions: increment(1),
+          points: creatorPoints
+        });
+
+        // Update the game document with the new guess
+        batch.update(gameRef, {
+          guesses: arrayUnion(guess),
+          totalGuesses: increment(1),
+          correctGuesses: isCorrect ? increment(1) : increment(0)
+        });
+
+        // Commit all updates
+        await batch.commit();
+      }
 
       // Update the local state to show the result
       setSelectedGame(prev => prev ? {
