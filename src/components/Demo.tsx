@@ -52,6 +52,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [currentGuess, setCurrentGuess] = useState('');
   const [isSubmittingGuess, setIsSubmittingGuess] = useState(false);
   const [guessError, setGuessError] = useState<string | null>(null);
+  const [showPresaveModal, setShowPresaveModal] = useState(false);
   const [userStats, setUserStats] = useState<{
     correctGuesses: number;
     points: number;
@@ -139,7 +140,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       try {
         console.log('SDK and context ready, initializing...');
-        await sdk.actions.ready({ disableNativeGestures: true });
         
         // Get the current URL and log all parameters
         const url = new URL(window.location.href);
@@ -211,11 +211,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         } else {
           console.log('No game ID found in URL or path');
         }
-
-        // Add frame as the last step
-        console.log('Adding frame...');
-        await sdk.actions.addFrame();
-        console.log('Frame added successfully');
       } catch (error) {
         console.error('Error during initialization:', error);
       }
@@ -269,6 +264,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           userId: auth.currentUser?.uid || null,
           error: null
         });
+
+        // Show presave modal after successful authentication
+        if (context) {
+          setShowPresaveModal(true);
+        }
       } catch (error) {
         console.error('Error during authentication:', error);
         setAuthState({
@@ -1563,6 +1563,47 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     return () => unsubscribe();
   }, []);
 
+  // Add PresaveModal component
+  const PresaveModal = () => {
+    const handlePresave = async () => {
+      try {
+        // Here you can add any presave logic
+        console.log('Presaving app...');
+        
+        // After presave, initialize the frame
+        await sdk.actions.ready({ disableNativeGestures: true });
+        await sdk.actions.addFrame();
+        
+        // Hide the modal
+        setShowPresaveModal(false);
+      } catch (error) {
+        console.error('Error during presave:', error);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-[#f9f7f0] flex items-center justify-center z-50">
+        <div className="w-[300px] mx-auto px-4 text-center">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800 transform rotate-[-2deg]">
+            Drawcast is coming very soon!
+          </h2>
+          <p className="text-gray-600 mb-8 transform rotate-[1deg]">
+            Draw and challenge your friends. Earn points and climb the leaderboard
+          </p>
+          <button
+            onClick={handlePresave}
+            className="w-full bg-[#0c703b] text-white py-4 px-8 rounded-lg text-xl font-bold hover:bg-[#0c703b] transition-colors transform rotate-[-1deg] border-4 border-dashed border-white mb-4"
+          >
+            Presave
+          </button>
+          <p className="text-sm text-gray-600 transform rotate-[2deg]">
+            Presave the app and join the early adopters to get a unique badge!
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -1591,6 +1632,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         </div>
       ) : (
         <>
+          {/* Presave Modal */}
+          {showPresaveModal && <PresaveModal />}
+
           {/* Header */}
           <div className="fixed top-0 left-0 right-0 z-10 bg-[#f9f7f0] border-b-2 border-dashed border-gray-400">
             <div className="w-[300px] mx-auto py-3">
