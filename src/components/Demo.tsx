@@ -141,6 +141,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       try {
         console.log('SDK and context ready, initializing...');
         
+        // Show presave modal immediately if we have context
+        if (context) {
+          setShowPresaveModal(true);
+        }
+        
         // Get the current URL and log all parameters
         const url = new URL(window.location.href);
         console.log('Current URL:', url.href);
@@ -264,11 +269,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           userId: auth.currentUser?.uid || null,
           error: null
         });
-
-        // Show presave modal after successful authentication
-        if (context) {
-          setShowPresaveModal(true);
-        }
       } catch (error) {
         console.error('Error during authentication:', error);
         setAuthState({
@@ -1574,15 +1574,22 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         await sdk.actions.ready({ disableNativeGestures: true });
         await sdk.actions.addFrame();
         
-        // Hide the modal
-        setShowPresaveModal(false);
+        // Only mark as early adopter if frame was successfully added
+        if (context?.user?.fid) {
+          const fid = context.user.fid.toString();
+          const userRef = doc(db, 'users', fid);
+          await setDoc(userRef, {
+            isEarlyAdopter: true
+          }, { merge: true });
+          console.log('User marked as early adopter:', fid);
+        }
       } catch (error) {
         console.error('Error during presave:', error);
       }
     };
 
     return (
-      <div className="fixed inset-0 bg-[#f9f7f0] flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-[#f9f7f0] flex items-center justify-center z-50 border-4 border-dashed border-gray-400">
         <div className="w-[300px] mx-auto px-4 text-center">
           <h2 className="text-2xl font-bold mb-4 text-gray-800 transform rotate-[-2deg]">
             Drawcast is coming very soon!
