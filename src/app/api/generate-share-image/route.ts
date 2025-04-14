@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createCanvas, loadImage } from 'canvas';
 import { initializeApp as initializeAdminApp, getApps, cert } from 'firebase-admin/app';
 import { getStorage as getAdminStorage } from 'firebase-admin/storage';
+import path from 'path';
 
 // Debug logging for environment variables
 console.log('Environment variables check:');
@@ -121,11 +122,13 @@ export async function POST(request: Request) {
     const canvas = createCanvas(1080, 720);
     const ctx = canvas.getContext('2d');
 
-    // Fill background
-    ctx.fillStyle = '#ffbd59';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Load and draw background
+    console.log('Loading background image...');
+    const backgroundPath = path.join(process.cwd(), 'public', 'drawblank.png');
+    const backgroundImage = await loadImage(backgroundPath);
+    ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
 
-    // Load and draw image
+    // Load and draw user's drawing
     console.log('Loading image from URL:', drawingUrl);
     const image = await loadImage(drawingUrl);
     console.log('Image loaded successfully');
