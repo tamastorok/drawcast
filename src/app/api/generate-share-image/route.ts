@@ -6,10 +6,22 @@ import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 
 // Debug logging for environment variables
 console.log('Environment variables check:');
-console.log('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
-console.log('FIREBASE_CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL);
-console.log('FIREBASE_PRIVATE_KEY exists:', !!process.env.FIREBASE_PRIVATE_KEY);
-console.log('FIREBASE_STORAGE_BUCKET:', process.env.FIREBASE_STORAGE_BUCKET);
+const requiredEnvVars = {
+  FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+  FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
+  FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
+  FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET
+};
+
+// Check for missing environment variables
+const missingVars = Object.entries(requiredEnvVars)
+  .filter(([_, value]) => !value)
+  .map(([key]) => key);
+
+if (missingVars.length > 0) {
+  console.error('Missing required environment variables:', missingVars);
+  throw new Error(`Missing required environment variables: ${missingVars.join(', ')}. Please check your Vercel environment variables.`);
+}
 
 // Initialize Firebase Admin if not already initialized
 let adminApp;
@@ -17,9 +29,6 @@ if (!getApps().length) {
   try {
     console.log('Initializing Firebase Admin...');
     const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-    if (!privateKey) {
-      throw new Error('FIREBASE_PRIVATE_KEY is not set');
-    }
     
     adminApp = initializeAdminApp({
       credential: cert({
