@@ -2,11 +2,16 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
     // Allow public read access to all files
     match /{allPaths=**} {
       allow read: if true;
-      // Allow writes from authenticated users
-      allow write: if true; // Temporarily allow all writes
+      allow create: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
   }
 } 

@@ -927,22 +927,29 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       console.log('Starting share image generation with filename:', filename);
       
       if (!context?.user?.fid) {
+        console.error('User not authenticated in generateShareImage');
         throw new Error('User not authenticated');
       }
+
+      const requestBody = {
+        drawingUrl,
+        filename: filename,
+        userId: context.user.fid.toString()
+      };
+      
+      console.log('Sending request to API with body:', requestBody);
       
       const response = await fetch('/api/generate-share-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          drawingUrl,
-          filename: filename,
-          userId: context.user.fid.toString()
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API response error:', errorData);
         throw new Error('Failed to generate share image');
       }
 
