@@ -1606,7 +1606,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             Drawcast is coming very soon!
           </h2>
           <p className="text-gray-600 mb-8 transform rotate-[1deg]">
-            Draw and challenge your friends. Earn points and climb the leaderboard
+          Compete, laugh, and earn points in the most unpredictable sketch battle.
           </p>
           <button
             onClick={handlePresave}
@@ -1615,7 +1615,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             Presave
           </button>
           <p className="text-sm text-gray-600 transform rotate-[2deg]">
-            Presave the app and join the early adopters to get a unique badge!
+          Presave the app now to join the early adopters and unlock an exclusive OG badge!
           </p>
         </div>
       </div>
