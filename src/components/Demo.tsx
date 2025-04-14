@@ -7,6 +7,7 @@ import { sdk } from '@farcaster/frame-sdk'
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
+import { getAuth, signInAnonymously } from "firebase/auth";
 //import { getAnalytics } from "firebase/analytics";
 
 interface LeaderboardUser {
@@ -107,6 +108,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const storage = getStorage(app);
+  const auth = getAuth(app);
 
   const castTextVariations = [
     "Think you can crack this drawing on Drawcast? Prove it and earn points. 🎨🕵️",
@@ -223,98 +225,59 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     const initializeUser = async () => {
       console.log('Initializing user with context:', context?.user);
       
-      if (!context?.user?.fid) {
-        console.log('No Farcaster user context available');
-        setAuthState({
-          isLoading: false,
-          isAuthenticated: false,
-          userId: null,
-          error: null
-        });
-        return;
-      }
-
       try {
-        const fid = context.user.fid.toString();
-        console.log('Attempting to update user document for FID:', fid);
-        
-        const userRef = doc(db, 'users', fid);
-        const userDoc = await getDoc(userRef);
-        console.log('User document exists:', userDoc.exists());
-        
-        const userData = {
-          username: context.user.username || 'Anonymous',
-          pfpUrl: context.user.pfpUrl || '',
-          lastSeen: new Date(),
-          isAnonymous: true,
-          fid: fid
-        };
+        // Always try anonymous authentication first
+        console.log('Attempting anonymous authentication...');
+        await signInAnonymously(auth);
+        console.log('Successfully authenticated anonymously');
 
-        if (!userDoc.exists()) {
-          console.log('Creating new user document');
-          await setDoc(userRef, {
-            ...userData,
-            createdAt: new Date()
-          });
-        } else {
-          console.log('Updating existing user document');
-          await setDoc(userRef, userData, { merge: true });
+        // If we have Farcaster context, update the user document
+        if (context?.user?.fid) {
+          const fid = context.user.fid.toString();
+          console.log('Updating user document for FID:', fid);
+          
+          const userRef = doc(db, 'users', fid);
+          const userDoc = await getDoc(userRef);
+          
+          const userData = {
+            username: context.user.username || 'Anonymous',
+            pfpUrl: context.user.pfpUrl || '',
+            lastSeen: new Date(),
+            isAnonymous: true,
+            fid: fid
+          };
+
+          if (!userDoc.exists()) {
+            console.log('Creating new user document');
+            await setDoc(userRef, {
+              ...userData,
+              createdAt: new Date()
+            });
+          } else {
+            console.log('Updating existing user document');
+            await setDoc(userRef, userData, { merge: true });
+          }
         }
 
-        console.log('User document updated successfully');
         setAuthState({
           isLoading: false,
           isAuthenticated: true,
-          userId: fid,
+          userId: auth.currentUser?.uid || null,
           error: null
         });
       } catch (error) {
-        console.error('Error managing user data:', error);
+        console.error('Error during authentication:', error);
         setAuthState({
           isLoading: false,
           isAuthenticated: false,
           userId: null,
-          error: 'Failed to manage user data'
+          error: 'Failed to authenticate'
         });
       }
     };
 
     initializeUser();
-  }, [context?.user, db]);
-
-  // Handle Farcaster context changes
-  useEffect(() => {
-    const updateUserData = async () => {
-      if (!context?.user?.fid) return;
-
-      try {
-        const fid = context.user.fid.toString();
-        const userRef = doc(db, 'users', fid);
-        const userDoc = await getDoc(userRef);
-        
-        const userData = {
-          username: context.user.username || 'Anonymous',
-          pfpUrl: context.user.pfpUrl || '',
-          lastSeen: new Date(),
-          isAnonymous: true,
-          fid: fid
-        };
-
-        if (!userDoc.exists()) {
-          await setDoc(userRef, {
-            ...userData,
-            createdAt: new Date()
-          });
-        } else {
-          await setDoc(userRef, userData, { merge: true });
-        }
-      } catch (error) {
-        console.error('Error updating user data with Farcaster context:', error);
-      }
-    };
-
-    updateUserData();
-  }, [context?.user, db]);
+  }, [context?.user, db, auth]);
 
   // Fetch and generate random prompt
   useEffect(() => {
@@ -820,22 +783,22 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       return;
     }
 
-    // Check authentication state
-    if (!authState.isAuthenticated || !context?.user?.fid) {
-      console.error('User not authenticated');
+    if (!context?.user?.fid) {
+      console.error('No Farcaster user context');
       setGuessError('Please connect with Farcaster to upload drawings');
       return;
-    }
-
-    // Clear the timer if it exists
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
     }
 
     try {
       setIsUploading(true);
       
+      // Ensure we're authenticated
+      if (!auth.currentUser) {
+        console.log('No authenticated user, signing in anonymously...');
+        await signInAnonymously(auth);
+        console.log('Successfully authenticated anonymously');
+      }
+
       // Generate a unique filename for the drawing
       const timestamp = new Date().getTime();
       const randomString = Math.random().toString(36).substring(2, 8);
@@ -848,6 +811,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const storageRef = ref(storage, drawingPath);
       
       console.log('Uploading drawing with filename:', drawingFilename);
+      console.log('Current auth state:', auth.currentUser);
       
       await uploadString(storageRef, base64Data, 'base64', {
         contentType: 'image/png',
@@ -1462,6 +1426,31 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       setShowWarpcastModal(false);
     }
   }, [isSDKLoaded, context?.user]);
+
+  // Add authentication state listener
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log('User is signed in:', user.uid);
+        setAuthState({
+          isLoading: false,
+          isAuthenticated: true,
+          userId: user.uid,
+          error: null
+        });
+      } else {
+        console.log('No user is signed in');
+        setAuthState({
+          isLoading: false,
+          isAuthenticated: false,
+          userId: null,
+          error: null
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   if (!isSDKLoaded) {
     return <div>Loading...</div>;

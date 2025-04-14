@@ -10,6 +10,17 @@ service firebase.storage {
     // Allow public read access to all files
     match /{allPaths=**} {
       allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Specific rules for drawings
+    match /drawings/{filename} {
+      allow create: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Specific rules for share images
+    match /shareImages/{filename} {
       allow create: if isAuthenticated();
       allow write: if isAuthenticated();
     }
