@@ -20,14 +20,29 @@ const storage = getStorage(app);
 export async function POST(request: Request) {
   try {
     console.log('Starting share image generation...');
-    const { drawingUrl, filename, userId } = await request.json();
-    console.log('Received data:', { drawingUrl, filename, userId });
+    const body = await request.json();
+    console.log('Received request body:', body);
+    
+    const { drawingUrl, filename, userId } = body;
+    console.log('Extracted data:', { drawingUrl, filename, userId });
 
     // Verify the user is authenticated
     if (!userId) {
-      console.log('No userId provided');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.log('Authentication failed: No userId provided in request');
+      return NextResponse.json({ error: 'Unauthorized - No userId provided' }, { status: 401 });
     }
+
+    if (typeof userId !== 'string') {
+      console.log('Authentication failed: userId is not a string:', typeof userId);
+      return NextResponse.json({ error: 'Unauthorized - Invalid userId format' }, { status: 401 });
+    }
+
+    if (!userId.match(/^\d+$/)) {
+      console.log('Authentication failed: userId is not a valid FID:', userId);
+      return NextResponse.json({ error: 'Unauthorized - Invalid FID format' }, { status: 401 });
+    }
+
+    console.log('User authenticated successfully with FID:', userId);
 
     // Create canvas
     console.log('Creating canvas...');
