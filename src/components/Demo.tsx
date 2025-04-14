@@ -507,10 +507,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          const totalPoints = ((userData.correctGuesses || 0) * 10) + ((userData.gameSolutions || 0) * 10);
           setUserStats({
             correctGuesses: userData.correctGuesses || 0,
-            points: totalPoints,
+            points: userData.points || 0,
             created: userData.gamesCreated || 0,
             gameSolutions: userData.gameSolutions || 0
           });
