@@ -1,3 +1,6 @@
+import { readFile } from "fs/promises";
+import { join } from "path";
+
 export const alt = process.env.NEXT_PUBLIC_FRAME_NAME || "Drawcast";
 export const size = {
   width: 1200,
@@ -6,7 +9,9 @@ export const size = {
 
 export const contentType = "image/png";
 
-// Use existing image.png from public directory
-export default function Image() {
-  return fetch(new URL("../../public/image.png", import.meta.url));
+export default async function Image() {
+  const imageData = await readFile(join(process.cwd(), 'public', 'image.png'));
+  return new Response(imageData, {
+    headers: { 'Content-Type': 'image/png' }
+  });
 }
