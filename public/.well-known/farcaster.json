@@ -13,6 +13,6 @@
     "buttonTitle": "Draw",
     "splashImageUrl": "https://drawcast.xyz/splash.png",
     "splashBackgroundColor": "#FFF",
-    "webhookUrl": "https://drawcast.xyz/api/webhook"
+    "webhookUrl": "https://api.neynar.com/f/app/742698e3-e8c4-401b-a5ec-d6e56e0a59c6/event"
   }
 }

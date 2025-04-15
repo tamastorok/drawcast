@@ -120,7 +120,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     "Can you guess what it is? Submit the correct answer to earn points! 🎨✨",
     "Challenge: Guess this drawing and earn points! 🎨🏆",
     "Here is a new drawing puzzle. Can you solve it? 🎨🧩",
-    "New sketch dropped on Drawcast! Take a guess 👇🎨",
+    "New sketch dropped on Drawcast! Take a guess and earn points! 👇🎨",
     "Think you're good at guessing? Try this drawing! 🎨🎯",
     "New drawing challenge: Guess it right and earn points! 🎨💰",
     "Can you figure out what it is? Take a guess! 🎨🤔",
