@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
     // Send notification to a test FID
     const response = await sendNeynarFrameNotification({
       fid: "234692", // Your FID
-      title: "New Drawing Challenge!",
-      body: "A new drawing challenge is waiting for you on Drawcast!",
+      title: "Drawcast",
+      body: "Time to draw and challenge your friends!",
       targetUrl: "https://drawcast.xyz"
     });
 
