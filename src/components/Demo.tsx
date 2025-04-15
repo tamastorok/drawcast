@@ -141,6 +141,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       try {
         console.log('SDK and context ready, initializing...');
         
+        // Initialize SDK with native gestures disabled
+        await sdk.actions.ready({ disableNativeGestures: true });
+        
         // Show presave modal immediately if we have context
         if (context) {
           setShowPresaveModal(true);
