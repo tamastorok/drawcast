@@ -376,7 +376,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         
         // Set drawing style
         ctx.strokeStyle = 'black';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 5;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
       }
@@ -630,6 +630,20 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     fetchCreatedGames();
   }, [context?.user?.fid, isDrawingsExpanded, db]);
 
+  const getLevelInfo = (points: number) => {
+    if (points >= 3000) return { level: 11, name: "Drawing God 💎" };
+    if (points >= 2300) return { level: 10, name: "Drawing Hero 🦸‍♂️" };
+    if (points >= 1700) return { level: 9, name: "Art Wizard 🧙‍♂️" };
+    if (points >= 1200) return { level: 8, name: "Drawing Legend 👑" };
+    if (points >= 800) return { level: 7, name: "Visionary Artist 🖼️" };
+    if (points >= 500) return { level: 6, name: "Master Doodler 🧑‍🎨" };
+    if (points >= 300) return { level: 5, name: "Artistic Talent 🖌️" };
+    if (points >= 200) return { level: 4, name: "Creative Explorer 🎨" };
+    if (points >= 100) return { level: 3, name: "Drawing Enthusiast ✒️" };
+    if (points >= 50) return { level: 2, name: "Sketch Apprentice ✏️" };
+    return { level: 1, name: "Novice Artist 🖍️" };
+  };
+
   const renderProfile = () => {
     return (
       <div>
@@ -651,22 +665,29 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           {context?.user?.username || 'Anonymous'}
         </h2>
 
+        {/* Level Display */}
+        {userStats?.points && (
+          <div className="text-center mb-4 text-gray-600 transform rotate-[-1deg]">
+            Level {getLevelInfo(userStats.points).level}: {getLevelInfo(userStats.points).name}
+          </div>
+        )}
+
         {/* Badges Section */}
         <div className="mb-6">
           <div className="flex justify-center gap-4">
             {/* Early Adopter Badge */}
             {userStats?.isEarlyAdopter && (
-              <div className="bg-yellow-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-yellow-400">
-                <div className="text-2xl mb-1">⭐</div>
+              <div className="bg-green-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-green-400">
+                <div className="mb-1 flex justify-center items-center">
+                  <Image 
+                    src="/icon.png" 
+                    alt="Early Adopter" 
+                    width={40} 
+                    height={40} 
+                    className="rounded-full transform rotate-[-2deg]"
+                  />
+                </div>
                 <div className="text-xs text-gray-800">Early Adopter</div>
-              </div>
-            )}
-
-            {/* Points Master Badge */}
-            {userStats?.points && userStats.points >= 10 && (
-              <div className="bg-green-100 p-3 rounded-lg text-center transform rotate-[-1deg] border-2 border-dashed border-green-400">
-                <div className="text-2xl mb-1">💪</div>
-                <div className="text-xs text-gray-800">Points Master</div>
               </div>
             )}
           </div>
@@ -718,7 +739,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             onClick={() => setIsDrawingsExpanded(!isDrawingsExpanded)}
             className="w-full flex justify-between items-center p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors transform rotate-[-1deg] border-2 border-dashed border-gray-400"
           >
-            <h3 className="text-lg font-bold text-gray-800">Your Drawings</h3>
+            <h3 className="text-lg font-bold text-gray-800">My Drawings</h3>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
