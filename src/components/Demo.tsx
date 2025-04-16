@@ -100,6 +100,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     topUsers: [],
     currentUser: null
   });
+  const [showLevelUpModal, setShowLevelUpModal] = useState(false);
+  const [newLevelInfo, setNewLevelInfo] = useState<{ level: number; name: string } | null>(null);
+  const [previousLevel, setPreviousLevel] = useState<number | null>(null);
 
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -282,11 +285,23 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             console.log('Creating new user document');
             await setDoc(userRef, {
               ...userData,
-              createdAt: new Date()
+              createdAt: new Date(),
+              lastKnownLevel: 1
             });
           } else {
             console.log('Updating existing user document');
-            await setDoc(userRef, userData, { merge: true });
+            const currentLevel = getLevelInfo(userDoc.data().points || 0).level;
+            await setDoc(userRef, {
+              ...userData,
+              lastKnownLevel: currentLevel
+            }, { merge: true });
+
+            // Check if we need to show level up modal
+            const previousLevel = userDoc.data().lastKnownLevel || 1;
+            if (currentLevel > previousLevel) {
+              setNewLevelInfo(getLevelInfo(userDoc.data().points || 0));
+              setShowLevelUpModal(true);
+            }
           }
         }
 
@@ -309,6 +324,28 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
     initializeUser();
   }, [context?.user, db, auth]);
+
+  // Update the level change effect to also update Firestore
+  useEffect(() => {
+    if (userStats?.points !== undefined && context?.user?.fid) {
+      const currentLevel = getLevelInfo(userStats.points).level;
+      
+      // If we have a previous level and it's different from current level
+      if (previousLevel !== null && currentLevel > previousLevel) {
+        setNewLevelInfo(getLevelInfo(userStats.points));
+        setShowLevelUpModal(true);
+
+        // Update lastKnownLevel in Firestore
+        const userRef = doc(db, 'users', context.user.fid.toString());
+        setDoc(userRef, {
+          lastKnownLevel: currentLevel
+        }, { merge: true });
+      }
+      
+      // Update previous level
+      setPreviousLevel(currentLevel);
+    }
+  }, [userStats?.points, context?.user?.fid, db]);
 
   // Fetch and generate random prompt
   useEffect(() => {
@@ -668,9 +705,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         </h2>
 
         {/* Level Display */}
-        {userStats?.points && (
+        {userStats && (
           <div className="text-center mb-4 text-gray-600 transform rotate-[-1deg]">
-            Level {getLevelInfo(userStats.points).level}: {getLevelInfo(userStats.points).name}
+            Level {getLevelInfo(userStats.points || 0).level}: {getLevelInfo(userStats.points || 0).name}
           </div>
         )}
 
@@ -856,6 +893,28 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           topUsers,
           currentUser
         });
+
+        // Check for level up if we have a current user
+        if (currentUser) {
+          const userRef = doc(db, 'users', context.user.fid.toString());
+          const userDoc = await getDoc(userRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const currentLevel = getLevelInfo(currentUser.points).level;
+            const lastKnownLevel = userData.lastKnownLevel || 1;
+            
+            if (currentLevel > lastKnownLevel) {
+              setNewLevelInfo(getLevelInfo(currentUser.points));
+              setShowLevelUpModal(true);
+              
+              // Update lastKnownLevel in Firestore
+              await setDoc(userRef, {
+                lastKnownLevel: currentLevel
+              }, { merge: true });
+            }
+          }
+        }
       } catch (error) {
         console.error('Error fetching leaderboard data:', error);
       }
@@ -1764,6 +1823,52 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     setSelectedGame(games.find(g => g.id === gameId) || null);
   };
 
+  // Add the LevelUpModal component
+  const LevelUpModal = () => {
+    if (!newLevelInfo) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-[#f9f7f0] p-6 rounded-lg max-w-sm w-full mx-4 relative border-4 border-dashed border-gray-400 transform rotate-[-1deg]">
+          {/* Close button */}
+          <button
+            onClick={() => setShowLevelUpModal(false)}
+            className="absolute top-2 right-2 text-gray-800 hover:text-gray-600 transform rotate-[2deg] border-2 border-dashed border-gray-400 px-2 py-1 rounded-lg"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4 text-gray-800 transform rotate-[1deg]">Congrats! 🎉</h2>
+            <p className="text-gray-600 mb-6 transform rotate-[-2deg]">
+              You unlocked Level {newLevelInfo.level}!
+            </p>
+            <div className="text-xl font-bold text-gray-800 mb-6 transform rotate-[2deg]">
+              {newLevelInfo.name}
+            </div>
+            
+            <button
+              onClick={async () => {
+                const shareText = `I just reached Level ${newLevelInfo.level}: ${newLevelInfo.name} on drawcast.xyz! 🎨✨`;
+                try {
+                  await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}`);
+                } catch (error) {
+                  console.error('Error sharing to Warpcast:', error);
+                }
+              }}
+              className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white"
+            >
+              Share on Warpcast
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -1946,6 +2051,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
           {/* Warpcast Modal */}
           {showWarpcastModal && <WarpcastModal />}
+
+          {/* Level Up Modal */}
+          {showLevelUpModal && <LevelUpModal />}
         </>
       )}
     </div>
