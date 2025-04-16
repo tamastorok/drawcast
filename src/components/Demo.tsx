@@ -677,9 +677,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     if (points >= 800) return { level: 7, name: "Visionary Artist 🖼️" };
     if (points >= 500) return { level: 6, name: "Master Doodler 🧑‍🎨" };
     if (points >= 300) return { level: 5, name: "Artistic Talent 🖌️" };
-    if (points >= 200) return { level: 4, name: "Creative Explorer 🎨" };
-    if (points >= 100) return { level: 3, name: "Drawing Enthusiast ✒️" };
-    if (points >= 50) return { level: 2, name: "Sketch Apprentice ✏️" };
+    if (points >= 100) return { level: 4, name: "Creative Explorer 🎨" };
+    if (points >= 50) return { level: 3, name: "Drawing Enthusiast ✒️" };
+    if (points >= 10) return { level: 2, name: "Sketch Apprentice ✏️" };
     return { level: 1, name: "Novice Artist 🖍️" };
   };
 
