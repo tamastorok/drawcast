@@ -8,7 +8,7 @@ import { initializeApp, getApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { getAuth, signInAnonymously } from "firebase/auth";
-//import { getAnalytics } from "firebase/analytics";
+import { getAnalytics, logEvent } from "firebase/analytics";
 
 interface LeaderboardUser {
   fid: number;
@@ -120,6 +120,19 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const db = getFirestore(app);
   const storage = getStorage(app);
   const auth = getAuth(app);
+  const analytics = getAnalytics(app);
+
+  // Helper function to track events
+  const trackEvent = (eventName: string, eventParams?: Record<string, string | number | boolean>) => {
+    if (typeof window !== 'undefined' && analytics) {
+      logEvent(analytics, eventName, {
+        ...eventParams,
+        userFid: context?.user?.fid || 'anonymous',
+        username: context?.user?.username || 'anonymous',
+        timestamp: new Date().toISOString()
+      });
+    }
+  };
 
   const castTextVariations = [
     "Think you can crack this drawing on Drawcast? Prove it and earn points. 🎨🕵️",
@@ -149,6 +162,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         
         // Initialize SDK with native gestures disabled
         await sdk.actions.ready({ disableNativeGestures: true });
+        
+        // Track frame addition
+        trackEvent('frame_added');
         
         // Show presave modal immediately if we have context
         if (context) {
@@ -1466,10 +1482,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             return (
               <button
                 key={game.id}
-                onClick={() => {
-                  setSelectedGame(game);
-                  setGuessError(null);
-                }}
+                onClick={() => handleGameJoin(game.id)}
                 className={`w-full p-4 ${
                   userGuess 
                     ? userGuess.isCorrect
@@ -1632,6 +1645,36 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     );
   };
 
+  // Track page views
+  useEffect(() => {
+    if (isDrawing) {
+      trackEvent('draw_page_view');
+    } else if (showGuess) {
+      trackEvent('game_list_view');
+    } else if (showLeaderboard) {
+      trackEvent('leaderboard_view');
+    } else if (showProfile) {
+      trackEvent('profile_view');
+    }
+  }, [isDrawing, showGuess, showLeaderboard, showProfile]);
+
+  // Track draw button click
+  const handleDrawClick = () => {
+    trackEvent('draw_button_click');
+    setIsDrawing(true);
+    setShowTimeUpPopup(false);
+    setTimeLeft(30);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+  };
+
+  // Track game join
+  const handleGameJoin = (gameId: string) => {
+    trackEvent('game_joined', { gameId });
+    setSelectedGame(games.find(g => g.id === gameId) || null);
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -1704,14 +1747,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   <p className="text-m text-gray-600 text-center mb-8 transform rotate-[1deg]">Earn 10 points after each successful guess.</p>
                   <div className="flex flex-col items-center gap-6">
                     <button
-                      onClick={() => {
-                        setIsDrawing(true);
-                        setShowTimeUpPopup(false);
-                        setTimeLeft(30);
-                        if (timerRef.current) {
-                          clearInterval(timerRef.current);
-                        }
-                      }}
+                      onClick={handleDrawClick}
                       className="bg-[#0c703b] text-white py-4 px-8 rounded-lg text-xl font-bold hover:bg-[#0c703b] transition-colors transform rotate-[-1deg] border-4 border-dashed border-white"
                     >
                       Draw
