@@ -651,6 +651,27 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           {context?.user?.username || 'Anonymous'}
         </h2>
 
+        {/* Badges Section */}
+        <div className="mb-6">
+          <div className="flex justify-center gap-4">
+            {/* Early Adopter Badge */}
+            {userStats?.isEarlyAdopter && (
+              <div className="bg-yellow-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-yellow-400">
+                <div className="text-2xl mb-1">⭐</div>
+                <div className="text-xs text-gray-800">Early Adopter</div>
+              </div>
+            )}
+
+            {/* Points Master Badge */}
+            {userStats?.points && userStats.points >= 10 && (
+              <div className="bg-green-100 p-3 rounded-lg text-center transform rotate-[-1deg] border-2 border-dashed border-green-400">
+                <div className="text-2xl mb-1">💪</div>
+                <div className="text-xs text-gray-800">Points Master</div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Leaderboard Position */}
         <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 text-gray-800 transform rotate-[-1deg] border-2 border-dashed border-gray-400">
           <div className="text-2xl font-bold text-gray-800">
@@ -668,60 +689,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           </div>
           <div className="text-sm text-gray-800">
             Points
-          </div>
-        </div>
-
-        {/* Badges Section */}
-        <div className="mb-6">
-          <h3 className="text-lg font-bold text-center mb-4 text-gray-800 transform rotate-[-1deg]">Badges</h3>
-          <div className="grid grid-cols-3 gap-4">
-            {/* Early Adopter Badge */}
-            {userStats?.isEarlyAdopter && (
-              <div className="bg-yellow-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-yellow-400">
-                <div className="text-2xl mb-1">⭐</div>
-                <div className="text-xs text-gray-800">Early Adopter</div>
-              </div>
-            )}
-
-            {/* Drawing Master Badge */}
-            {userStats?.created && userStats.created >= 10 && (
-              <div className="bg-blue-100 p-3 rounded-lg text-center transform rotate-[-1deg] border-2 border-dashed border-blue-400">
-                <div className="text-2xl mb-1">🎨</div>
-                <div className="text-xs text-gray-800">Drawing Master</div>
-              </div>
-            )}
-
-            {/* Guessing Pro Badge */}
-            {userStats?.correctGuesses && userStats.correctGuesses >= 10 && (
-              <div className="bg-green-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-green-400">
-                <div className="text-2xl mb-1">🔍</div>
-                <div className="text-xs text-gray-800">Guessing Pro</div>
-              </div>
-            )}
-
-            {/* Top Player Badge */}
-            {leaderboardData.currentUser?.rank && leaderboardData.currentUser.rank <= 10 && (
-              <div className="bg-purple-100 p-3 rounded-lg text-center transform rotate-[-1deg] border-2 border-dashed border-purple-400">
-                <div className="text-2xl mb-1">🏆</div>
-                <div className="text-xs text-gray-800">Top Player</div>
-              </div>
-            )}
-
-            {/* Community Star Badge */}
-            {userStats?.gameSolutions && userStats.gameSolutions >= 5 && (
-              <div className="bg-pink-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-pink-400">
-                <div className="text-2xl mb-1">🌟</div>
-                <div className="text-xs text-gray-800">Community Star</div>
-              </div>
-            )}
-
-            {/* Dedicated Player Badge */}
-            {userStats?.points && userStats.points >= 100 && (
-              <div className="bg-orange-100 p-3 rounded-lg text-center transform rotate-[-1deg] border-2 border-dashed border-orange-400">
-                <div className="text-2xl mb-1">💪</div>
-                <div className="text-xs text-gray-800">Dedicated Player</div>
-              </div>
-            )}
           </div>
         </div>
 
