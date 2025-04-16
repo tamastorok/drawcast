@@ -16,6 +16,7 @@ interface LeaderboardUser {
   pfpUrl: string;
   points: number;
   isPremium?: boolean;
+  isEarlyAdopter?: boolean;
   rank?: number;
 }
 
@@ -562,7 +563,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             username: data.username || 'Anonymous',
             pfpUrl: data.pfpUrl || '',
             points: data.points || 0,
-            isPremium: data.isPremium || false
+            isPremium: data.isPremium || false,
+            isEarlyAdopter: data.isEarlyAdopter || false
           };
         });
 
@@ -679,13 +681,19 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             {userStats?.isEarlyAdopter && (
               <div className="bg-green-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-green-400">
                 <div className="mb-1 flex justify-center items-center">
-                  <Image 
-                    src="/icon.png" 
-                    alt="Early Adopter" 
-                    width={40} 
-                    height={40} 
-                    className="rounded-full transform rotate-[-2deg]"
-                  />
+                  <div className="relative group">
+                    <Image 
+                      src="/icon.png" 
+                      alt="Early Adopter" 
+                      width={40} 
+                      height={40} 
+                      className="rounded-full transform rotate-[-2deg] cursor-help"
+                      title="OG user"
+                    />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      OG user
+                    </div>
+                  </div>
                 </div>
                 <div className="text-xs text-gray-800">Early Adopter</div>
               </div>
@@ -824,7 +832,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             username: data.username || 'Anonymous',
             pfpUrl: data.pfpUrl || '',
             points: data.points || 0,
-            isPremium: data.isPremium || false
+            isPremium: data.isPremium || false,
+            isEarlyAdopter: data.isEarlyAdopter || false
           };
         });
 
@@ -881,7 +890,25 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 />
               )}
               <div className="flex-1">
-                <div className="font-bold">{user.username}{user.isPremium && <span className="text-xs" title="Premium user"> ⭐</span>}</div>
+                <div className="font-bold flex items-center gap-2">
+                  {user.username}
+                  {user.isPremium && <span className="text-xs" title="Premium user"> ⭐</span>}
+                  {user.isEarlyAdopter && (
+                    <div className="relative group">
+                      <Image 
+                        src="/icon.png" 
+                        alt="Early Adopter" 
+                        width={20} 
+                        height={20} 
+                        className="rounded-full transform rotate-[-2deg] cursor-help"
+                        title="OG user"
+                      />
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        OG user
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <div className="text-sm text-gray-600">{user.points} points</div>
               </div>
             </div>
@@ -906,7 +933,24 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   />
                 )}
                 <div className="flex-1">
-                  <div className="font-bold">{leaderboardData.currentUser.username}</div>
+                  <div className="font-bold flex items-center gap-2">
+                    {leaderboardData.currentUser.username}
+                    {leaderboardData.currentUser.isEarlyAdopter && (
+                      <div className="relative group">
+                        <Image 
+                          src="/icon.png" 
+                          alt="Early Adopter" 
+                          width={20} 
+                          height={20} 
+                          className="rounded-full transform rotate-[-2deg] cursor-help"
+                          title="OG user"
+                        />
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          OG user
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <div className="text-sm text-gray-600">{leaderboardData.currentUser.points} points</div>
                 </div>
               </div>
@@ -1849,7 +1893,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   }}
                 > 
                   <span className="text-2xl"><Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} className="transform rotate-[1deg]" /></span>
-                  <span className="text-xs">Top</span>
+                  <span className="text-xs">Rank</span>
                 </button>
                 <button 
                   className={`flex flex-col items-center justify-center w-full h-full ${showProfile ? 'bg-green-100' : ''} transform rotate-[2deg]`}
