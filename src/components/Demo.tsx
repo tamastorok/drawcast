@@ -1582,7 +1582,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           const fid = context.user.fid.toString();
           const userRef = doc(db, 'users', fid);
           await setDoc(userRef, {
-            isEarlyAdopter: true
+            isEarlyAdopter: true,
+            cohort: 1
           }, { merge: true });
           console.log('User marked as early adopter:', fid);
         }
