@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useFrame } from "~/components/providers/FrameProvider";
 import { sdk } from '@farcaster/frame-sdk'
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { getAuth, signInAnonymously } from "firebase/auth";
@@ -100,17 +100,23 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   });
 
   const firebaseConfig = {
-    apiKey: "AIzaSyBlL2CIZTb-crfirYJ6ym6j6G4uQewu59k",
-    authDomain: "drawcast-ae4cf.firebaseapp.com",
-    projectId: "drawcast-ae4cf",
-    storageBucket: "drawcast-ae4cf.firebasestorage.app",
-    messagingSenderId: "998299398034",
-    appId: "1:998299398034:web:0f8e8a516d69e8ecf9db4b",
-    measurementId: "G-B6N4RGK1M5"
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
   };
   
   // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
+  let app;
+  try {
+    app = initializeApp(firebaseConfig);
+  } catch {
+    // If Firebase is already initialized, get the existing instance
+    app = getApp();
+  }
   const db = getFirestore(app);
   const storage = getStorage(app);
   const auth = getAuth(app);
