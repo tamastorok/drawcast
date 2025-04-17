@@ -716,14 +716,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       console.log('Current streak data:', { lastSeen, streak, streakPoints });
 
-      // Check if streak is broken (last seen before yesterday)
-      if (lastSeen && !isYesterday(lastSeen) && !isToday(lastSeen)) {
-        console.log('Streak broken, resetting...');
-        streak = 1;  // Reset streak to 1
-        streakPoints = 0;  // Reset streak points to 0
-      }
-      // Only increment if we haven't seen the user today
-      else if (!lastSeen || !isToday(lastSeen)) {
+      // Check if we should increment streak (if lastSeen is not today)
+      const shouldIncrement = !lastSeen || 
+        lastSeen.getDate() !== now.getDate() || 
+        lastSeen.getMonth() !== now.getMonth() || 
+        lastSeen.getFullYear() !== now.getFullYear();
+
+      if (shouldIncrement) {
         console.log('Incrementing streak...');
         streak += 1;
         if (streakPoints < 50) {
@@ -731,9 +730,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         }
       } else {
         console.log('User already seen today, keeping current values');
-        // Keep current values if user was already seen today
-        streak = userData.streak || 0;
-        streakPoints = userData.streakPoints || 0;
       }
 
       // Calculate total points (regular points + streak points)
@@ -766,22 +762,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       console.error('Error updating user streak:', error);
       return { streak: 0, streakPoints: 0 };
     }
-  };
-
-  // Helper functions for date comparison
-  const isToday = (date: Date) => {
-    const today = new Date();
-    return date.getDate() === today.getDate() && 
-           date.getMonth() === today.getMonth() && 
-           date.getFullYear() === today.getFullYear();
-  };
-
-  const isYesterday = (date: Date) => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return date.getDate() === yesterday.getDate() && 
-           date.getMonth() === yesterday.getMonth() && 
-           date.getFullYear() === yesterday.getFullYear();
   };
 
   const renderProfile = () => {
