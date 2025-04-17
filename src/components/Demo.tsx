@@ -716,8 +716,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       console.log('Current streak data:', { lastSeen, streak, streakPoints });
 
-      // Check if we should increment streak (if lastSeen is not today)
-      const shouldIncrement = !lastSeen || 
+      // If lastSeen is in the future, treat it as if we've never seen the user
+      const isFutureDate = lastSeen && lastSeen > now;
+      
+      // Check if we should increment streak (if lastSeen is not today or is in the future)
+      const shouldIncrement = !lastSeen || isFutureDate || 
         lastSeen.getDate() !== now.getDate() || 
         lastSeen.getMonth() !== now.getMonth() || 
         lastSeen.getFullYear() !== now.getFullYear();
