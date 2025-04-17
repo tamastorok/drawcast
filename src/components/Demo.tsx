@@ -706,7 +706,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const userRef = doc(db, 'users', userId);
       const userDoc = await getDoc(userRef);
       
-      if (!userDoc.exists()) return;
+      if (!userDoc.exists()) {
+        console.log('User document does not exist');
+        return;
+      }
 
       const userData = userDoc.data();
       const now = new Date();
@@ -714,7 +717,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       let streak = userData.streak || 0;
       let streakPoints = userData.streakPoints || 0;
 
-      console.log('Current streak data:', { lastStreakDate, streak, streakPoints });
+      console.log('Initial values:', {
+        lastStreakDate: lastStreakDate?.toISOString(),
+        streak,
+        streakPoints,
+        now: now.toISOString()
+      });
 
       // Check if we should increment streak (if lastStreakDate is not today)
       const shouldIncrement = !lastStreakDate || 
@@ -722,8 +730,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         lastStreakDate.getMonth() !== now.getMonth() || 
         lastStreakDate.getFullYear() !== now.getFullYear();
 
+      console.log('Should increment:', shouldIncrement);
+
       if (shouldIncrement) {
-        console.log('Incrementing streak...');
+        console.log('Checking streak continuation...');
         // Check if the last activity was yesterday (to continue streak)
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
@@ -733,16 +743,23 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           lastStreakDate.getMonth() === yesterday.getMonth() &&
           lastStreakDate.getFullYear() === yesterday.getFullYear();
 
+        console.log('Is consecutive day:', isConsecutiveDay, {
+          lastStreakDate: lastStreakDate?.toISOString(),
+          yesterday: yesterday.toISOString()
+        });
+
         if (isConsecutiveDay) {
           // Continue streak
           streak += 1;
           if (streakPoints < 20) {
             streakPoints += 1;
           }
+          console.log('Continuing streak:', { newStreak: streak, newStreakPoints: streakPoints });
         } else {
           // Reset streak if not consecutive
           streak = 1;
           streakPoints = 1;
+          console.log('Resetting streak:', { newStreak: streak, newStreakPoints: streakPoints });
         }
       } else {
         console.log('User already seen today, keeping current values');
@@ -751,7 +768,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       // Calculate total points (regular points + streak points)
       const totalPoints = (userData.points || 0) + streakPoints;
 
-      console.log('Updating with new values:', { streak, streakPoints, totalPoints });
+      console.log('Final values before update:', {
+        streak,
+        streakPoints,
+        totalPoints,
+        lastStreakDate: shouldIncrement ? now.toISOString() : lastStreakDate?.toISOString()
+      });
 
       // Update user document with new streak, streak points, and total points
       await setDoc(userRef, {
@@ -762,7 +784,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         lastStreakDate: shouldIncrement ? now : lastStreakDate  // Only update lastStreakDate if we incremented
       }, { merge: true });
 
-      console.log('Updated user streak:', { userId, streak, streakPoints, totalPoints });
+      console.log('Updated user streak in Firestore:', { userId, streak, streakPoints, totalPoints });
 
       // Update local state if we're showing profile
       if (showProfile) {
