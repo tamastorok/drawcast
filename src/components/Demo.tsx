@@ -60,6 +60,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     created: number;
     gameSolutions: number;
     isEarlyAdopter?: boolean;
+    streak?: number;
+    streakPoints?: number;
   } | null>(null);
   const [createdGames, setCreatedGames] = useState<Array<{
     id: string;
@@ -278,7 +280,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             pfpUrl: context.user.pfpUrl || '',
             lastSeen: new Date(),
             isAnonymous: true,
-            fid: fid
+            fid: fid,
+            streak: 0,
+            streakPoints: 0
           };
 
           if (!userDoc.exists()) {
@@ -286,7 +290,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             await setDoc(userRef, {
               ...userData,
               createdAt: new Date(),
-              lastKnownLevel: 1
+              lastKnownLevel: 1,
+              points: 0,
+              correctGuesses: 0,
+              gamesCreated: 0,
+              gameSolutions: 0,
+              streak: 1,  // Initialize streak to 1 for new users
+              streakPoints: 1  // Initialize streak points to 1 for new users
             });
           } else {
             console.log('Updating existing user document');
@@ -303,6 +313,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               setShowLevelUpModal(true);
             }
           }
+
+          // Update streak when user opens the app
+          await updateUserStreak(fid);
         }
 
         setAuthState({
@@ -576,7 +589,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             points: userData.points || 0,
             created: userData.gamesCreated || 0,
             gameSolutions: userData.gameSolutions || 0,
-            isEarlyAdopter: userData.isEarlyAdopter || false
+            isEarlyAdopter: userData.isEarlyAdopter || false,
+            streak: userData.streak || 0,
+            streakPoints: userData.streakPoints || 0
           });
         } else {
           setUserStats({
@@ -584,7 +599,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             points: 0,
             created: 0,
             gameSolutions: 0,
-            isEarlyAdopter: false
+            isEarlyAdopter: false,
+            streak: 0,
+            streakPoints: 0
           });
         }
 
@@ -683,6 +700,90 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     return { level: 1, name: "Novice Artist 🖍️" };
   };
 
+  // Modify updateUserStreak to handle streak points
+  const updateUserStreak = async (userId: string) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      
+      if (!userDoc.exists()) return;
+
+      const userData = userDoc.data();
+      const now = new Date();
+      const lastSeen = userData.lastSeen?.toDate();
+      let streak = userData.streak || 0;
+      let streakPoints = userData.streakPoints || 0;
+
+      console.log('Current streak data:', { lastSeen, streak, streakPoints });
+
+      // Check if streak is broken (last seen before yesterday)
+      if (lastSeen && !isYesterday(lastSeen) && !isToday(lastSeen)) {
+        console.log('Streak broken, resetting...');
+        streak = 1;  // Reset streak to 1
+        streakPoints = 0;  // Reset streak points to 0
+      }
+      // Only increment if we haven't seen the user today
+      else if (!lastSeen || !isToday(lastSeen)) {
+        console.log('Incrementing streak...');
+        streak += 1;
+        if (streakPoints < 50) {
+          streakPoints += 1;
+        }
+      } else {
+        console.log('User already seen today, keeping current values');
+        // Keep current values if user was already seen today
+        streak = userData.streak || 0;
+        streakPoints = userData.streakPoints || 0;
+      }
+
+      // Calculate total points (regular points + streak points)
+      const totalPoints = (userData.points || 0) + streakPoints;
+
+      console.log('Updating with new values:', { streak, streakPoints, totalPoints });
+
+      // Update user document with new streak, streak points, and total points
+      await setDoc(userRef, {
+        streak,
+        streakPoints,
+        points: totalPoints,
+        lastSeen: now
+      }, { merge: true });
+
+      console.log('Updated user streak:', { userId, streak, streakPoints, totalPoints });
+
+      // Update local state if we're showing profile
+      if (showProfile) {
+        setUserStats(prev => prev ? {
+          ...prev,
+          streak,
+          streakPoints,
+          points: totalPoints
+        } : null);
+      }
+
+      return { streak, streakPoints };
+    } catch (error) {
+      console.error('Error updating user streak:', error);
+      return { streak: 0, streakPoints: 0 };
+    }
+  };
+
+  // Helper functions for date comparison
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return date.getDate() === today.getDate() && 
+           date.getMonth() === today.getMonth() && 
+           date.getFullYear() === today.getFullYear();
+  };
+
+  const isYesterday = (date: Date) => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return date.getDate() === yesterday.getDate() && 
+           date.getMonth() === yesterday.getMonth() && 
+           date.getFullYear() === yesterday.getFullYear();
+  };
+
   const renderProfile = () => {
     return (
       <div>
@@ -737,24 +838,33 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             )}
           </div>
         </div>
-
-        {/* Leaderboard Position */}
-        <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 text-gray-800 transform rotate-[-1deg] border-2 border-dashed border-gray-400">
-          <div className="text-2xl font-bold text-gray-800">
-            {leaderboardData.currentUser?.rank ? `#${leaderboardData.currentUser.rank}` : 'Not ranked'}
-          </div>
-          <div className="text-sm text-gray-800">
-            Leaderboard Position
-          </div>
-        </div>
-
-        {/* Points */}
+        {/* Add Streak Display */}
         <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 transform rotate-[1deg] border-2 border-dashed border-gray-400">
           <div className="text-2xl font-bold text-gray-800">
-            {userStats?.points || 0}
+            {userStats?.streak || 0}
           </div>
           <div className="text-sm text-gray-800">
-            Points
+            Day Streak 🔥
+          </div>
+        </div>
+        
+        {/* Leaderboard Position and Points Grid */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-1deg] border-2 border-dashed border-gray-400">
+            <div className="text-2xl font-bold text-gray-800">
+              {leaderboardData.currentUser?.rank ? `#${leaderboardData.currentUser.rank}` : 'Not ranked'}
+            </div>
+            <div className="text-sm text-gray-800">
+              Rank
+            </div>
+          </div>
+          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-gray-400">
+            <div className="text-2xl font-bold text-gray-800">
+              {userStats?.points || 0}
+            </div>
+            <div className="text-sm text-gray-800">
+              Points
+            </div>
           </div>
         </div>
 
@@ -1034,6 +1144,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
     try {
       setIsUploading(true);
+      
+      // Update user streak
+      await updateUserStreak(context.user.fid.toString());
       
       // Ensure we're authenticated
       if (!auth.currentUser) {
@@ -1343,6 +1456,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       setGuessError(null);
       
       const fid = context.user.fid.toString();
+      
+      // Update user streak
+      await updateUserStreak(fid);
       
       // Check if user has already guessed this game
       const gameRef = doc(db, 'games', selectedGame.id);
