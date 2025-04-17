@@ -832,18 +832,29 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     </div>
                   </div>
                 </div>
-                <div className="text-xs text-gray-800">Early Adopter</div>
               </div>
             )}
           </div>
         </div>
         {/* Add Streak Display */}
         <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 transform rotate-[1deg] border-2 border-dashed border-gray-400">
-          <div className="text-2xl font-bold text-gray-800">
-            {userStats?.streak || 0}
-          </div>
-          <div className="text-sm text-gray-800">
-            Day Streak 🔥
+          <div className="relative group">
+            <div className="absolute top-0 right-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 cursor-help">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                Earn 1 point daily - keep your streak to earn up to 20 daily!
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-gray-800">
+              {userStats?.streak || 0}
+            </div>
+            <div className="text-sm text-gray-800">
+              Day Streak 🔥
+            </div>
           </div>
         </div>
         
