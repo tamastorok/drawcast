@@ -951,11 +951,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               <div className="flex-1">
                 <div className="font-bold flex items-center gap-2">
                   {user.username}
-                  {user.isPremium && <span className="text-xs" title="Premium user"> ⭐</span>}
                   {user.isEarlyAdopter && (
                     <div className="relative group">
                       <Image 
-                        src="/icon.png" 
+                        src="/OGbadge.png" 
                         alt="Early Adopter" 
                         width={20} 
                         height={20} 
