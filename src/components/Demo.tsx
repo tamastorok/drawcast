@@ -710,20 +710,17 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       const userData = userDoc.data();
       const now = new Date();
-      const lastSeen = userData.lastSeen?.toDate();
+      const lastStreakDate = userData.lastStreakDate?.toDate();
       let streak = userData.streak || 0;
       let streakPoints = userData.streakPoints || 0;
 
-      console.log('Current streak data:', { lastSeen, streak, streakPoints });
+      console.log('Current streak data:', { lastStreakDate, streak, streakPoints });
 
-      // If lastSeen is in the future, treat it as if we've never seen the user
-      const isFutureDate = lastSeen && lastSeen > now;
-      
-      // Check if we should increment streak (if lastSeen is not today or is in the future)
-      const shouldIncrement = !lastSeen || isFutureDate || 
-        lastSeen.getDate() !== now.getDate() || 
-        lastSeen.getMonth() !== now.getMonth() || 
-        lastSeen.getFullYear() !== now.getFullYear();
+      // Check if we should increment streak (if lastStreakDate is not today)
+      const shouldIncrement = !lastStreakDate || 
+        lastStreakDate.getDate() !== now.getDate() || 
+        lastStreakDate.getMonth() !== now.getMonth() || 
+        lastStreakDate.getFullYear() !== now.getFullYear();
 
       if (shouldIncrement) {
         console.log('Incrementing streak...');
@@ -745,7 +742,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         streak,
         streakPoints,
         points: totalPoints,
-        lastSeen: now
+        lastSeen: now,
+        lastStreakDate: shouldIncrement ? now : lastStreakDate  // Only update lastStreakDate if we incremented
       }, { merge: true });
 
       console.log('Updated user streak:', { userId, streak, streakPoints, totalPoints });
