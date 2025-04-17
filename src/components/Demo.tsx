@@ -714,15 +714,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const userData = userDoc.data();
       const now = new Date();
       const lastStreakDate = userData.lastStreakDate?.toDate();
-      let streak = userData.streak || 0;
-      let streakPoints = userData.streakPoints || 0;
+      
+      // Initialize streak and streakPoints properly
+      let streak = userData.streak !== undefined ? userData.streak : 1;
+      let streakPoints = userData.streakPoints !== undefined ? userData.streakPoints : 1;
 
-      console.log('Initial values:', {
-        lastStreakDate: lastStreakDate?.toISOString(),
-        streak,
-        streakPoints,
-        now: now.toISOString()
-      });
+      console.log('Current streak data:', { lastStreakDate, streak, streakPoints });
 
       // Check if we should increment streak (if lastStreakDate is not today)
       const shouldIncrement = !lastStreakDate || 
@@ -730,10 +727,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         lastStreakDate.getMonth() !== now.getMonth() || 
         lastStreakDate.getFullYear() !== now.getFullYear();
 
-      console.log('Should increment:', shouldIncrement);
-
       if (shouldIncrement) {
-        console.log('Checking streak continuation...');
+        console.log('Incrementing streak...');
         // Check if the last activity was yesterday (to continue streak)
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
@@ -743,23 +738,16 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           lastStreakDate.getMonth() === yesterday.getMonth() &&
           lastStreakDate.getFullYear() === yesterday.getFullYear();
 
-        console.log('Is consecutive day:', isConsecutiveDay, {
-          lastStreakDate: lastStreakDate?.toISOString(),
-          yesterday: yesterday.toISOString()
-        });
-
         if (isConsecutiveDay) {
           // Continue streak
           streak += 1;
           if (streakPoints < 20) {
             streakPoints += 1;
           }
-          console.log('Continuing streak:', { newStreak: streak, newStreakPoints: streakPoints });
         } else {
           // Reset streak if not consecutive
           streak = 1;
           streakPoints = 1;
-          console.log('Resetting streak:', { newStreak: streak, newStreakPoints: streakPoints });
         }
       } else {
         console.log('User already seen today, keeping current values');
