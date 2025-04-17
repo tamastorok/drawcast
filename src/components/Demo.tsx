@@ -715,9 +715,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const now = new Date();
       const lastStreakDate = userData.lastStreakDate?.toDate();
       
-      // Initialize streak and streakPoints to 1 if they don't exist
-      let streak = userData.streak ?? 1;
-      let streakPoints = userData.streakPoints ?? 1;
+      // Initialize streak and streakPoints - always at least 1
+      let streak = Math.max(userData.streak ?? 1, 1);
+      let streakPoints = Math.max(userData.streakPoints ?? 1, 1);
 
       console.log('Current streak data:', { lastStreakDate, streak, streakPoints });
 
