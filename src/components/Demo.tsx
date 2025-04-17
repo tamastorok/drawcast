@@ -588,8 +588,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             created: userData.gamesCreated || 0,
             gameSolutions: userData.gameSolutions || 0,
             isEarlyAdopter: userData.isEarlyAdopter || false,
-            streak: userData.streak || 0,
-            streakPoints: userData.streakPoints || 0
+            streak: userData.streak || 1,
+            streakPoints: userData.streakPoints || 1
           });
         } else {
           setUserStats({
@@ -598,8 +598,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             created: 0,
             gameSolutions: 0,
             isEarlyAdopter: false,
-            streak: 0,
-            streakPoints: 0
+            streak: 1,
+            streakPoints: 1
           });
         }
 
