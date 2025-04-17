@@ -281,8 +281,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             lastSeen: new Date(),
             isAnonymous: true,
             fid: fid,
-            streak: 0,
-            streakPoints: 0
+            streak: 1,  // Initialize streak to 1
+            streakPoints: 1  // Initialize streak points to 1
           };
 
           if (!userDoc.exists()) {
@@ -294,9 +294,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               points: 0,
               correctGuesses: 0,
               gamesCreated: 0,
-              gameSolutions: 0,
-              streak: 1,  // Initialize streak to 1 for new users
-              streakPoints: 1  // Initialize streak points to 1 for new users
+              gameSolutions: 0
             });
           } else {
             console.log('Updating existing user document');
