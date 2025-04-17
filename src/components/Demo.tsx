@@ -724,9 +724,25 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       if (shouldIncrement) {
         console.log('Incrementing streak...');
-        streak += 1;
-        if (streakPoints < 50) {
-          streakPoints += 1;
+        // Check if the last activity was yesterday (to continue streak)
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        const isConsecutiveDay = lastStreakDate && 
+          lastStreakDate.getDate() === yesterday.getDate() &&
+          lastStreakDate.getMonth() === yesterday.getMonth() &&
+          lastStreakDate.getFullYear() === yesterday.getFullYear();
+
+        if (isConsecutiveDay) {
+          // Continue streak
+          streak += 1;
+          if (streakPoints < 20) {
+            streakPoints += 1;
+          }
+        } else {
+          // Reset streak if not consecutive
+          streak = 1;
+          streakPoints = 1;
         }
       } else {
         console.log('User already seen today, keeping current values');
