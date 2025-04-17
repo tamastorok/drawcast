@@ -720,7 +720,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 <div className="mb-1 flex justify-center items-center">
                   <div className="relative group">
                     <Image 
-                      src="/icon.png" 
+                      src="/OGbadge.png" 
                       alt="Early Adopter" 
                       width={40} 
                       height={40} 
