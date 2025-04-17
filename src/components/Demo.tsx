@@ -737,10 +737,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           lastStreakDate.getFullYear() === yesterday.getFullYear();
 
         if (isConsecutiveDay) {
-          // Continue streak
-          streak += 1;
+          // Continue streak - always increment by 1
+          streak = streak + 1;
           if (streakPoints < 20) {
-            streakPoints += 1;
+            streakPoints = streakPoints + 1;
           }
         } else {
           // Reset streak if not consecutive
