@@ -845,8 +845,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 <line x1="12" y1="16" x2="12" y2="12"></line>
                 <line x1="12" y1="8" x2="12.01" y2="8"></line>
               </svg>
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                Earn 1 point daily - keep your streak to earn up to 20 daily!
+              <div className="absolute bottom-1/2 right-full mr-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-normal w-48 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                Earn 1 point daily - keep your streak<br />to earn up to 20 daily!
               </div>
             </div>
             <div className="text-2xl font-bold text-gray-800">
