@@ -280,9 +280,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             pfpUrl: context.user.pfpUrl || '',
             lastSeen: new Date(),
             isAnonymous: true,
-            fid: fid,
-            streak: 1,  // Initialize streak to 1
-            streakPoints: 1  // Initialize streak points to 1
+            fid: fid
           };
 
           if (!userDoc.exists()) {
@@ -294,22 +292,18 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               points: 0,
               correctGuesses: 0,
               gamesCreated: 0,
-              gameSolutions: 0
+              gameSolutions: 0,
+              streak: 1,
+              streakPoints: 1
             });
           } else {
             console.log('Updating existing user document');
             const currentLevel = getLevelInfo(userDoc.data().points || 0).level;
+            // Only update the fields we want to change, preserve existing streak values
             await setDoc(userRef, {
               ...userData,
               lastKnownLevel: currentLevel
             }, { merge: true });
-
-            // Check if we need to show level up modal
-            const previousLevel = userDoc.data().lastKnownLevel || 1;
-            if (currentLevel > previousLevel) {
-              setNewLevelInfo(getLevelInfo(userDoc.data().points || 0));
-              setShowLevelUpModal(true);
-            }
           }
 
           // Update streak when user opens the app
@@ -714,8 +708,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const lastStreakDate = userData.lastStreakDate?.toDate();
       
       // Initialize streak and streakPoints from existing values
-      let streak = userData.streak ?? 1;
-      let streakPoints = userData.streakPoints ?? 1;
+      let streak = userData.streak !== undefined ? userData.streak : 1;
+      let streakPoints = userData.streakPoints !== undefined ? userData.streakPoints : 1;
 
       console.log('Current streak data:', { lastStreakDate, streak, streakPoints });
 
