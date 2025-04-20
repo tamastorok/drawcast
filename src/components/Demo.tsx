@@ -2069,7 +2069,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   />
                   <span className="text-2xl font-bold text-gray-800 font-mono">drawcast</span><sup className="text-xs text-gray-800 transform rotate-[-3deg]">beta</sup>
                 </div>
-                {userStats && (
+              </div>
+              {userStats && (
                   <button
                     onClick={() => {
                       setShowLeaderboard(false);
@@ -2084,7 +2085,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     <span className="text-sm text-gray-600">🔥</span>
                   </button>
                 )}
-              </div>
             </div>
           </div>
 
