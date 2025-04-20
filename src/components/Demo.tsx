@@ -855,6 +855,26 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           </div>
         </div>
 
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[2deg] border-2 border-dashed border-gray-400">
+            <div className="text-2xl font-bold text-gray-800">
+              {userStats?.correctGuesses || 0}
+            </div>
+            <div className="text-sm text-gray-800">
+              Correct guesses
+            </div>
+          </div>
+          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-2deg] border-2 border-dashed border-gray-400">
+            <div className="text-2xl font-bold text-gray-800">
+              {userStats?.gameSolutions || 0}
+            </div>
+            <div className="text-sm text-gray-800">
+              Game solutions
+            </div>
+          </div>
+        </div>
+
         {/* Created Games Section */}
         <div className="mb-6">
           <button
