@@ -836,64 +836,21 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             )}
           </div>
         </div>
-        {/* Add Streak Display */}
-        <div className="bg-gray-100 p-4 rounded-lg text-center mb-6 transform rotate-[1deg] border-2 border-dashed border-gray-400">
-          <div className="relative group">
-            <div className="absolute top-0 right-0">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 cursor-help">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-              </svg>
-              <div className="absolute bottom-1/2 right-full mr-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-normal w-48 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                Earn 1 point daily.<br />Keep your streakto earn up to 20 daily!
-              </div>
-            </div>
-            <div className="text-2xl font-bold text-gray-800">
-              {userStats?.streak || 0}
-            </div>
-            <div className="text-sm text-gray-800">
-              Day Streak 🔥
-            </div>
-          </div>
-        </div>
-        
-        {/* Leaderboard Position and Points Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-1deg] border-2 border-dashed border-gray-400">
-            <div className="text-2xl font-bold text-gray-800">
-              {leaderboardData.currentUser?.rank ? `#${leaderboardData.currentUser.rank}` : 'Not ranked'}
-            </div>
-            <div className="text-sm text-gray-800">
-              Rank
-            </div>
-          </div>
-          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-gray-400">
-            <div className="text-2xl font-bold text-gray-800">
-              {userStats?.points || 0}
-            </div>
-            <div className="text-sm text-gray-800">
-              Points
-            </div>
-          </div>
-        </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[2deg] border-2 border-dashed border-gray-400">
-            <div className="text-2xl font-bold text-gray-800">
-              {userStats?.correctGuesses || 0}
+        {/* Simplified Stats Box */}
+        <div className="bg-gray-100 p-4 rounded-lg mb-6 transform rotate-[-1deg] border-2 border-dashed border-gray-400">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Rank:</span>
+              <span>{leaderboardData.currentUser?.rank ? `#${leaderboardData.currentUser.rank}` : 'Not ranked'}</span>
             </div>
-            <div className="text-sm text-gray-800">
-              Correct guesses
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Points:</span>
+              <span>{userStats?.points || 0}</span>
             </div>
-          </div>
-          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-2deg] border-2 border-dashed border-gray-400">
-            <div className="text-2xl font-bold text-gray-800">
-              {userStats?.gameSolutions || 0}
-            </div>
-            <div className="text-sm text-gray-800">
-              Game solutions
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Day Streaks:</span>
+              <span>{userStats?.streak || 0} 🔥</span>
             </div>
           </div>
         </div>
