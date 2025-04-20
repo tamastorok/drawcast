@@ -2028,16 +2028,33 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           {/* Header */}
           <div className="fixed top-0 left-0 right-0 z-10 bg-[#f9f7f0] border-b-2 border-dashed border-gray-400">
             <div className="w-[300px] mx-auto py-3">
-              <div className="flex justify-center items-center gap-2">
-                <Image
-                  src="/icon.png"
-                  alt="Icon"
-                  width={40}
-                  height={40}
-                  priority
-                  className="transform rotate-[-5deg]"
-                />
-                <span className="text-2xl font-bold text-gray-800 font-mono">drawcast</span><sup className="text-xs text-gray-800 transform rotate-[-3deg]">beta</sup>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Image
+                    src="/icon.png"
+                    alt="Icon"
+                    width={40}
+                    height={40}
+                    priority
+                    className="transform rotate-[-5deg]"
+                  />
+                  <span className="text-2xl font-bold text-gray-800 font-mono">drawcast</span><sup className="text-xs text-gray-800 transform rotate-[-3deg]">beta</sup>
+                </div>
+                {userStats && (
+                  <button
+                    onClick={() => {
+                      setShowLeaderboard(false);
+                      setShowProfile(true);
+                      setIsDrawing(false);
+                      setShowGuess(false);
+                      setSelectedGame(null);
+                    }}
+                    className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-lg transform rotate-[2deg] border-2 border-dashed border-gray-400 hover:bg-gray-200 transition-colors"
+                  >
+                    <span className="text-sm font-bold text-gray-800">{userStats.streakPoints || 1}</span>
+                    <span className="text-sm text-gray-600">🔥</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
