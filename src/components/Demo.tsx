@@ -1129,9 +1129,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     try {
       setIsUploading(true);
       
-      // Update user streak
-      await updateUserStreak(context.user.fid.toString());
-      
       // Ensure we're authenticated
       if (!auth.currentUser) {
         console.log('No authenticated user, signing in anonymously...');
@@ -1440,9 +1437,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       setGuessError(null);
       
       const fid = context.user.fid.toString();
-      
-      // Update user streak
-      await updateUserStreak(fid);
       
       // Check if user has already guessed this game
       const gameRef = doc(db, 'games', selectedGame.id);
