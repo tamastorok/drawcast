@@ -1704,6 +1704,25 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               <span>Share on Warpcast</span>
             </button>
           )}
+          <button
+            onClick={() => {
+              const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
+              navigator.clipboard.writeText(gameUrl);
+              // Show a temporary success message
+              const button = document.getElementById('copyLinkButton2');
+              if (button) {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                  if (button) button.textContent = originalText;
+                }, 2000);
+              }
+            }}
+            id="copyLinkButton2"
+            className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 transform rotate-[-1deg] border-4 border-dashed border-white mt-2"
+          >
+            Copy Link
+          </button>
         </div>
       </div>
     );
@@ -2146,6 +2165,25 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white"
                 >
                   Share on Warpcast
+                </button>
+                <button
+                  onClick={() => {
+                    const gameUrl = `${window.location.origin}/games/${lastCreatedGameId}`;
+                    navigator.clipboard.writeText(gameUrl);
+                    // Show a temporary success message
+                    const button = document.getElementById('copyLinkButton');
+                    if (button) {
+                      const originalText = button.textContent;
+                      button.textContent = 'Copied!';
+                      setTimeout(() => {
+                        if (button) button.textContent = originalText;
+                      }, 2000);
+                    }
+                  }}
+                  id="copyLinkButton"
+                  className="w-full bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 transform rotate-[-1deg] border-4 border-dashed border-white mt-2"
+                >
+                  Copy Link
                 </button>
               </div>
             </div>
