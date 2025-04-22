@@ -1494,39 +1494,16 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         const guesserRef = doc(db, 'users', fid);
         const creatorRef = doc(db, 'users', selectedGame.userFid);
         
-        const guesserDoc = await getDoc(guesserRef);
-        const creatorDoc = await getDoc(creatorRef);
-        
-        // Calculate points using current values
-        let guesserPoints = 0;
-        let creatorPoints = 0;
-        
-        if (guesserDoc.exists()) {
-          const guesserData = guesserDoc.data();
-          guesserPoints = ((guesserData.correctGuesses || 0) + 1) * 10; // Add 1 for the new correct guess
-          if (fid === selectedGame.userFid) {
-            guesserPoints += ((guesserData.gameSolutions || 0) + 1) * 10; // Add 1 for the new game solution
-          } else {
-            guesserPoints += (guesserData.gameSolutions || 0) * 10;
-          }
-        }
-        
-        if (creatorDoc.exists()) {
-          const creatorData = creatorDoc.data();
-          creatorPoints = (creatorData.correctGuesses || 0) * 10;
-          creatorPoints += ((creatorData.gameSolutions || 0) + 1) * 10; // Add 1 for the new game solution
-        }
-
-        // Update all fields in a single batch
+        // Update guesser's fields - increment points by 10 for correct guess
         batch.update(guesserRef, {
           correctGuesses: increment(1),
-          points: guesserPoints
+          points: increment(10)
         });
 
-        // Update creator's fields
+        // Update creator's fields - increment points by 10 for solution
         batch.update(creatorRef, {
           gameSolutions: increment(1),
-          points: creatorPoints
+          points: increment(10)
         });
       }
 
