@@ -18,13 +18,13 @@ export async function generateMetadata(
 
   // Fetch game data to get the share image URL
   const app = initializeApp({
-    apiKey: "AIzaSyBlL2CIZTb-crfirYJ6ym6j6G4uQewu59k",
-    authDomain: "drawcast-ae4cf.firebaseapp.com",
-    projectId: "drawcast-ae4cf",
-    storageBucket: "drawcast-ae4cf.firebasestorage.app",
-    messagingSenderId: "998299398034",
-    appId: "1:998299398034:web:0f8e8a516d69e8ecf9db4b",
-    measurementId: "G-B6N4RGK1M5"
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
   });
   const db = getFirestore(app);
   const gameRef = doc(db, 'games', resolvedParams.gameId);
