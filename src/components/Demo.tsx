@@ -106,6 +106,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [previousLevel, setPreviousLevel] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCanvasEmpty, setIsCanvasEmpty] = useState(true);
+  const [activeGuessTab, setActiveGuessTab] = useState<'new' | 'solved' | 'wrong'>('new');
 
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -1763,11 +1764,64 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       return !isExpired && !hasMaxGuesses;
     });
 
+    // Filter games based on active tab
+    const filteredGames = activeGames.filter(game => {
+      const userGuess = game.guesses?.find(
+        (guess: Guess) => guess.userId === context?.user?.fid?.toString()
+      );
+
+      switch (activeGuessTab) {
+        case 'new':
+          return !userGuess;
+        case 'solved':
+          return userGuess?.isCorrect;
+        case 'wrong':
+          return userGuess && !userGuess.isCorrect;
+        default:
+          return true;
+      }
+    });
+
     return (
       <div>
         <h1 className="text-l text-center mb-6 text-gray-600">Guess the drawings, earn points and climb the leaderboard!</h1>
+        
+        {/* Tabs */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setActiveGuessTab('new')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[-1deg] border-2 border-dashed ${
+              activeGuessTab === 'new' 
+                ? 'bg-[#0c703b] text-white border-white' 
+                : 'bg-gray-100 text-gray-600 border-gray-400'
+            }`}
+          >
+            New
+          </button>
+          <button
+            onClick={() => setActiveGuessTab('solved')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[1deg] border-2 border-dashed ${
+              activeGuessTab === 'solved' 
+                ? 'bg-green-100 text-green-800 border-green-400' 
+                : 'bg-gray-100 text-gray-600 border-gray-400'
+            }`}
+          >
+            Solved
+          </button>
+          <button
+            onClick={() => setActiveGuessTab('wrong')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[-2deg] border-2 border-dashed ${
+              activeGuessTab === 'wrong' 
+                ? 'bg-red-100 text-red-800 border-red-400' 
+                : 'bg-gray-100 text-gray-600 border-gray-400'
+            }`}
+          >
+            Wrong
+          </button>
+        </div>
+
         <div className="space-y-2">
-          {activeGames.map((game) => {
+          {filteredGames.map((game) => {
             // Check if current user has already guessed this game
             const userGuess = game.guesses?.find(
               (guess: Guess) => guess.userId === context?.user?.fid?.toString()
@@ -1808,9 +1862,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               </button>
             );
           })}
-          {activeGames.length === 0 && (
+          {filteredGames.length === 0 && (
             <div className="text-center p-4 bg-gray-100 rounded-lg text-gray-600 transform rotate-[1deg] border-2 border-dashed border-gray-400">
-              No active games at the moment. Be the first to create one!
+              {activeGuessTab === 'new' && 'No new games to guess!'}
+              {activeGuessTab === 'solved' && 'You haven\'t solved any games yet!'}
+              {activeGuessTab === 'wrong' && 'You haven\'t made any wrong guesses yet!'}
             </div>
           )}
         </div>
