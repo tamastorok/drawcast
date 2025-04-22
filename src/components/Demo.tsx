@@ -53,7 +53,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [currentGuess, setCurrentGuess] = useState('');
   const [isSubmittingGuess, setIsSubmittingGuess] = useState(false);
   const [guessError, setGuessError] = useState<string | null>(null);
-  const [showPresaveModal, setShowPresaveModal] = useState(false);
   const [userStats, setUserStats] = useState<{
     correctGuesses: number;
     points: number;
@@ -170,13 +169,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         // Initialize SDK with native gestures disabled
         await sdk.actions.ready({ disableNativeGestures: true });
         
+        // Add frame
+        await sdk.actions.addFrame();
+        
         // Track frame addition
         trackEvent('frame_added');
-        
-        // Show presave modal immediately if we have context
-        if (context) {
-          setShowPresaveModal(true);
-        }
         
         // Get the current URL and log all parameters
         const url = new URL(window.location.href);
@@ -1863,96 +1860,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     return () => unsubscribe();
   }, []);
 
-  // Add PresaveModal component
-  const PresaveModal = () => {
-    const handlePresave = async () => {
-      try {
-        // Here you can add any presave logic
-        console.log('Presaving app...');
-        
-        // After presave, initialize the frame
-        await sdk.actions.ready({ disableNativeGestures: true });
-        await sdk.actions.addFrame();
-        
-        // Only mark as early adopter if frame was successfully added
-        if (context?.user?.fid) {
-          const fid = context.user.fid.toString();
-          const userRef = doc(db, 'users', fid);
-          await setDoc(userRef, {
-            isEarlyAdopter: true,
-            cohort: 1
-          }, { merge: true });
-          console.log('User marked as early adopter:', fid);
-        }
-      } catch (error) {
-        console.error('Error during presave:', error);
-      }
-    };
-
-    return (
-      <div className="fixed inset-0 bg-[#f9f7f0] flex items-center justify-center z-50 border-4 border-dashed border-gray-400">
-        {context?.user?.fid === 234692 && (
-          <button
-            onClick={() => setShowPresaveModal(false)}
-            className="absolute top-4 right-4 text-gray-800 hover:text-gray-600 transform rotate-[2deg] border-2 border-dashed border-gray-400 px-2 py-1 rounded-lg"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        )}
-        <div className="w-[300px] mx-auto px-4 text-center">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800 transform rotate-[-2deg]">
-            Drawcast is coming very soon!
-          </h2>
-          <p className="text-gray-600 mb-8 transform rotate-[1deg]">
-          Compete, laugh, and earn points in the most unpredictable sketch battle.
-          </p>
-          <button
-            onClick={handlePresave}
-            className="w-full bg-[#0c703b] text-white py-4 px-8 rounded-lg text-xl font-bold hover:bg-[#0c703b] transition-colors transform rotate-[-1deg] border-4 border-dashed border-white mb-4"
-          >
-            Presave
-          </button>
-          <p className="text-sm text-gray-600 transform rotate-[2deg]">
-          Presave the app now to join the early adopters and unlock an exclusive OG badge!
-          </p>
-        </div>
-      </div>
-    );
-  };
-
-  // Track page views
-  useEffect(() => {
-    if (isDrawing) {
-      trackEvent('draw_page_view');
-    } else if (showGuess) {
-      trackEvent('game_list_view');
-    } else if (showLeaderboard) {
-      trackEvent('leaderboard_view');
-    } else if (showProfile) {
-      trackEvent('profile_view');
-    }
-  }, [isDrawing, showGuess, showLeaderboard, showProfile]);
-
-  // Track draw button click
-  const handleDrawClick = () => {
-    trackEvent('draw_button_click');
-    setIsDrawing(true);
-    setShowTimeUpPopup(false);
-    setTimeLeft(30);
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-  };
-
-  // Track game join
-  const handleGameJoin = (gameId: string) => {
-    trackEvent('game_joined', { gameId });
-    setSelectedGame(games.find(g => g.id === gameId) || null);
-  };
-
   // Add the LevelUpModal component
   const LevelUpModal = () => {
     if (!newLevelInfo) return null;
@@ -1999,6 +1906,36 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     );
   };
 
+  // Track page views
+  useEffect(() => {
+    if (isDrawing) {
+      trackEvent('draw_page_view');
+    } else if (showGuess) {
+      trackEvent('game_list_view');
+    } else if (showLeaderboard) {
+      trackEvent('leaderboard_view');
+    } else if (showProfile) {
+      trackEvent('profile_view');
+    }
+  }, [isDrawing, showGuess, showLeaderboard, showProfile]);
+
+  // Track draw button click
+  const handleDrawClick = () => {
+    trackEvent('draw_button_click');
+    setIsDrawing(true);
+    setShowTimeUpPopup(false);
+    setTimeLeft(30);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+  };
+
+  // Track game join
+  const handleGameJoin = (gameId: string) => {
+    trackEvent('game_joined', { gameId });
+    setSelectedGame(games.find(g => g.id === gameId) || null);
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -2027,9 +1964,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         </div>
       ) : (
         <>
-          {/* Presave Modal */}
-          {showPresaveModal && <PresaveModal />}
-
           {/* Header */}
           <div className="fixed top-0 left-0 right-0 z-10 bg-[#f9f7f0] border-b-2 border-dashed border-gray-400">
             <div className="w-[300px] mx-auto py-3">
