@@ -112,69 +112,71 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [newLevelInfo, setNewLevelInfo] = useState<{ level: number; name: string } | null>(null);
   const [previousLevel, setPreviousLevel] = useState<number | null>(null);
 
-  const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-  };
-  
-  // Add debug logging
-  console.log('Firebase Config:', {
-    apiKey: firebaseConfig.apiKey ? 'Present' : 'Missing',
-    authDomain: firebaseConfig.authDomain ? 'Present' : 'Missing',
-    projectId: firebaseConfig.projectId ? 'Present' : 'Missing',
-    storageBucket: firebaseConfig.storageBucket ? 'Present' : 'Missing',
-    messagingSenderId: firebaseConfig.messagingSenderId ? 'Present' : 'Missing',
-    appId: firebaseConfig.appId ? 'Present' : 'Missing',
-    measurementId: firebaseConfig.measurementId ? 'Present' : 'Missing'
-  });
-  
-  // Validate Firebase configuration
-  const validateFirebaseConfig = (config: typeof firebaseConfig) => {
-    const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
-    const missingFields = requiredFields.filter(field => !config[field as keyof typeof config]);
-    
-    if (missingFields.length > 0) {
-      console.error('Missing required Firebase configuration fields:', missingFields);
-      return false;
-    }
-    return true;
-  };
-
   // Initialize Firebase
-  try {
-    if (!validateFirebaseConfig(firebaseConfig)) {
-      throw new Error('Invalid Firebase configuration');
-    }
+  useEffect(() => {
+    const firebaseConfig = {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    };
+    
+    // Add debug logging
+    console.log('Firebase Config:', {
+      apiKey: firebaseConfig.apiKey ? 'Present' : 'Missing',
+      authDomain: firebaseConfig.authDomain ? 'Present' : 'Missing',
+      projectId: firebaseConfig.projectId ? 'Present' : 'Missing',
+      storageBucket: firebaseConfig.storageBucket ? 'Present' : 'Missing',
+      messagingSenderId: firebaseConfig.messagingSenderId ? 'Present' : 'Missing',
+      appId: firebaseConfig.appId ? 'Present' : 'Missing',
+      measurementId: firebaseConfig.measurementId ? 'Present' : 'Missing'
+    });
+    
+    // Validate Firebase configuration
+    const validateFirebaseConfig = (config: typeof firebaseConfig) => {
+      const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+      const missingFields = requiredFields.filter(field => !config[field as keyof typeof config]);
+      
+      if (missingFields.length > 0) {
+        console.error('Missing required Firebase configuration fields:', missingFields);
+        return false;
+      }
+      return true;
+    };
 
     try {
-      app = initializeApp(firebaseConfig);
-    } catch (error: unknown) {
-      if (error instanceof Error && error.message.includes('already exists')) {
-        console.log('Firebase already initialized, getting existing instance');
-        // If Firebase is already initialized, get the existing instance
-        app = getApp();
-      } else {
-        throw error; // Re-throw if it's not the expected error
+      if (!validateFirebaseConfig(firebaseConfig)) {
+        throw new Error('Invalid Firebase configuration');
       }
-    }
 
-    db = getFirestore(app);
-    storage = getStorage(app);
-    auth = getAuth(app);
-    
-    // Only initialize analytics if measurementId is provided
-    if (firebaseConfig.measurementId) {
-      analytics = getAnalytics(app);
+      try {
+        app = initializeApp(firebaseConfig);
+      } catch (error: unknown) {
+        if (error instanceof Error && error.message.includes('already exists')) {
+          console.log('Firebase already initialized, getting existing instance');
+          // If Firebase is already initialized, get the existing instance
+          app = getApp();
+        } else {
+          throw error; // Re-throw if it's not the expected error
+        }
+      }
+
+      db = getFirestore(app);
+      storage = getStorage(app);
+      auth = getAuth(app);
+      
+      // Only initialize analytics if measurementId is provided
+      if (firebaseConfig.measurementId) {
+        analytics = getAnalytics(app);
+      }
+    } catch (error: unknown) {
+      console.error('Error initializing Firebase:', error instanceof Error ? error.message : 'Unknown error');
+      // You might want to show a user-friendly error message here
     }
-  } catch (error: unknown) {
-    console.error('Error initializing Firebase:', error instanceof Error ? error.message : 'Unknown error');
-    // You might want to show a user-friendly error message here
-  }
+  }, []); // Empty dependency array means this runs once on mount
 
   // Helper function to track events
   const trackEvent = (eventName: string, eventParams?: Record<string, string | number | boolean>) => {
