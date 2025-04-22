@@ -1571,6 +1571,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     // Check if game has expired
     const isExpired = selectedGame.expiredAt.getTime() <= new Date().getTime() || selectedGame.totalGuesses >= 10;
     
+    // Check if current user is the drawer
+    const isDrawer = context?.user?.fid?.toString() === selectedGame.userFid;
+    
     return (
       <div>
         <button
@@ -1632,7 +1635,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             className="object-contain"
           />
         </div>
-        {!isExpired && (
+        {!isExpired && !isDrawer && (
           <p className="text-sm text-center text-gray-600 mb-4">
             Earn 10 points for successfully guessing this drawing. <br />
             <span className="font-bold">You can guess only once.</span>
@@ -1643,6 +1646,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           {isExpired ? (
             <div className="p-4 rounded-lg text-center bg-red-100 text-red-800 mt-4">
               This game has ended
+            </div>
+          ) : isDrawer ? (
+            <div className="p-4 rounded-lg text-center bg-blue-100 text-blue-800 mt-4">
+              You created this drawing! Share it with others to earn points when they guess correctly.
             </div>
           ) : userGuess ? (
             <div className={`p-4 rounded-lg text-center ${
@@ -1704,25 +1711,27 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               <span>Share on Warpcast</span>
             </button>
           )}
-          <button
-            onClick={() => {
-              const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
-              navigator.clipboard.writeText(gameUrl);
-              // Show a temporary success message
-              const button = document.getElementById('copyLinkButton2');
-              if (button) {
-                const originalText = button.textContent;
-                button.textContent = 'Copied!';
-                setTimeout(() => {
-                  if (button) button.textContent = originalText;
-                }, 2000);
-              }
-            }}
-            id="copyLinkButton2"
-            className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 transform rotate-[-1deg] border-4 border-dashed border-white mt-2"
-          >
-            Copy Link
-          </button>
+          {!isExpired && (
+            <button
+              onClick={() => {
+                const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
+                navigator.clipboard.writeText(gameUrl);
+                // Show a temporary success message
+                const button = document.getElementById('copyLinkButton2');
+                if (button) {
+                  const originalText = button.textContent;
+                  button.textContent = 'Copied!';
+                  setTimeout(() => {
+                    if (button) button.textContent = originalText;
+                  }, 2000);
+                }
+              }}
+              id="copyLinkButton2"
+              className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 transform rotate-[-1deg] border-4 border-dashed border-white mt-2"
+            >
+              Copy Link
+            </button>
+          )}
         </div>
       </div>
     );
