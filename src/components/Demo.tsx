@@ -105,7 +105,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [newLevelInfo, setNewLevelInfo] = useState<{ level: number; name: string } | null>(null);
   const [previousLevel, setPreviousLevel] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [drawingError, setDrawingError] = useState<string | null>(null);
+  const [isCanvasEmpty, setIsCanvasEmpty] = useState(true);
 
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -1118,7 +1118,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   };
 
   // Add function to check if canvas is empty
-  const isCanvasEmpty = (canvas: HTMLCanvasElement): boolean => {
+  const checkCanvasEmpty = (canvas: HTMLCanvasElement): boolean => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return true;
     
@@ -1134,31 +1134,44 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     return true;
   };
 
+  // Add effect to check canvas emptiness on draw
+  useEffect(() => {
+    if (isDrawing && canvasRef.current) {
+      const checkEmpty = () => {
+        setIsCanvasEmpty(checkCanvasEmpty(canvasRef.current!));
+      };
+
+      // Check initially
+      checkEmpty();
+
+      // Add event listeners to check after drawing
+      const canvas = canvasRef.current;
+      canvas.addEventListener('mouseup', checkEmpty);
+      canvas.addEventListener('touchend', checkEmpty);
+
+      return () => {
+        canvas.removeEventListener('mouseup', checkEmpty);
+        canvas.removeEventListener('touchend', checkEmpty);
+      };
+    }
+  }, [isDrawing]);
+
   const handleDrawingSubmit = async () => {
     if (isSubmitting) return; // Prevent double submission
     
     if (!canvasRef.current) {
       console.error('No canvas reference');
-      setDrawingError('Please try drawing again');
-      return;
-    }
-
-    // Check if canvas is empty
-    if (isCanvasEmpty(canvasRef.current)) {
-      setDrawingError('Please draw something before submitting');
       return;
     }
 
     if (!context?.user?.fid) {
       console.error('No Farcaster user context');
-      setDrawingError('Please connect with Farcaster to upload drawings');
       return;
     }
 
     try {
       setIsSubmitting(true);
       setIsUploading(true);
-      setDrawingError(null); // Clear any previous errors
       
       // Stop the timer if it's running
       if (timerRef.current) {
@@ -1253,7 +1266,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
     } catch (error) {
       console.error('Error uploading drawing or creating game:', error);
-      setDrawingError('Failed to upload drawing. Please try again.');
     } finally {
       setIsUploading(false);
       setIsSubmitting(false);
@@ -1344,7 +1356,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               }
               setIsDrawing(false);
               setShowTimeUpPopup(false);
-              setDrawingError(null); // Clear error message when leaving drawing page
             }}
             className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] px-3 py-1 rounded-lg"
           >
@@ -1378,17 +1389,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             <p className="text-sm text-center text-gray-600 font-bold">
               You will earn 10 points after each correct guess.
             </p>
-            {drawingError && (
-              <div className="p-3 bg-red-100 text-red-700 rounded-md text-sm text-center">
-                {drawingError}
-              </div>
-            )}
             <button 
               onClick={handleDrawingSubmit}
-              disabled={isUploading}
+              disabled={isUploading || isCanvasEmpty}
               className="w-full bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed transform rotate-[-1deg] border-4 border-dashed border-white"
             >
-              {isUploading ? 'Uploading...' : 'Submit'}
+              {isUploading ? 'Uploading...' : isCanvasEmpty ? 'Draw something to submit' : 'Submit'}
             </button>
           </div>
         </div>
@@ -2044,7 +2050,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setIsDrawing(false);
                     setShowGuess(false);
                     setSelectedGame(null);
-                    setDrawingError(null);
                   }}
                 >
                   <span className="text-2xl animate-wiggle">
@@ -2060,7 +2065,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setIsDrawing(false);
                     setShowGuess(true);
                     setSelectedGame(null);
-                    setDrawingError(null);
                   }}
                 >
                   <span className="text-2xl">
@@ -2076,7 +2080,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setIsDrawing(false);
                     setShowGuess(false);
                     setSelectedGame(null);
-                    setDrawingError(null);
                   }}
                 > 
                   <span className="text-2xl"><Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} className="transform rotate-[1deg]" /></span>
@@ -2090,7 +2093,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setIsDrawing(false);
                     setShowGuess(false);
                     setSelectedGame(null);
-                    setDrawingError(null);
                   }}
                 >
                   <div className="text-2xl">
