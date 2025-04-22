@@ -105,6 +105,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [newLevelInfo, setNewLevelInfo] = useState<{ level: number; name: string } | null>(null);
   const [previousLevel, setPreviousLevel] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [drawingError, setDrawingError] = useState<string | null>(null);
 
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -1116,24 +1117,48 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     );
   };
 
+  // Add function to check if canvas is empty
+  const isCanvasEmpty = (canvas: HTMLCanvasElement): boolean => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return true;
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    
+    // Check if all pixels are white (255, 255, 255)
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] !== 255 || data[i + 1] !== 255 || data[i + 2] !== 255) {
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleDrawingSubmit = async () => {
     if (isSubmitting) return; // Prevent double submission
     
     if (!canvasRef.current) {
       console.error('No canvas reference');
-      setGuessError('Please try drawing again');
+      setDrawingError('Please try drawing again');
+      return;
+    }
+
+    // Check if canvas is empty
+    if (isCanvasEmpty(canvasRef.current)) {
+      setDrawingError('Please draw something before submitting');
       return;
     }
 
     if (!context?.user?.fid) {
       console.error('No Farcaster user context');
-      setGuessError('Please connect with Farcaster to upload drawings');
+      setDrawingError('Please connect with Farcaster to upload drawings');
       return;
     }
 
     try {
       setIsSubmitting(true);
       setIsUploading(true);
+      setDrawingError(null); // Clear any previous errors
       
       // Stop the timer if it's running
       if (timerRef.current) {
@@ -1228,7 +1253,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
     } catch (error) {
       console.error('Error uploading drawing or creating game:', error);
-      setGuessError('Failed to upload drawing. Please try again.');
+      setDrawingError('Failed to upload drawing. Please try again.');
     } finally {
       setIsUploading(false);
       setIsSubmitting(false);
@@ -1352,6 +1377,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             <p className="text-sm text-center text-gray-600 font-bold">
               You will earn 10 points after each correct guess.
             </p>
+            {drawingError && (
+              <div className="p-3 bg-red-100 text-red-700 rounded-md text-sm text-center">
+                {drawingError}
+              </div>
+            )}
             <button 
               onClick={handleDrawingSubmit}
               disabled={isUploading}
