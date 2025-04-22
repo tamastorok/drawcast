@@ -104,6 +104,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
   const [newLevelInfo, setNewLevelInfo] = useState<{ level: number; name: string } | null>(null);
   const [previousLevel, setPreviousLevel] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -1116,6 +1117,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   };
 
   const handleDrawingSubmit = async () => {
+    if (isSubmitting) return; // Prevent double submission
+    
     if (!canvasRef.current) {
       console.error('No canvas reference');
       setGuessError('Please try drawing again');
@@ -1129,7 +1132,14 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     }
 
     try {
+      setIsSubmitting(true);
       setIsUploading(true);
+      
+      // Stop the timer if it's running
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
       
       // Ensure we're authenticated
       if (!auth.currentUser) {
@@ -1221,6 +1231,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       setGuessError('Failed to upload drawing. Please try again.');
     } finally {
       setIsUploading(false);
+      setIsSubmitting(false);
     }
   };
 
