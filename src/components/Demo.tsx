@@ -10,13 +10,6 @@ import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage"
 import { getAuth, signInAnonymously } from "firebase/auth";
 import { getAnalytics, logEvent } from "firebase/analytics";
 
-// Declare Firebase variables at the top level
-let app: ReturnType<typeof initializeApp>;
-let db: ReturnType<typeof getFirestore>;
-let storage: ReturnType<typeof getStorage>;
-let auth: ReturnType<typeof getAuth>;
-let analytics: ReturnType<typeof getAnalytics> | undefined;
-
 interface LeaderboardUser {
   fid: number;
   username: string;
@@ -122,67 +115,18 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
   };
   
-  // Add debug logging
-  console.log('Firebase Config:', {
-    apiKey: firebaseConfig.apiKey ? 'Present' : 'Missing',
-    authDomain: firebaseConfig.authDomain ? 'Present' : 'Missing',
-    projectId: firebaseConfig.projectId ? 'Present' : 'Missing',
-    storageBucket: firebaseConfig.storageBucket ? 'Present' : 'Missing',
-    messagingSenderId: firebaseConfig.messagingSenderId ? 'Present' : 'Missing',
-    appId: firebaseConfig.appId ? 'Present' : 'Missing',
-    measurementId: firebaseConfig.measurementId ? 'Present' : 'Missing'
-  });
-  
-  // Validate Firebase configuration
-  const validateFirebaseConfig = (config: typeof firebaseConfig) => {
-    const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
-    const missingFields = requiredFields.filter(field => !config[field as keyof typeof config]);
-    
-    if (missingFields.length > 0) {
-      console.error('Missing required Firebase configuration fields:', missingFields);
-      return false;
-    }
-    return true;
-  };
-
   // Initialize Firebase
+  let app;
   try {
-    if (!validateFirebaseConfig(firebaseConfig)) {
-      throw new Error('Invalid Firebase configuration');
-    }
-
-    try {
-      app = initializeApp(firebaseConfig);
-      console.log('Firebase app initialized successfully');
-      
-      // Initialize other Firebase services only after app is initialized
-      db = getFirestore(app);
-      storage = getStorage(app);
-      auth = getAuth(app);
-      
-      // Only initialize analytics if measurementId is provided
-      if (firebaseConfig.measurementId) {
-        analytics = getAnalytics(app);
-      }
-    } catch (error: unknown) {
-      if (error instanceof Error && error.message.includes('already exists')) {
-        console.log('Firebase already initialized, getting existing instance');
-        // If Firebase is already initialized, get the existing instance
-        app = getApp();
-        db = getFirestore(app);
-        storage = getStorage(app);
-        auth = getAuth(app);
-        if (firebaseConfig.measurementId) {
-          analytics = getAnalytics(app);
-        }
-      } else {
-        throw error; // Re-throw if it's not the expected error
-      }
-    }
-  } catch (error: unknown) {
-    console.error('Error initializing Firebase:', error instanceof Error ? error.message : 'Unknown error');
-    // You might want to show a user-friendly error message here
+    app = initializeApp(firebaseConfig);
+  } catch {
+    // If Firebase is already initialized, get the existing instance
+    app = getApp();
   }
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+  const auth = getAuth(app);
+  const analytics = getAnalytics(app);
 
   // Helper function to track events
   const trackEvent = (eventName: string, eventParams?: Record<string, string | number | boolean>) => {
@@ -385,31 +329,29 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
   // Update the level change effect to also update Firestore
   useEffect(() => {
-    if (!db || !context?.user?.fid || userStats?.points === undefined) return;
+    if (userStats?.points !== undefined && context?.user?.fid) {
+      const currentLevel = getLevelInfo(userStats.points).level;
+      
+      // If we have a previous level and it's different from current level
+      if (previousLevel !== null && currentLevel > previousLevel) {
+        setNewLevelInfo(getLevelInfo(userStats.points));
+        setShowLevelUpModal(true);
 
-    const currentLevel = getLevelInfo(userStats.points).level;
-    
-    // If we have a previous level and it's different from current level
-    if (previousLevel !== null && currentLevel > previousLevel) {
-      setNewLevelInfo(getLevelInfo(userStats.points));
-      setShowLevelUpModal(true);
-
-      // Update lastKnownLevel in Firestore
-      const userRef = doc(db, 'users', context.user.fid.toString());
-      setDoc(userRef, {
-        lastKnownLevel: currentLevel
-      }, { merge: true });
+        // Update lastKnownLevel in Firestore
+        const userRef = doc(db, 'users', context.user.fid.toString());
+        setDoc(userRef, {
+          lastKnownLevel: currentLevel
+        }, { merge: true });
+      }
+      
+      // Update previous level
+      setPreviousLevel(currentLevel);
     }
-    
-    // Update previous level
-    setPreviousLevel(currentLevel);
   }, [userStats?.points, context?.user?.fid, db]);
 
   // Fetch and generate random prompt
   useEffect(() => {
     const generatePrompt = async () => {
-      if (!db || !storage) return;
-
       try {
         // Fetch only nouns document from the prompts collection
         const nounsRef = doc(db, 'prompts', 'nouns');
@@ -453,7 +395,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       generatePrompt();
     }
-  }, [isDrawing, db, storage]);
+  }, [isDrawing, db]);
 
   // Initialize canvas when drawing mode is activated
   useEffect(() => {
