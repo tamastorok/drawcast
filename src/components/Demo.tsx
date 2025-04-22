@@ -153,23 +153,31 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
     try {
       app = initializeApp(firebaseConfig);
+      console.log('Firebase app initialized successfully');
+      
+      // Initialize other Firebase services only after app is initialized
+      db = getFirestore(app);
+      storage = getStorage(app);
+      auth = getAuth(app);
+      
+      // Only initialize analytics if measurementId is provided
+      if (firebaseConfig.measurementId) {
+        analytics = getAnalytics(app);
+      }
     } catch (error: unknown) {
       if (error instanceof Error && error.message.includes('already exists')) {
         console.log('Firebase already initialized, getting existing instance');
         // If Firebase is already initialized, get the existing instance
         app = getApp();
+        db = getFirestore(app);
+        storage = getStorage(app);
+        auth = getAuth(app);
+        if (firebaseConfig.measurementId) {
+          analytics = getAnalytics(app);
+        }
       } else {
         throw error; // Re-throw if it's not the expected error
       }
-    }
-
-    db = getFirestore(app);
-    storage = getStorage(app);
-    auth = getAuth(app);
-    
-    // Only initialize analytics if measurementId is provided
-    if (firebaseConfig.measurementId) {
-      analytics = getAnalytics(app);
     }
   } catch (error: unknown) {
     console.error('Error initializing Firebase:', error instanceof Error ? error.message : 'Unknown error');
@@ -377,29 +385,31 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
   // Update the level change effect to also update Firestore
   useEffect(() => {
-    if (userStats?.points !== undefined && context?.user?.fid) {
-      const currentLevel = getLevelInfo(userStats.points).level;
-      
-      // If we have a previous level and it's different from current level
-      if (previousLevel !== null && currentLevel > previousLevel) {
-        setNewLevelInfo(getLevelInfo(userStats.points));
-        setShowLevelUpModal(true);
+    if (!db || !context?.user?.fid || userStats?.points === undefined) return;
 
-        // Update lastKnownLevel in Firestore
-        const userRef = doc(db, 'users', context.user.fid.toString());
-        setDoc(userRef, {
-          lastKnownLevel: currentLevel
-        }, { merge: true });
-      }
-      
-      // Update previous level
-      setPreviousLevel(currentLevel);
+    const currentLevel = getLevelInfo(userStats.points).level;
+    
+    // If we have a previous level and it's different from current level
+    if (previousLevel !== null && currentLevel > previousLevel) {
+      setNewLevelInfo(getLevelInfo(userStats.points));
+      setShowLevelUpModal(true);
+
+      // Update lastKnownLevel in Firestore
+      const userRef = doc(db, 'users', context.user.fid.toString());
+      setDoc(userRef, {
+        lastKnownLevel: currentLevel
+      }, { merge: true });
     }
+    
+    // Update previous level
+    setPreviousLevel(currentLevel);
   }, [userStats?.points, context?.user?.fid, db]);
 
   // Fetch and generate random prompt
   useEffect(() => {
     const generatePrompt = async () => {
+      if (!db || !storage) return;
+
       try {
         // Fetch only nouns document from the prompts collection
         const nounsRef = doc(db, 'prompts', 'nouns');
@@ -443,7 +453,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       generatePrompt();
     }
-  }, [isDrawing, db]);
+  }, [isDrawing, db, storage]);
 
   // Initialize canvas when drawing mode is activated
   useEffect(() => {
