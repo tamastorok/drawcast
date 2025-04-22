@@ -1344,6 +1344,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               }
               setIsDrawing(false);
               setShowTimeUpPopup(false);
+              setDrawingError(null); // Clear error message when leaving drawing page
             }}
             className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] px-3 py-1 rounded-lg"
           >
@@ -2043,6 +2044,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setIsDrawing(false);
                     setShowGuess(false);
                     setSelectedGame(null);
+                    setDrawingError(null);
                   }}
                 >
                   <span className="text-2xl animate-wiggle">
@@ -2058,6 +2060,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setIsDrawing(false);
                     setShowGuess(true);
                     setSelectedGame(null);
+                    setDrawingError(null);
                   }}
                 >
                   <span className="text-2xl">
@@ -2073,6 +2076,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setIsDrawing(false);
                     setShowGuess(false);
                     setSelectedGame(null);
+                    setDrawingError(null);
                   }}
                 > 
                   <span className="text-2xl"><Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} className="transform rotate-[1deg]" /></span>
@@ -2086,6 +2090,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setIsDrawing(false);
                     setShowGuess(false);
                     setSelectedGame(null);
+                    setDrawingError(null);
                   }}
                 >
                   <div className="text-2xl">
