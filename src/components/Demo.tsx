@@ -742,8 +742,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         console.log('User already seen today, keeping current values');
       }
 
-      // Calculate total points (regular points + streak points)
-      const totalPoints = (userData.points || 0) + streakPoints;
+      // Only add streak points to total points if it's a new day
+      const totalPoints = shouldIncrement ? 
+        (userData.points || 0) + streakPoints : 
+        (userData.points || 0);
 
       console.log('Final values before update:', {
         streak,
