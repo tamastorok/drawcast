@@ -1481,6 +1481,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       // Use a batch to ensure atomicity
       const batch = writeBatch(db);
 
+      // Always update the game document with the new guess
+      batch.update(gameRef, {
+        guesses: arrayUnion(guess),
+        totalGuesses: increment(1),
+        correctGuesses: isCorrect ? increment(1) : increment(0)
+      });
+
       // If the guess is correct, update both the guesser's and creator's points
       if (isCorrect) {
         // First get the current values
@@ -1521,17 +1528,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           gameSolutions: increment(1),
           points: creatorPoints
         });
-
-        // Update the game document with the new guess
-        batch.update(gameRef, {
-          guesses: arrayUnion(guess),
-          totalGuesses: increment(1),
-          correctGuesses: isCorrect ? increment(1) : increment(0)
-        });
-
-        // Commit all updates
-        await batch.commit();
       }
+
+      // Commit all updates
+      await batch.commit();
 
       // Update the local state to show the result
       setSelectedGame(prev => prev ? {
