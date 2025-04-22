@@ -17,7 +17,7 @@ export async function generateMetadata(
   const gameDescription = 'Can you guess what this drawing is?';
 
   // Fetch game data to get the share image URL
-  const firebaseConfig = {
+  const app = initializeApp({
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -25,10 +25,7 @@ export async function generateMetadata(
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
+  });
   const db = getFirestore(app);
   const gameRef = doc(db, 'games', resolvedParams.gameId);
   const gameDoc = await getDoc(gameRef);
