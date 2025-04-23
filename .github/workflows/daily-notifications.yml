@@ -28,8 +28,8 @@ jobs:
 
           # Set curl options for better error handling
           CURL_OPTS="-s -w '\n%{http_code}' -X POST https://drawcast.xyz/api/send-daily-notification \
-            -H 'Authorization: Bearer $ACTIONS_SECRET' \
-            -H 'Content-Type: application/json' \
+            -H \"Authorization: Bearer $ACTIONS_SECRET\" \
+            -H \"Content-Type: application/json\" \
             --max-time 30 \
             --retry 3 \
             --retry-delay 5 \
