@@ -26,17 +26,19 @@ jobs:
             exit 1
           fi
 
-          # Set curl options for better error handling
-          CURL_OPTS="-s -w '\n%{http_code}' -X POST https://drawcast.xyz/api/send-daily-notification \
-            -H \"Authorization: Bearer $ACTIONS_SECRET\" \
-            -H \"Content-Type: application/json\" \
+          # Construct the Authorization header
+          AUTH_HEADER="Authorization: Bearer $ACTIONS_SECRET"
+
+          echo "Executing curl command..."
+          response=$(curl -s -w "\n%{http_code}" \
+            -X POST https://drawcast.xyz/api/send-daily-notification \
+            -H "$AUTH_HEADER" \
+            -H "Content-Type: application/json" \
             --max-time 30 \
             --retry 3 \
             --retry-delay 5 \
-            -v"
+            -v)
 
-          echo "Executing curl command..."
-          response=$(curl $CURL_OPTS)
           curl_exit_code=$?
 
           # Extract status code and response body
