@@ -1431,6 +1431,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   useEffect(() => {
     const fetchGames = async () => {
       try {
+        setIsLoadingGames(true); // Set loading state to true before fetching
         const gamesRef = collection(db, 'games');
         const q = query(gamesRef, orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
@@ -1466,6 +1467,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         }
       } catch (error) {
         console.error('Error fetching games:', error);
+      } finally {
+        setIsLoadingGames(false); // Set loading state to false after fetching
       }
     };
 
@@ -1821,53 +1824,58 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         </div>
 
         <div className="space-y-2">
-          {filteredGames.map((game) => {
-            // Check if current user has already guessed this game
-            const userGuess = game.guesses?.find(
-              (guess: Guess) => guess.userId === context?.user?.fid?.toString()
-            );
-
-            const timeInfo = formatTimeRemaining(game.expiredAt);
-
-            return (
-              <button
-                key={game.id}
-                onClick={() => handleGameJoin(game.id)}
-                className={`w-full p-4 ${
-                  userGuess 
-                    ? userGuess.isCorrect
-                      ? 'bg-green-100'
-                      : 'bg-red-100'
-                    : 'bg-gray-100 hover:bg-gray-200'
-                } rounded-lg text-left transition-colors transform rotate-${Math.random() > 0.5 ? '[1deg]' : '[-1deg]'} border-2 border-dashed border-gray-400`}
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="text-gray-600">
-                      Drawing by {game.username}
-                    </div>
-                    <div className={`text-xs mt-1 ${timeInfo.isEnded ? 'text-red-600' : 'text-gray-500'}`}>
-                      {timeInfo.text}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {game.totalGuesses}/10 players
-                    </div>
-                  </div>
-                  {userGuess && (
-                    <div className="text-sm font-medium">
-                      {userGuess.isCorrect ? 'Solved' : 'Wrong'}
-                    </div>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-          {filteredGames.length === 0 && (
+          {isLoadingGames ? (
+            <div className="text-center p-4 bg-gray-100 rounded-lg text-gray-600 transform rotate-[1deg] border-2 border-dashed border-gray-400">
+              Loading games...
+            </div>
+          ) : filteredGames.length === 0 ? (
             <div className="text-center p-4 bg-gray-100 rounded-lg text-gray-600 transform rotate-[1deg] border-2 border-dashed border-gray-400">
               {activeGuessTab === 'new' && 'No new games to guess!'}
               {activeGuessTab === 'solved' && 'You haven\'t solved any games yet!'}
               {activeGuessTab === 'wrong' && 'You haven\'t made any wrong guesses yet!'}
             </div>
+          ) : (
+            filteredGames.map((game) => {
+              // Check if current user has already guessed this game
+              const userGuess = game.guesses?.find(
+                (guess: Guess) => guess.userId === context?.user?.fid?.toString()
+              );
+
+              const timeInfo = formatTimeRemaining(game.expiredAt);
+
+              return (
+                <button
+                  key={game.id}
+                  onClick={() => handleGameJoin(game.id)}
+                  className={`w-full p-4 ${
+                    userGuess 
+                      ? userGuess.isCorrect
+                        ? 'bg-green-100'
+                        : 'bg-red-100'
+                      : 'bg-gray-100 hover:bg-gray-200'
+                  } rounded-lg text-left transition-colors transform rotate-${Math.random() > 0.5 ? '[1deg]' : '[-1deg]'} border-2 border-dashed border-gray-400`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-gray-600">
+                        Drawing by {game.username}
+                      </div>
+                      <div className={`text-xs mt-1 ${timeInfo.isEnded ? 'text-red-600' : 'text-gray-500'}`}>
+                        {timeInfo.text}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {game.totalGuesses}/10 players
+                      </div>
+                    </div>
+                    {userGuess && (
+                      <div className="text-sm font-medium">
+                        {userGuess.isCorrect ? 'Solved' : 'Wrong'}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })
           )}
         </div>
       </div>
@@ -1966,7 +1974,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             
             <button
               onClick={async () => {
-                const shareText = `I just reached Level ${newLevelInfo.level}: ${newLevelInfo.name} on drawcast.xyz! 🎨✨`;
+                const shareText = `I just reached Level ${newLevelInfo.level}: ${newLevelInfo.name} on drawcast.xyz `;
                 try {
                   await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}`);
                 } catch (error) {
@@ -2175,7 +2183,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   </svg>
                 </button>
 
-                <h2 className="text-xl font-bold text-center mb-2 text-gray-800 transform rotate-[1deg]">Drawing Submitted!</h2>
+                <h2 className="text-xl font-bold text-center mb-2 text-gray-800 transform rotate-[1deg]">Great job! Submitted!</h2>
                 <p className="text-center text-gray-600 mb-6 transform rotate-[-2deg]">
                 Invite your friends and earn points every time they guess correctly! 
                 </p>
