@@ -116,6 +116,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     createdAt: Date;
     guesses?: Guess[];
   } | null>(null);
+  const [isLoadingNextDrawing, setIsLoadingNextDrawing] = useState(false);
 
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -1633,12 +1634,17 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     };
 
     const handleNextDrawing = () => {
+      setIsLoadingNextDrawing(true);
       const nextGame = findNextUnsolvedDrawing();
       if (nextGame) {
         setSelectedGame(nextGame);
         setCurrentGuess('');
         setGuessError(null);
       }
+      // Add a small delay to show loading state
+      setTimeout(() => {
+        setIsLoadingNextDrawing(false);
+      }, 500);
     };
     
     return (
@@ -1695,12 +1701,18 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           {selectedGame.totalGuesses}/10 players
         </div>
         <div className="aspect-square relative bg-white rounded-lg overflow-hidden">
-          <Image
-            src={selectedGame.imageUrl}
-            alt="Drawing to guess"
-            fill
-            className="object-contain"
-          />
+          {isLoadingNextDrawing ? (
+            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+              <div className="text-gray-600 text-lg">Loading...</div>
+            </div>
+          ) : (
+            <Image
+              src={selectedGame.imageUrl}
+              alt="Drawing to guess"
+              fill
+              className="object-contain"
+            />
+          )}
         </div>
         {!isExpired && !isDrawer && (
           <p className="text-sm text-center text-gray-600 mb-4">
