@@ -52,6 +52,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [isDrawingActive, setIsDrawingActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState<string>('');
+  const [isPromptLoaded, setIsPromptLoaded] = useState(false);
   const [currentGuess, setCurrentGuess] = useState('');
   const [isSubmittingGuess, setIsSubmittingGuess] = useState(false);
   const [guessError, setGuessError] = useState<string | null>(null);
@@ -383,21 +384,26 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             console.log('Selected noun:', randomNoun);
             
             setCurrentPrompt(randomNoun);
+            setIsPromptLoaded(true);
           } else {
             console.log('No words found in nouns array');
             setCurrentPrompt('Error loading prompt');
+            setIsPromptLoaded(false);
           }
         } else {
           console.log('Nouns document does not exist');
           setCurrentPrompt('Error loading prompt');
+          setIsPromptLoaded(false);
         }
       } catch (error) {
         console.error('Error generating prompt:', error);
         setCurrentPrompt('Error loading prompt');
+        setIsPromptLoaded(false);
       }
     };
 
     if (isDrawing) {
+      setIsPromptLoaded(false);
       // Verify Firebase Storage is initialized
       try {
         const bucket = storage.app.options.storageBucket;
@@ -441,7 +447,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
   // Timer effect
   useEffect(() => {
-    if (isDrawing && !showTimeUpPopup) {
+    if (isDrawing && isPromptLoaded && !showTimeUpPopup) {
       setTimeLeft(30);
       timerRef.current = setInterval(() => {
         setTimeLeft(prev => {
@@ -460,13 +466,14 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         clearInterval(timerRef.current);
       }
     };
-  }, [isDrawing, showTimeUpPopup]);
+  }, [isDrawing, isPromptLoaded, showTimeUpPopup]);
 
   // Reset timer when starting new drawing
   const handleStartNew = async () => {
     setShowTimeUpPopup(false);
     setTimeLeft(30);
     setCurrentPrompt('Loading prompt...');
+    setIsPromptLoaded(false);
     
     const canvas = canvasRef.current;
     if (canvas) {
@@ -491,17 +498,21 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
           
           setCurrentPrompt(randomNoun);
+          setIsPromptLoaded(true);
         } else {
           console.log('No words found in nouns array');
           setCurrentPrompt('Error loading prompt');
+          setIsPromptLoaded(false);
         }
       } else {
         console.log('Nouns document does not exist');
         setCurrentPrompt('Error loading prompt');
+        setIsPromptLoaded(false);
       }
     } catch (error) {
       console.error('Error generating new prompt:', error);
       setCurrentPrompt('Error loading prompt');
+      setIsPromptLoaded(false);
     }
   };
 
@@ -1487,13 +1498,15 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               <div className="flex gap-4">
                 <button
                   onClick={handleDrawingSubmit}
-                  className="flex-1 bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors transform rotate-[-1deg] border-4 border-dashed border-white"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors transform rotate-[-1deg] border-4 border-dashed border-white disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Submit
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
                 <button
                   onClick={handleStartNew}
-                  className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors transform rotate-[1deg] border-4 border-dashed border-white"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors transform rotate-[1deg] border-4 border-dashed border-white disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   Start New
                 </button>
