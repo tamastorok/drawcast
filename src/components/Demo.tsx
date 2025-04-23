@@ -1760,11 +1760,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   };
 
   const renderGuessPage = () => {
-    // Filter active games
+    // Filter active games and exclude user's own drawings
     const activeGames = games.filter(game => {
       const isExpired = game.expiredAt.getTime() <= new Date().getTime();
       const hasMaxGuesses = game.totalGuesses >= 10;
-      return !isExpired && !hasMaxGuesses;
+      const isOwnDrawing = game.userFid === context?.user?.fid?.toString();
+      return !isExpired && !hasMaxGuesses && !isOwnDrawing;
     });
 
     // Filter games based on active tab
