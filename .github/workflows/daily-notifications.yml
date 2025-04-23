@@ -19,23 +19,40 @@ jobs:
       - name: Send daily notifications
         run: |
           echo "Starting daily notifications job..."
-          response=$(curl -s -w "\n%{http_code}" -X POST https://drawcast.xyz/api/send-daily-notification \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_ACTIONS_SECRET }}" \
-            -H "Content-Type: application/json")
+
+          # Set curl options for better error handling
+          CURL_OPTS="-s -w '\n%{http_code}' -X POST https://drawcast.xyz/api/send-daily-notification \
+            -H 'Authorization: Bearer ${{ secrets.GITHUB_ACTIONS_SECRET }}' \
+            -H 'Content-Type: application/json' \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5"
+
+          echo "Executing curl command..."
+          response=$(curl $CURL_OPTS)
+          curl_exit_code=$?
 
           # Extract status code and response body
           status_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | sed '$d')
 
+          echo "Curl exit code: $curl_exit_code"
           echo "Response status code: $status_code"
           echo "Response body: $body"
+
+          # Check for curl errors
+          if [ $curl_exit_code -ne 0 ]; then
+            echo "Curl command failed with exit code: $curl_exit_code"
+            exit 1
+          fi
 
           # Check if the request was successful
           if [ "$status_code" -eq 200 ]; then
             echo "Daily notifications sent successfully"
             exit 0
           else
-            echo "Failed to send daily notifications"
+            echo "Failed to send daily notifications. Status code: $status_code"
+            echo "Response: $body"
             exit 1
           fi
         env:
