@@ -18,6 +18,8 @@ interface LeaderboardUser {
   isPremium?: boolean;
   isEarlyAdopter?: boolean;
   rank?: number;
+  gameSolutions?: number;
+  correctGuesses?: number;
 }
 
 interface LeaderboardData {
@@ -117,6 +119,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     guesses?: Guess[];
   } | null>(null);
   const [isLoadingNextDrawing, setIsLoadingNextDrawing] = useState(false);
+  const [activeLeaderboardTab, setActiveLeaderboardTab] = useState<'points' | 'drawers' | 'guessers'>('points');
 
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -620,7 +623,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             pfpUrl: data.pfpUrl || '',
             points: data.points || 0,
             isPremium: data.isPremium || false,
-            isEarlyAdopter: data.isEarlyAdopter || false
+            isEarlyAdopter: data.isEarlyAdopter || false,
+            gameSolutions: data.gameSolutions || 0,
+            correctGuesses: data.correctGuesses || 0
           };
         });
 
@@ -986,7 +991,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             pfpUrl: data.pfpUrl || '',
             points: data.points || 0,
             isPremium: data.isPremium || false,
-            isEarlyAdopter: data.isEarlyAdopter || false
+            isEarlyAdopter: data.isEarlyAdopter || false,
+            gameSolutions: data.gameSolutions || 0,
+            correctGuesses: data.correctGuesses || 0
           };
         });
 
@@ -1042,10 +1049,58 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   }, [showLeaderboard, context?.user?.fid, db]);
 
   const renderLeaderboard = () => {
+    // Sort users based on active tab
+    const sortedUsers = [...leaderboardData.topUsers].sort((a, b) => {
+      switch (activeLeaderboardTab) {
+        case 'points':
+          return b.points - a.points;
+        case 'drawers':
+          return (b.gameSolutions || 0) - (a.gameSolutions || 0);
+        case 'guessers':
+          return (b.correctGuesses || 0) - (a.correctGuesses || 0);
+        default:
+          return b.points - a.points;
+      }
+    });
+
     return (
       <div>
+        {/* Tabs */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setActiveLeaderboardTab('points')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[-1deg] border-2 border-dashed ${
+              activeLeaderboardTab === 'points' 
+                ? 'bg-[#0c703b] text-white border-white' 
+                : 'bg-gray-100 text-gray-600 border-gray-400'
+            }`}
+          >
+            🏆
+          </button>
+          <button
+            onClick={() => setActiveLeaderboardTab('drawers')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[1deg] border-2 border-dashed ${
+              activeLeaderboardTab === 'drawers' 
+                ? 'bg-[#0c703b] text-white border-white' 
+                : 'bg-gray-100 text-gray-600 border-gray-400'
+            }`}
+          >
+            Drawers
+          </button>
+          <button
+            onClick={() => setActiveLeaderboardTab('guessers')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[-2deg] border-2 border-dashed ${
+              activeLeaderboardTab === 'guessers' 
+                ? 'bg-[#0c703b] text-white border-white' 
+                : 'bg-gray-100 text-gray-600 border-gray-400'
+            }`}
+          >
+            Guessers
+          </button>
+        </div>
+
         <div className="space-y-2">
-          {leaderboardData.topUsers.map((user, index) => (
+          {sortedUsers.map((user, index) => (
             <div 
               key={user.fid}
               className={`p-3 rounded-lg flex items-center gap-3 transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} ${
@@ -1054,7 +1109,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   : 'bg-gray-100'
               } border-2 border-dashed border-gray-400`}
             >
-              <div className="text-lg font-bold w-8">{user.rank}</div>
+              <div className="text-lg font-bold w-8">{index + 1}</div>
               {user.pfpUrl && (
                 <Image 
                   src={user.pfpUrl} 
@@ -1083,13 +1138,17 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     </div>
                   )}
                 </div>
-                <div className="text-sm text-gray-600">{user.points} points</div>
+                <div className="text-sm text-gray-600">
+                  {activeLeaderboardTab === 'points' && `${user.points} points`}
+                  {activeLeaderboardTab === 'drawers' && `${user.gameSolutions || 0} solutions`}
+                  {activeLeaderboardTab === 'guessers' && `${user.correctGuesses || 0} correct guesses`}
+                </div>
               </div>
             </div>
           ))}
 
           {/* Show current user's position if not in top 10 */}
-          {leaderboardData.currentUser && !leaderboardData.topUsers.some(u => u.fid === leaderboardData.currentUser?.fid) && (
+          {leaderboardData.currentUser && !sortedUsers.some(u => u.fid === leaderboardData.currentUser?.fid) && (
             <>
               <div className="h-4"></div>
               <div className="border-t-2 border-dashed border-gray-400 my-2"></div>
@@ -1125,7 +1184,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                       </div>
                     )}
                   </div>
-                  <div className="text-sm text-gray-600">{leaderboardData.currentUser.points} points</div>
+                  <div className="text-sm text-gray-600">
+                    {activeLeaderboardTab === 'points' && `${leaderboardData.currentUser.points} points`}
+                    {activeLeaderboardTab === 'drawers' && `${leaderboardData.currentUser.gameSolutions || 0} solutions`}
+                    {activeLeaderboardTab === 'guessers' && `${leaderboardData.currentUser.correctGuesses || 0} correct guesses`}
+                  </div>
                 </div>
               </div>
             </>
