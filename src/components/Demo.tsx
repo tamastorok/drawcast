@@ -1467,9 +1467,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           </div>
           
           <div className="space-y-4">
-            <p className="text-sm text-center text-gray-600 font-bold">
-              You will earn 10 points after each correct guess.
-            </p>
+
             <button 
               onClick={handleDrawingSubmit}
               disabled={isUploading || isCanvasEmpty}

@@ -1,0 +1,42 @@
+name: Daily Notifications
+
+on:
+  schedule:
+    # Run at 11 AM UTC every day
+    - cron: "0 11 * * *"
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  send-notifications:
+    name: Send Daily Notifications
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Send daily notifications
+        run: |
+          echo "Starting daily notifications job..."
+          response=$(curl -s -w "\n%{http_code}" -X POST https://drawcast.xyz/api/send-daily-notification \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_ACTIONS_SECRET }}" \
+            -H "Content-Type: application/json")
+
+          # Extract status code and response body
+          status_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response status code: $status_code"
+          echo "Response body: $body"
+
+          # Check if the request was successful
+          if [ "$status_code" -eq 200 ]; then
+            echo "Daily notifications sent successfully"
+            exit 0
+          else
+            echo "Failed to send daily notifications"
+            exit 1
+          fi
+        env:
+          GITHUB_ACTIONS_SECRET: ${{ secrets.GITHUB_ACTIONS_SECRET }}
