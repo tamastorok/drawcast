@@ -1738,7 +1738,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         const hasGuessed = game.guesses?.some(
           (guess: Guess) => guess.userId === context?.user?.fid?.toString()
         );
-        return !isExpired && !hasMaxGuesses && !isOwnDrawing && !hasGuessed;
+        const isCurrentGame = game.id === selectedGame?.id;
+        return !isExpired && !hasMaxGuesses && !isOwnDrawing && !hasGuessed && !isCurrentGame;
       });
 
       if (unsolvedGames.length > 0) {
