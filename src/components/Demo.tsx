@@ -107,6 +107,15 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCanvasEmpty, setIsCanvasEmpty] = useState(true);
   const [activeGuessTab, setActiveGuessTab] = useState<'new' | 'solved' | 'wrong'>('new');
+  const [selectedDrawing, setSelectedDrawing] = useState<{
+    id: string;
+    imageUrl: string;
+    prompt: string;
+    totalGuesses: number;
+    correctGuesses: number;
+    createdAt: Date;
+    guesses?: Guess[];
+  } | null>(null);
 
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -662,7 +671,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             prompt: data.prompt,
             totalGuesses: data.totalGuesses || 0,
             correctGuesses: data.correctGuesses || 0,
-            createdAt: data.createdAt.toDate()
+            createdAt: data.createdAt.toDate(),
+            guesses: data.guesses || []
           };
         });
         
@@ -679,8 +689,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   }, [context?.user?.fid, isDrawingsExpanded, db]);
 
   const getLevelInfo = (points: number) => {
-    if (points >= 3000) return { level: 11, name: "Drawing God 💎" };
-    if (points >= 2300) return { level: 10, name: "Drawing Hero 🦸‍♂️" };
+    if (points >= 20000) return { level: 16, name: "Drawing God 💎" };
+    if (points >= 16000) return { level: 15, name: "Cosmic Creator 🌌" };
+    if (points >= 12000) return { level: 14, name: "Divine Illustrator ✨" };
+    if (points >= 8000) return { level: 13, name: "Legendary Muse 🕊️" };
+    if (points >= 4500) return { level: 12, name: "Mythic Artist 🔱" };
+    if (points >= 3000) return { level: 11, name: "Drawing Hero 🦸‍♂️" };
+    if (points >= 2300) return { level: 10, name: "Drawing Grand Master 🐐" };
     if (points >= 1700) return { level: 9, name: "Art Wizard 🧙‍♂️" };
     if (points >= 1200) return { level: 8, name: "Drawing Legend 👑" };
     if (points >= 800) return { level: 7, name: "Visionary Artist 🖼️" };
@@ -909,9 +924,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               ) : (
                 <div className="space-y-2">
                   {createdGames.map((game, index) => (
-                    <div 
+                    <button 
                       key={game.id}
-                      className={`p-4 rounded-lg transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} border-2 border-dashed border-gray-400`}
+                      onClick={() => setSelectedDrawing(game)}
+                      className={`w-full p-4 rounded-lg transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} border-2 border-dashed border-gray-400 hover:bg-gray-200 transition-colors`}
                     >
                       <div className="flex justify-between items-center">
                         <div>
@@ -934,7 +950,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   ))}
                   {createdGames.length === 0 && (
                     <div className="text-center text-gray-800 p-4 transform rotate-[1deg]">
@@ -1595,6 +1611,35 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     
     // Check if current user is the drawer
     const isDrawer = context?.user?.fid?.toString() === selectedGame.userFid;
+
+    // Find next unsolved drawing
+    const findNextUnsolvedDrawing = () => {
+      const unsolvedGames = games.filter(game => {
+        const isExpired = game.expiredAt.getTime() <= new Date().getTime();
+        const hasMaxGuesses = game.totalGuesses >= 10;
+        const isOwnDrawing = game.userFid === context?.user?.fid?.toString();
+        const hasGuessed = game.guesses?.some(
+          (guess: Guess) => guess.userId === context?.user?.fid?.toString()
+        );
+        return !isExpired && !hasMaxGuesses && !isOwnDrawing && !hasGuessed;
+      });
+
+      if (unsolvedGames.length > 0) {
+        // Get a random unsolved game
+        const randomIndex = Math.floor(Math.random() * unsolvedGames.length);
+        return unsolvedGames[randomIndex];
+      }
+      return null;
+    };
+
+    const handleNextDrawing = () => {
+      const nextGame = findNextUnsolvedDrawing();
+      if (nextGame) {
+        setSelectedGame(nextGame);
+        setCurrentGuess('');
+        setGuessError(null);
+      }
+    };
     
     return (
       <div>
@@ -1683,6 +1728,14 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               <p className="text-lg font-bold mt-2">
                 {userGuess.isCorrect ? '✅ Correct! You earned 10 points.' : '❌ Wrong'}
               </p>
+              {findNextUnsolvedDrawing() && (
+                <button
+                  onClick={handleNextDrawing}
+                  className="mt-4 w-full bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors transform rotate-[-1deg] border-4 border-dashed border-white"
+                >
+                  Next Drawing →
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -1711,48 +1764,57 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               >
                 {isSubmittingGuess ? 'Submitting...' : 'Submit Guess'}
               </button>
+
+              {findNextUnsolvedDrawing() && (
+                <button
+                  onClick={handleNextDrawing}
+                  className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors transform rotate-[1deg] border-4 border-dashed border-white mt-2"
+                >
+                  Next Drawing →
+                </button>
+              )}
             </>
           )}
 
           {/* Share on Warpcast button */}
           {!isExpired && (
-            <button
-              onClick={async () => {
-                const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
-                // Randomly select a cast text variation
-                const randomCastText = castTextVariations[Math.floor(Math.random() * castTextVariations.length)];
-                const castText = `${randomCastText}\n\nArtist: @${selectedGame.username}\n\n${gameUrl}`;
-                try {
-                  await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`);
-                } catch (error) {
-                  console.error('Error sharing to Warpcast:', error);
-                }
-              }}
-              className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white"
-            >
-              <span>Share on Warpcast</span>
-            </button>
-          )}
-          {!isExpired && (
-            <button
-              onClick={() => {
-                const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
-                navigator.clipboard.writeText(gameUrl);
-                // Show a temporary success message
-                const button = document.getElementById('copyLinkButton2');
-                if (button) {
-                  const originalText = button.textContent;
-                  button.textContent = 'Copied!';
-                  setTimeout(() => {
-                    if (button) button.textContent = originalText;
-                  }, 2000);
-                }
-              }}
-              id="copyLinkButton2"
-              className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 transform rotate-[-1deg] border-4 border-dashed border-white mt-2"
-            >
-              Copy Link
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={async () => {
+                  const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
+                  // Randomly select a cast text variation
+                  const randomCastText = castTextVariations[Math.floor(Math.random() * castTextVariations.length)];
+                  const castText = `${randomCastText}\n\nArtist: @${selectedGame.username}\n\n${gameUrl}`;
+                  try {
+                    await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`);
+                  } catch (error) {
+                    console.error('Error sharing to Warpcast:', error);
+                  }
+                }}
+                className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white"
+              >
+                <span>Share on Warpcast</span>
+              </button>
+              <button
+                onClick={() => {
+                  const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
+                  navigator.clipboard.writeText(gameUrl);
+                  // Show a temporary success message
+                  const button = document.getElementById('copyLinkButton2');
+                  if (button) {
+                    const originalText = button.textContent;
+                    button.textContent = 'Copied!';
+                    setTimeout(() => {
+                      if (button) button.textContent = originalText;
+                    }, 2000);
+                  }
+                }}
+                id="copyLinkButton2"
+                className="w-full bg-gray-200 text-gray-600 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors flex items-center justify-center gap-2 transform rotate-[-1deg] border-4 border-dashed border-white"
+              >
+                Copy game link
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -1826,7 +1888,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
         <div className="space-y-2">
           {isLoadingGames ? (
-            <div className="text-center p-4 bg-gray-100 rounded-lg text-gray-600 transform rotate-[1deg] border-2 border-dashed border-gray-400">
+            <div className="text-center text-gray-600">
               Loading games...
             </div>
           ) : filteredGames.length === 0 ? (
@@ -2022,6 +2084,78 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     setSelectedGame(games.find(g => g.id === gameId) || null);
   };
 
+  // Add this function after the renderProfile function
+  const renderDrawingDetails = () => {
+    if (!selectedDrawing) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-[#f9f7f0] p-6 rounded-lg max-w-sm w-full mx-4 relative border-4 border-dashed border-gray-400 transform rotate-[-1deg] max-h-[90vh] flex flex-col">
+          {/* Close button */}
+          <button
+            onClick={() => setSelectedDrawing(null)}
+            className="absolute top-2 right-2 text-gray-800 hover:text-gray-600 transform rotate-[2deg] border-2 border-dashed border-gray-400 px-2 py-1 rounded-lg z-10"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <div className="text-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800 transform rotate-[1deg]">Drawing Details</h2>
+            <p className="text-gray-600 transform rotate-[-2deg]">Prompt: {selectedDrawing.prompt}</p>
+          </div>
+
+          <div className="w-3/4 mx-auto aspect-square relative bg-white rounded-lg overflow-hidden mb-4">
+            <Image
+              src={selectedDrawing.imageUrl}
+              alt="Drawing"
+              fill
+              className="object-contain"
+            />
+          </div>
+
+          <div className="overflow-y-auto flex-1 pr-2">
+            <div className="space-y-2">
+              <div className="text-sm text-gray-600">
+                Created: {new Date(selectedDrawing.createdAt).toLocaleDateString()}
+              </div>
+              <div className="text-sm text-gray-600">
+                Total Guesses: {selectedDrawing.totalGuesses}/10
+              </div>
+              <div className="text-sm text-gray-600">
+                Correct Guesses: {selectedDrawing.correctGuesses}
+              </div>
+            </div>
+
+            {selectedDrawing.guesses && selectedDrawing.guesses.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-lg font-bold text-gray-800 mb-2">Guesses</h3>
+                <div className="space-y-2">
+                  {selectedDrawing.guesses.map((guess, index) => (
+                    <div 
+                      key={index}
+                      className={`p-2 rounded-lg ${
+                        guess.isCorrect ? 'bg-green-100' : 'bg-red-100'
+                      } transform rotate-${index % 2 === 0 ? '[1deg]' : '[-1deg]'} border-2 border-dashed border-gray-400`}
+                    >
+                      <div className="text-sm font-medium">{guess.username}</div>
+                      <div className="text-sm text-gray-600">Guessed: {guess.guess}</div>
+                      <div className="text-sm font-medium">
+                        {guess.isCorrect ? '✅ Correct' : '❌ Wrong'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -2096,7 +2230,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     >
                       Draw
                     </button>
-                    <p className="text-sm text-gray-600 text-center">You&apos;ll have 30 seconds to draw.</p>
+                    <p className="text-sm text-gray-600 text-center">You&apos;ll have 30 seconds to draw a prompt.</p>
                   </div>
                 </div>
               )}
@@ -2212,7 +2346,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   id="copyLinkButton"
                   className="w-full bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 transform rotate-[-1deg] border-4 border-dashed border-white mt-2"
                 >
-                  Copy Link
+                  Copy game link
                 </button>
               </div>
             </div>
@@ -2223,6 +2357,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
           {/* Level Up Modal */}
           {showLevelUpModal && <LevelUpModal />}
+
+          {/* Add the drawing details modal */}
+          {selectedDrawing && renderDrawingDetails()}
         </>
       )}
     </div>
