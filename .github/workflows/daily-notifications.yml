@@ -20,13 +20,20 @@ jobs:
         run: |
           echo "Starting daily notifications job..."
 
+          # Debug: Check if secret is set (without revealing the value)
+          if [ -z "$ACTION_SECRETS" ]; then
+            echo "Error: ACTION_SECRETS is not set"
+            exit 1
+          fi
+
           # Set curl options for better error handling
           CURL_OPTS="-s -w '\n%{http_code}' -X POST https://drawcast.xyz/api/send-daily-notification \
-            -H 'Authorization: Bearer ${{ secrets.GITHUB_ACTIONS_SECRET }}' \
+            -H 'Authorization: Bearer $ACTION_SECRETS' \
             -H 'Content-Type: application/json' \
             --max-time 30 \
             --retry 3 \
-            --retry-delay 5"
+            --retry-delay 5 \
+            -v"
 
           echo "Executing curl command..."
           response=$(curl $CURL_OPTS)
@@ -56,4 +63,4 @@ jobs:
             exit 1
           fi
         env:
-          GITHUB_ACTIONS_SECRET: ${{ secrets.GITHUB_ACTIONS_SECRET }}
+          ACTION_SECRETS: ${{ secrets.ACTION_SECRETS }}
