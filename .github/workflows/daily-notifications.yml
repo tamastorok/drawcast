@@ -21,14 +21,14 @@ jobs:
           echo "Starting daily notifications job..."
 
           # Debug: Check if secret is set (without revealing the value)
-          if [ -z "$ACTION_SECRETS" ]; then
-            echo "Error: ACTION_SECRETS is not set"
+          if [ -z "$ACTION_SECRET" ]; then
+            echo "Error: ACTION_SECRET is not set"
             exit 1
           fi
 
           # Set curl options for better error handling
           CURL_OPTS="-s -w '\n%{http_code}' -X POST https://drawcast.xyz/api/send-daily-notification \
-            -H 'Authorization: Bearer $ACTION_SECRETS' \
+            -H 'Authorization: Bearer $ACTION_SECRET' \
             -H 'Content-Type: application/json' \
             --max-time 30 \
             --retry 3 \
@@ -63,4 +63,4 @@ jobs:
             exit 1
           fi
         env:
-          ACTION_SECRETS: ${{ secrets.ACTION_SECRETS }}
+          ACTION_SECRET: ${{ secrets.ACTION_SECRET }}
