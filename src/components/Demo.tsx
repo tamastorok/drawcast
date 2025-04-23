@@ -1323,7 +1323,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     const gameUrl = `${window.location.origin}/games/${lastCreatedGameId}`;
     // Randomly select a cast text variation
     const randomCastText = castTextVariations[Math.floor(Math.random() * castTextVariations.length)];
-    const castText = `${randomCastText}\n\n${gameUrl}`;
+    const castText = `${randomCastText}\n\nArtist: @${context?.user?.username || 'Anonymous'}\n\n${gameUrl}`;
 
     try {
       // Open the compose window with the game URL
@@ -1721,7 +1721,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
                 // Randomly select a cast text variation
                 const randomCastText = castTextVariations[Math.floor(Math.random() * castTextVariations.length)];
-                const castText = `${randomCastText}\n\n${gameUrl}`;
+                const castText = `${randomCastText}\n\nArtist: @${selectedGame.username}\n\n${gameUrl}`;
                 try {
                   await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`);
                 } catch (error) {
