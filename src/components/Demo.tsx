@@ -1568,6 +1568,48 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     }
   }, [showGuess, db, initialGameId]);
 
+  // Refresh games when switching tabs
+  useEffect(() => {
+    const fetchGames = async () => {
+      if (!showGuess) return;
+      
+      try {
+        setIsLoadingGames(true);
+        const gamesRef = collection(db, 'games');
+        const q = query(gamesRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        
+        const gamesData = await Promise.all(querySnapshot.docs.map(async (gameDoc) => {
+          const gameData = gameDoc.data();
+          const userDocRef = doc(db, 'users', gameData.userFid as string);
+          const userDoc = await getDoc(userDocRef);
+          const userData = userDoc.data() as { username?: string } | undefined;
+          const username = userData?.username || 'Anonymous';
+          
+          return {
+            id: gameDoc.id,
+            imageUrl: gameData.imageUrl as string || '',
+            prompt: gameData.prompt as string || '',
+            createdAt: (gameData.createdAt as { toDate: () => Date }).toDate(),
+            expiredAt: (gameData.expiredAt as { toDate: () => Date }).toDate(),
+            userFid: gameData.userFid as string || '',
+            username: username,
+            guesses: gameData.guesses || [],
+            totalGuesses: gameData.totalGuesses || 0
+          };
+        }));
+        
+        setGames(gamesData);
+      } catch (error) {
+        console.error('Error refreshing games:', error);
+      } finally {
+        setIsLoadingGames(false);
+      }
+    };
+
+    fetchGames();
+  }, [activeGuessTab, showGuess, db]);
+
   const handleGuessSubmit = async () => {
     // Check authentication state
     if (!authState.isAuthenticated || !context?.user?.fid) {
@@ -2344,12 +2386,46 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 </button>
                 <button 
                   className={`flex flex-col items-center justify-center w-full h-full ${showGuess ? 'bg-green-100' : ''} transform rotate-[1deg]`}
-                  onClick={() => {
+                  onClick={async () => {
                     setShowLeaderboard(false);
                     setShowProfile(false);
                     setIsDrawing(false);
                     setShowGuess(true);
                     setSelectedGame(null);
+
+                    // Refresh games list
+                    try {
+                      setIsLoadingGames(true);
+                      const gamesRef = collection(db, 'games');
+                      const q = query(gamesRef, orderBy('createdAt', 'desc'));
+                      const querySnapshot = await getDocs(q);
+                      
+                      const gamesData = await Promise.all(querySnapshot.docs.map(async (gameDoc) => {
+                        const gameData = gameDoc.data();
+                        const userDocRef = doc(db, 'users', gameData.userFid as string);
+                        const userDoc = await getDoc(userDocRef);
+                        const userData = userDoc.data() as { username?: string } | undefined;
+                        const username = userData?.username || 'Anonymous';
+                        
+                        return {
+                          id: gameDoc.id,
+                          imageUrl: gameData.imageUrl as string || '',
+                          prompt: gameData.prompt as string || '',
+                          createdAt: (gameData.createdAt as { toDate: () => Date }).toDate(),
+                          expiredAt: (gameData.expiredAt as { toDate: () => Date }).toDate(),
+                          userFid: gameData.userFid as string || '',
+                          username: username,
+                          guesses: gameData.guesses || [],
+                          totalGuesses: gameData.totalGuesses || 0
+                        };
+                      }));
+                      
+                      setGames(gamesData);
+                    } catch (error) {
+                      console.error('Error refreshing games:', error);
+                    } finally {
+                      setIsLoadingGames(false);
+                    }
                   }}
                 >
                   <span className="text-2xl">
