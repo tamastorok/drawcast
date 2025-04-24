@@ -46,6 +46,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const { isSDKLoaded, context } = useFrame();
   const [showProfile, setShowProfile] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showCollection, setShowCollection] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [showGuess, setShowGuess] = useState(!!initialGameId);
   const [selectedGame, setSelectedGame] = useState<typeof games[0] | null>(null);
@@ -68,10 +69,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [createdGames, setCreatedGames] = useState<Array<{
     id: string;
     imageUrl: string;
+    shareImageUrl?: string;
     prompt: string;
     totalGuesses: number;
     correctGuesses: number;
     createdAt: Date;
+    guesses?: Guess[];
   }>>([]);
   const [isLoadingGames, setIsLoadingGames] = useState(false);
   const [games, setGames] = useState<Array<{
@@ -685,6 +688,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           return {
             id: doc.id,
             imageUrl: data.imageUrl,
+            shareImageUrl: data.shareImageUrl,
             prompt: data.prompt,
             totalGuesses: data.totalGuesses || 0,
             correctGuesses: data.correctGuesses || 0,
@@ -2285,10 +2289,160 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     );
   };
 
-  if (!isSDKLoaded) {
-    return <div>Loading...</div>;
-  }
+  // Add the storeMetadata function
+  const storeMetadata = async (game: {
+    id: string;
+    prompt: string;
+    imageUrl: string;
+    shareImageUrl?: string;
+    createdAt: Date;
+  }): Promise<string | null> => {
+    const metadata = {
+      name: `Drawcast: ${game.id}`,
+      description: `A drawing by ${context?.user?.username || 'Anonymous'} created on Drawcast.xyz. Join the fun: drawcast.xyz`,
+      image: game.shareImageUrl || game.imageUrl,
+      attributes: [
+        {
+          trait_type: "Created At",
+          value: game.createdAt.toISOString()
+        }
+      ]
+    };
 
+    // Use the same filename as the share image
+    const filename = game.shareImageUrl?.split('/').pop()?.split('.')[0] || `${game.id}.json`;
+    const metadataRef = ref(storage, `metadata/${filename}`);
+    
+    try {
+      await uploadString(metadataRef, JSON.stringify(metadata), 'raw', {
+        contentType: 'application/json'
+      });
+      const metadataURL = await getDownloadURL(metadataRef);
+      console.log('Metadata stored successfully:', metadataURL);
+      return metadataURL;
+    } catch (error) {
+      console.error('Error storing metadata:', error);
+      const firebaseError = error as { serverResponse?: string };
+      if (firebaseError.serverResponse) {
+        console.error('Server response:', firebaseError.serverResponse);
+      }
+      return null;
+    }
+  };
+
+  const renderCollection = () => {
+    // Check if user has access
+    const hasAccess = context?.user?.fid === 234692;
+
+    if (!hasAccess) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <h2 className="text-2xl font-bold text-center text-gray-800 transform rotate-[-2deg]">Collections are coming soon!</h2>
+          <p className="text-m text-gray-600 text-center mt-4 transform rotate-[1deg]">Stay tuned for updates.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <p className="text-l text-center mb-6 text-gray-600">Mint your drawings as tokens on Zora and <span className="font-bold">earn creator rewards!</span></p>
+        {isLoadingGames ? (
+          <div className="text-center text-gray-600">
+            Loading your drawings...
+          </div>
+        ) : createdGames.length === 0 ? (
+          <div className="text-center p-4 bg-gray-100 rounded-lg text-gray-600 transform rotate-[1deg] border-2 border-dashed border-gray-400">
+            You haven&apos;t created any drawings yet!
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {createdGames.map((game, index) => (
+              <div 
+                key={game.id}
+                className={`w-full p-4 rounded-lg transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} border-2 border-dashed border-gray-400 bg-white`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-24 h-24 relative bg-gray-100 rounded-lg overflow-hidden">
+                    <Image
+                      src={game.shareImageUrl || game.imageUrl}
+                      alt={game.prompt}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 flex-1">
+                    <div className="text-xs text-gray-600">
+                      Created {new Date(game.createdAt).toLocaleDateString()}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const metadataURL = await storeMetadata(game);
+                          if (metadataURL) {
+                            // TODO: Implement Zora minting with the metadata URL
+                            console.log('Metadata URL for minting:', metadataURL);
+                          } else {
+                            console.error('Failed to store metadata');
+                          }
+                        } catch (error) {
+                          console.error('Error in mint process:', error);
+                        }
+                      }}
+                      className="bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors transform rotate-[1deg] border-2 border-dashed border-white text-sm w-fit"
+                    >
+                      Mint
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Add effect to fetch created games when collection page is shown
+  useEffect(() => {
+    const fetchCreatedGames = async () => {
+      if (!context?.user?.fid || !showCollection) return;
+
+      try {
+        setIsLoadingGames(true);
+        const gamesRef = collection(db, 'games');
+        const q = query(
+          gamesRef,
+          where('userFid', '==', context.user.fid.toString())
+        );
+        const querySnapshot = await getDocs(q);
+        
+        const gamesData = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            imageUrl: data.imageUrl,
+            shareImageUrl: data.shareImageUrl,
+            prompt: data.prompt,
+            totalGuesses: data.totalGuesses || 0,
+            correctGuesses: data.correctGuesses || 0,
+            createdAt: data.createdAt.toDate(),
+            guesses: data.guesses || []
+          };
+        });
+        
+        setCreatedGames(gamesData);
+    } catch (error) {
+        console.error('Error fetching games:', error);
+        setCreatedGames([]);
+      } finally {
+        setIsLoadingGames(false);
+      }
+    };
+
+    fetchCreatedGames();
+  }, [context?.user?.fid, showCollection, db]);
+
+  // Update the main content area to include the collection page
   return (
     <div
       style={{
@@ -2347,6 +2501,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 renderDrawingPage()
               ) : showGuess ? (
                 selectedGame ? renderGuessDetailPage() : renderGuessPage()
+              ) : showCollection ? (
+                renderCollection()
               ) : (
                 // Main Draw Page
                 <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -2371,12 +2527,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             <div className="w-[300px] mx-auto">
               <div className="flex justify-around items-center h-[70px]">
                 <button 
-                  className={`flex flex-col items-center justify-center w-full h-full ${!showLeaderboard && !showProfile && !isDrawing && !showGuess ? 'bg-green-100' : ''} transform rotate-[-1deg]`}
+                  className={`flex flex-col items-center justify-center w-full h-full ${!showLeaderboard && !showProfile && !isDrawing && !showGuess && !showCollection ? 'bg-green-100' : ''} transform rotate-[-1deg]`}
                   onClick={() => {
                     setShowLeaderboard(false);
                     setShowProfile(false);
                     setIsDrawing(false);
                     setShowGuess(false);
+                    setShowCollection(false);
                     setSelectedGame(null);
                   }}
                 >
@@ -2392,41 +2549,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setShowProfile(false);
                     setIsDrawing(false);
                     setShowGuess(true);
+                    setShowCollection(false);
                     setSelectedGame(null);
-
-                    // Refresh games list
-                    try {
-                      setIsLoadingGames(true);
-                      const gamesRef = collection(db, 'games');
-                      const q = query(gamesRef, orderBy('createdAt', 'desc'));
-                      const querySnapshot = await getDocs(q);
-                      
-                      const gamesData = await Promise.all(querySnapshot.docs.map(async (gameDoc) => {
-                        const gameData = gameDoc.data();
-                        const userDocRef = doc(db, 'users', gameData.userFid as string);
-                        const userDoc = await getDoc(userDocRef);
-                        const userData = userDoc.data() as { username?: string } | undefined;
-                        const username = userData?.username || 'Anonymous';
-                        
-                        return {
-                          id: gameDoc.id,
-                          imageUrl: gameData.imageUrl as string || '',
-                          prompt: gameData.prompt as string || '',
-                          createdAt: (gameData.createdAt as { toDate: () => Date }).toDate(),
-                          expiredAt: (gameData.expiredAt as { toDate: () => Date }).toDate(),
-                          userFid: gameData.userFid as string || '',
-                          username: username,
-                          guesses: gameData.guesses || [],
-                          totalGuesses: gameData.totalGuesses || 0
-                        };
-                      }));
-                      
-                      setGames(gamesData);
-                    } catch (error) {
-                      console.error('Error refreshing games:', error);
-                    } finally {
-                      setIsLoadingGames(false);
-                    }
+                    // ... existing refresh games code ...
                   }}
                 >
                   <span className="text-2xl">
@@ -2435,16 +2560,35 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   <span className="text-xs">Join</span>
                 </button>
                 <button 
+                  className={`flex flex-col items-center justify-center w-full h-full ${showCollection ? 'bg-green-100' : ''} transform rotate-[2deg]`}
+                  onClick={() => {
+                    setShowLeaderboard(false);
+                    setShowProfile(false);
+                    setIsDrawing(false);
+                    setShowGuess(false);
+                    setShowCollection(true);
+                    setSelectedGame(null);
+                  }}
+                >
+                  <span className="text-2xl">
+                    <Image src="/collection.png" alt="Collection" width={24} height={24} className="transform rotate-[-2deg]" />
+                  </span>
+                  <span className="text-xs">Collect</span>
+                </button>
+                <button 
                   className={`flex flex-col items-center justify-center w-full h-full ${showLeaderboard ? 'bg-green-100' : ''} transform rotate-[-2deg]`}
                   onClick={() => {
                     setShowLeaderboard(true);
                     setShowProfile(false);
                     setIsDrawing(false);
                     setShowGuess(false);
+                    setShowCollection(false);
                     setSelectedGame(null);
                   }}
-                > 
-                  <span className="text-2xl"><Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} className="transform rotate-[1deg]" /></span>
+                >
+                  <span className="text-2xl">
+                    <Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} className="transform rotate-[1deg]" />
+                  </span>
                   <span className="text-xs">Rank</span>
                 </button>
                 <button 
@@ -2454,6 +2598,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setShowProfile(true);
                     setIsDrawing(false);
                     setShowGuess(false);
+                    setShowCollection(false);
                     setSelectedGame(null);
                   }}
                 >
