@@ -9,6 +9,18 @@ import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs,
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { getAuth, signInAnonymously } from "firebase/auth";
 import { getAnalytics, logEvent } from "firebase/analytics";
+import { createCoin, getCoinCreateFromLogs } from "@zoralabs/coins-sdk";
+import { createWalletClient, createPublicClient, http, custom } from "viem";
+import { base } from "viem/chains";
+
+// Add type declaration for window.ethereum
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: unknown[] }) => Promise<string[]>;
+    };
+  }
+}
 
 interface LeaderboardUser {
   fid: number;
@@ -75,8 +87,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     correctGuesses: number;
     createdAt: Date;
     guesses?: Guess[];
+    isMinted?: boolean;
+    tokenAddress?: string;
   }>>([]);
   const [isLoadingGames, setIsLoadingGames] = useState(false);
+  const [mintingGames, setMintingGames] = useState<Set<string>>(new Set());
   const [games, setGames] = useState<Array<{
     id: string;
     imageUrl: string;
@@ -124,6 +139,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   } | null>(null);
   const [isLoadingNextDrawing, setIsLoadingNextDrawing] = useState(false);
   const [activeLeaderboardTab, setActiveLeaderboardTab] = useState<'points' | 'drawers' | 'guessers'>('points');
+  // Add wallet connection state
 
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -693,7 +709,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             totalGuesses: data.totalGuesses || 0,
             correctGuesses: data.correctGuesses || 0,
             createdAt: data.createdAt.toDate(),
-            guesses: data.guesses || []
+            guesses: data.guesses || [],
+            isMinted: data.isMinted || false,
+            tokenAddress: data.tokenAddress
           };
         });
         
@@ -2289,47 +2307,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     );
   };
 
-  // Add the storeMetadata function
-  const storeMetadata = async (game: {
-    id: string;
-    prompt: string;
-    imageUrl: string;
-    shareImageUrl?: string;
-    createdAt: Date;
-  }): Promise<string | null> => {
-    const metadata = {
-      name: `Drawcast: ${game.id}`,
-      description: `A drawing by ${context?.user?.username || 'Anonymous'} created on Drawcast.xyz. Join the fun: drawcast.xyz`,
-      image: game.shareImageUrl || game.imageUrl,
-      attributes: [
-        {
-          trait_type: "Created At",
-          value: game.createdAt.toISOString()
-        }
-      ]
-    };
-
-    // Use the same filename as the share image
-    const filename = game.shareImageUrl?.split('/').pop()?.split('.')[0] || `${game.id}.json`;
-    const metadataRef = ref(storage, `metadata/${filename}`);
-    
-    try {
-      await uploadString(metadataRef, JSON.stringify(metadata), 'raw', {
-        contentType: 'application/json'
-      });
-      const metadataURL = await getDownloadURL(metadataRef);
-      console.log('Metadata stored successfully:', metadataURL);
-      return metadataURL;
-    } catch (error) {
-      console.error('Error storing metadata:', error);
-      const firebaseError = error as { serverResponse?: string };
-      if (firebaseError.serverResponse) {
-        console.error('Server response:', firebaseError.serverResponse);
-      }
-      return null;
-    }
-  };
-
   const renderCollection = () => {
     // Check if user has access
     const hasAccess = context?.user?.fid === 234692;
@@ -2345,7 +2322,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
     return (
       <div>
-        <p className="text-l text-center mb-6 text-gray-600">Mint your drawings as tokens on Zora and <span className="font-bold">earn creator rewards!</span></p>
+        <p className="text-l text-center mb-6 text-gray-600">Coin your drawings on Zora and <span className="font-bold">earn creator rewards!</span></p>
         {isLoadingGames ? (
           <div className="text-center text-gray-600">
             Loading your drawings...
@@ -2374,24 +2351,229 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     <div className="text-xs text-gray-600">
                       Created {new Date(game.createdAt).toLocaleDateString()}
                     </div>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const metadataURL = await storeMetadata(game);
-                          if (metadataURL) {
-                            // TODO: Implement Zora minting with the metadata URL
-                            console.log('Metadata URL for minting:', metadataURL);
-                          } else {
-                            console.error('Failed to store metadata');
-                          }
-                        } catch (error) {
-                          console.error('Error in mint process:', error);
-                        }
-                      }}
-                      className="bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors transform rotate-[1deg] border-2 border-dashed border-white text-sm w-fit"
-                    >
-                      Mint
-                    </button>
+                    <div className="flex gap-2">
+                      {!game.isMinted ? (
+                        <button
+                          onClick={async () => {
+                            if (mintingGames.has(game.id)) return;
+                            
+                            try {
+                              setMintingGames(prev => new Set(prev).add(game.id));
+                              console.log('Starting mint process for game:', game.id);
+                              
+                              // Connect wallet first
+                              console.log('Requesting wallet connection...');
+                              if (typeof window.ethereum === 'undefined') {
+                                throw new Error('Please install MetaMask or another Web3 wallet');
+                              }
+                              const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                              const userAddress = accounts[0];
+                              if (!userAddress) {
+                                throw new Error('Wallet connection required');
+                              }
+                              console.log('Wallet connected:', userAddress);
+
+                              // Prepare metadata
+                              console.log('Preparing metadata with share image:', game.shareImageUrl);
+                              const metadata = {
+                                name: `Drawcast: ${game.id}`,
+                                description: `This is a(n) ${game.prompt} drawn by ${context?.user?.username || 'Anonymous'} on Drawcast.xyz. Join the fun, challenge friends and earn points: drawcast.xyz`,
+                                image: game.shareImageUrl || game.imageUrl,
+                                attributes: [
+                                  {
+                                    trait_type: "Created At",
+                                    value: game.createdAt.toISOString()
+                                  }
+                                ]
+                              };
+                              console.log('Metadata prepared:', metadata);
+
+                              // Upload metadata to Firebase Storage
+                              console.log('Uploading metadata to Firebase Storage...');
+                              const metadataPath = `metadata/${game.id}.json`;
+                              const metadataRef = ref(storage, metadataPath);
+                              const metadataString = JSON.stringify(metadata, null, 2);
+                              
+                              await uploadString(metadataRef, metadataString, 'raw', {
+                                contentType: 'application/json',
+                                customMetadata: {
+                                  uploadedBy: context.user.fid.toString()
+                                }
+                              });
+                              
+                              // Get the metadata URL through our API endpoint
+                              const metadataUrl = `${window.location.origin}/api/metadata/${game.id}`;
+                              console.log('Metadata accessible at:', metadataUrl);
+
+                              // Set up viem clients
+                              console.log('Setting up blockchain clients...');
+                              const publicClient = createPublicClient({
+                                chain: base,
+                                transport: http("https://mainnet.base.org"),
+                              });
+                              
+                              const walletClient = createWalletClient({
+                                account: userAddress as `0x${string}`,
+                                chain: base,
+                                transport: custom(window.ethereum!)
+                              });
+                              console.log('Blockchain clients configured');
+
+                              // Define coin parameters
+                              console.log('Preparing coin parameters...');
+                              const coinParams = {
+                                name: `Drawcast: ${game.prompt}`,
+                                symbol: "DWT",
+                                uri: metadataUrl,
+                                payoutRecipient: userAddress as `0x${string}`,
+                                platformReferrer: "0xAbE4976624c9A6c6Ce0D382447E49B7feb639565" as `0x${string}`,
+                                initialPurchaseWei: 10000000000000n,
+                                tickLower: -199200, // Default tick lower for Uniswap V3 pool
+                              };
+                              console.log('Coin configuration:', {
+                                name: coinParams.name,
+                                symbol: coinParams.symbol,
+                                metadataUrl: metadataUrl,
+                                payoutRecipient: userAddress,
+                                platformReferrer: coinParams.platformReferrer,
+                                initialPurchaseWei: coinParams.initialPurchaseWei.toString(),
+                                tickLower: coinParams.tickLower
+                              });
+
+                              // Validate clients
+                              if (!walletClient || !publicClient) {
+                                throw new Error('Blockchain clients not properly initialized');
+                              }
+
+                              try {
+                                // Add timeout to prevent hanging
+                                const timeoutPromise = new Promise((_, reject) => {
+                                  setTimeout(() => reject(new Error('Coin creation timed out after 60 seconds')), 60000);
+                                });
+
+                                console.log('Starting coin creation process...');
+                                
+                                // Check if wallet is connected to Base network
+                                const chainId = await walletClient.getChainId();
+                                console.log('Current chain ID:', chainId);
+                                console.log('Base chain ID:', base.id);
+
+                                // Check wallet balance
+                                const balance = await publicClient.getBalance({
+                                  address: userAddress as `0x${string}`
+                                });
+                                console.log('Wallet balance:', balance.toString());
+                                
+                                if (balance < coinParams.initialPurchaseWei) {
+                                  throw new Error(`Insufficient balance. Please add at least ${coinParams.initialPurchaseWei.toString()} wei to your wallet for initial liquidity.`);
+                                }
+
+                                const result = await Promise.race([
+                                  (async () => {
+                                    try {
+                                      console.log('Sending transaction with value:', coinParams.initialPurchaseWei.toString());
+                                      const tx = await createCoin(coinParams, walletClient, publicClient);
+                                      console.log('Transaction sent:', tx.hash);
+                                      return tx;
+                                    } catch (error) {
+                                      console.error('Error in createCoin:', error);
+                                      if (error instanceof Error) {
+                                        console.error('CreateCoin error details:', {
+                                          message: error.message,
+                                          stack: error.stack
+                                        });
+                                      }
+                                      throw error;
+                                    }
+                                  })(),
+                                  timeoutPromise
+                                ]) as { hash: `0x${string}`; address: `0x${string}` };
+
+                                // Verify transaction
+                                console.log('Verifying transaction...');
+                                const receipt = await publicClient.waitForTransactionReceipt({
+                                  hash: result.hash
+                                });
+                                
+                                if (receipt.status === 'success') {
+                                  console.log('Transaction confirmed:', {
+                                    hash: result.hash,
+                                    blockNumber: receipt.blockNumber,
+                                    coinAddress: result.address
+                                  });
+                                  
+                                  // Get coin deployment details
+                                  const coinDeployment = getCoinCreateFromLogs(receipt);
+                                  if (coinDeployment) {
+                                    console.log('Market details:', {
+                                      coin: coinDeployment.coin,
+                                      pool: coinDeployment.pool
+                                    });
+                                  }
+
+                                  // Update game document with isMinted field and token address
+                                  const gameRef = doc(db, 'games', game.id);
+                                  await setDoc(gameRef, {
+                                    isMinted: true,
+                                    tokenAddress: coinDeployment?.coin
+                                  }, { merge: true });
+
+                                  // Update local state to reflect the minted status
+                                  setCreatedGames(prev => prev.map(g => 
+                                    g.id === game.id ? { 
+                                      ...g, 
+                                      isMinted: true,
+                                      tokenAddress: coinDeployment?.coin
+                                    } : g
+                                  ));
+                                } else {
+                                  throw new Error('Transaction failed');
+                                }
+                              } catch (error) {
+                                console.error('Error creating coin:', error);
+                                if (error instanceof Error) {
+                                  console.error('Error details:', {
+                                    message: error.message,
+                                    stack: error.stack
+                                  });
+                                }
+                                throw error; // Re-throw to be caught by outer try-catch
+                              }
+
+                            } catch (error) {
+                              console.error('Error in mint process:', error);
+                              if (error instanceof Error) {
+                                console.error('Error details:', {
+                                  message: error.message,
+                                  stack: error.stack
+                                });
+                              }
+                            } finally {
+                              setMintingGames(prev => {
+                                const newSet = new Set(prev);
+                                newSet.delete(game.id);
+                                return newSet;
+                              });
+                            }
+                          }}
+                          disabled={mintingGames.has(game.id)}
+                          className={`bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors transform rotate-[1deg] border-2 border-dashed border-white text-sm w-fit ${
+                            mintingGames.has(game.id) ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          {mintingGames.has(game.id) ? 'Coining...' : 'Coin it!'}
+                        </button>
+                      ) : (
+                        <a
+                          href={`https://zora.co/coin/base:${game.tokenAddress}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors transform rotate-[1deg] border-2 border-dashed border-white text-sm w-fit"
+                        >
+                          View on Zora
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2426,7 +2608,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             totalGuesses: data.totalGuesses || 0,
             correctGuesses: data.correctGuesses || 0,
             createdAt: data.createdAt.toDate(),
-            guesses: data.guesses || []
+            guesses: data.guesses || [],
+            isMinted: data.isMinted || false,
+            tokenAddress: data.tokenAddress
           };
         });
         
@@ -2441,6 +2625,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
     fetchCreatedGames();
   }, [context?.user?.fid, showCollection, db]);
+
 
   // Update the main content area to include the collection page
   return (
@@ -2585,7 +2770,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setShowCollection(false);
                     setSelectedGame(null);
                   }}
-                >
+                > 
                   <span className="text-2xl">
                     <Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} className="transform rotate-[1deg]" />
                   </span>

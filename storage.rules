@@ -24,5 +24,12 @@ service firebase.storage {
       allow create: if isAuthenticated();
       allow write: if isAuthenticated();
     }
+
+    // Specific rules for metadata
+    match /metadata/{filename} {
+      allow read: if true;  // Allow public read access for metadata
+      allow create: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
   }
 } 
