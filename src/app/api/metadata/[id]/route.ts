@@ -18,10 +18,10 @@ const storage = getStorage(app);
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
+    const id = context.params.id;
     const metadataPath = `metadata/${id}.json`;
     const metadataRef = ref(storage, metadataPath);
     
