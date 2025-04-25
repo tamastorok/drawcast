@@ -16,18 +16,18 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 
-type RouteContext = {
-  params: {
-    id: string;
-  };
-};
-
-export async function GET(
-  request: NextRequest,
-  context: RouteContext
-) {
+export async function GET(request: NextRequest) {
   try {
-    const id = context.params.id;
+    const id = request.url.split('/').pop();
+    if (!id) {
+      return new NextResponse(JSON.stringify({ error: 'ID not provided' }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
     const metadataPath = `metadata/${id}.json`;
     const metadataRef = ref(storage, metadataPath);
     
