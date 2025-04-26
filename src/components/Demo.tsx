@@ -30,6 +30,9 @@ interface LeaderboardUser {
   isPremium?: boolean;
   isEarlyAdopter?: boolean;
   rank?: number;
+  pointsRank?: number;
+  drawersRank?: number;
+  guessersRank?: number;
   gameSolutions?: number;
   correctGuesses?: number;
 }
@@ -640,7 +643,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           });
         }
 
-        // Fetch leaderboard data to get current user's rank
+        // Fetch all users for ranking
         const usersRef = collection(db, 'users');
         const usersSnapshot = await getDocs(usersRef);
         
@@ -659,22 +662,31 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           };
         });
 
-        // Sort users by points in descending order
-        const sortedUsers = users.sort((a, b) => b.points - a.points);
+        // Sort users by different criteria
+        const pointsRanked = [...users].sort((a, b) => b.points - a.points);
+        const drawersRanked = [...users].sort((a, b) => (b.gameSolutions || 0) - (a.gameSolutions || 0));
+        const guessersRanked = [...users].sort((a, b) => (b.correctGuesses || 0) - (a.correctGuesses || 0));
 
-        // Add rank to each user
-        const rankedUsers = sortedUsers.map((user, index) => ({
-          ...user,
-          rank: index + 1
-        }));
+        // Find current user's ranks
+        const currentUserFid = context.user.fid;
+        const pointsRank = pointsRanked.findIndex(user => user.fid === currentUserFid) + 1;
+        const drawersRank = drawersRanked.findIndex(user => user.fid === currentUserFid) + 1;
+        const guessersRank = guessersRanked.findIndex(user => user.fid === currentUserFid) + 1;
 
-        // Find current user
-        const currentUser = rankedUsers.find(user => user.fid === context.user.fid) || null;
-
-        // Update leaderboard data with current user's rank
+        // Update leaderboard data with all ranks
         setLeaderboardData(prev => ({
           ...prev,
-          currentUser
+          currentUser: {
+            fid: currentUserFid,
+            username: context.user.username || 'Anonymous',
+            pfpUrl: context.user.pfpUrl || '',
+            points: userStats?.points || 0,
+            pointsRank,
+            drawersRank,
+            guessersRank,
+            gameSolutions: userStats?.gameSolutions || 0,
+            correctGuesses: userStats?.correctGuesses || 0
+          }
         }));
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -897,8 +909,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         <div className="bg-gray-100 p-4 rounded-lg mb-6 transform rotate-[-1deg] border-2 border-dashed border-gray-400">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="font-medium">Rank:</span>
-              <span>{leaderboardData.currentUser?.rank ? `#${leaderboardData.currentUser.rank}` : 'Not ranked'}</span>
+              <span className="font-medium">Overall Rank:</span>
+              <span>{leaderboardData.currentUser?.pointsRank ? `#${leaderboardData.currentUser.pointsRank}` : 'Not ranked'}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="font-medium">Points:</span>
@@ -907,6 +919,22 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             <div className="flex items-center gap-2">
               <span className="font-medium">Day Streaks:</span>
               <span>{userStats?.streak || 0} 🔥</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Rank Boxes */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[2deg] border-2 border-dashed border-gray-400">
+            <div className="text-sm text-gray-600 mb-1">Drawer Rank</div>
+            <div className="text-2xl font-bold text-gray-800">
+              {leaderboardData.currentUser?.drawersRank ? `#${leaderboardData.currentUser.drawersRank}` : '-'}
+            </div>
+          </div>
+          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-2deg] border-2 border-dashed border-gray-400">
+            <div className="text-sm text-gray-600 mb-1">Guesser Rank</div>
+            <div className="text-2xl font-bold text-gray-800">
+              {leaderboardData.currentUser?.guessersRank ? `#${leaderboardData.currentUser.guessersRank}` : '-'}
             </div>
           </div>
         </div>
