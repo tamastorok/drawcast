@@ -1508,6 +1508,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             >
               {isUploading ? 'Uploading...' : isCanvasEmpty ? 'Draw something to submit' : 'Submit'}
             </button>
+
+            <button 
+              onClick={handleStartNew}
+              className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors transform rotate-[1deg] border-4 border-dashed border-white"
+            >
+              Start new
+            </button>
           </div>
         </div>
 
