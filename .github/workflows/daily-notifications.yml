@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Send daily notifications
         run: |
@@ -29,39 +29,28 @@ jobs:
           # Construct the Authorization header
           AUTH_HEADER="Authorization: Bearer $ACTIONS_SECRET"
 
-          echo "Executing curl command..."
+          echo "Sending daily notification..."
           response=$(curl -s -w "\n%{http_code}" \
             -X POST https://drawcast.xyz/api/send-daily-notification \
             -H "$AUTH_HEADER" \
             -H "Content-Type: application/json" \
             --max-time 30 \
             --retry 3 \
-            --retry-delay 5 \
-            -v)
+            --retry-delay 5)
 
-          curl_exit_code=$?
+          # Split response into body and status code
+          body=$(echo "$response" | head -n -1)
+          status_code=$(echo "$response" | tail -n 1)
 
-          # Extract status code and response body
-          status_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | sed '$d')
-
-          echo "Curl exit code: $curl_exit_code"
           echo "Response status code: $status_code"
           echo "Response body: $body"
 
-          # Check for curl errors
-          if [ $curl_exit_code -ne 0 ]; then
-            echo "Curl command failed with exit code: $curl_exit_code"
-            exit 1
-          fi
-
           # Check if the request was successful
           if [ "$status_code" -eq 200 ]; then
-            echo "Daily notifications sent successfully"
+            echo "Notifications sent successfully!"
             exit 0
           else
-            echo "Failed to send daily notifications. Status code: $status_code"
-            echo "Response: $body"
+            echo "Failed to send notifications"
             exit 1
           fi
         env:

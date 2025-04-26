@@ -2363,15 +2363,49 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                               
                               // Connect wallet first
                               console.log('Requesting wallet connection...');
-                              if (typeof window.ethereum === 'undefined') {
-                                throw new Error('Please install MetaMask or another Web3 wallet');
+                              if (!isSDKLoaded || !context) {
+                                throw new Error('Farcaster Frame SDK not loaded');
                               }
-                              const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                              
+                              // Get the wallet address using the SDK's wallet provider
+                              const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
                               const userAddress = accounts[0];
                               if (!userAddress) {
                                 throw new Error('Wallet connection required');
                               }
                               console.log('Wallet connected:', userAddress);
+
+                              // Switch to Base network
+                              try {
+                                await sdk.wallet.ethProvider.request({
+                                  method: 'wallet_switchEthereumChain',
+                                  params: [{ chainId: '0x2105' }], // 8453 in hex
+                                });
+                              } catch (switchError: { code: number; message: string }) {
+                                // This error code indicates that the chain has not been added to MetaMask
+                                if (switchError.code === 4902) {
+                                  try {
+                                    await sdk.wallet.ethProvider.request({
+                                      method: 'wallet_addEthereumChain',
+                                      params: [{
+                                        chainId: '0x2105',
+                                        chainName: 'Base',
+                                        nativeCurrency: {
+                                          name: 'ETH',
+                                          symbol: 'ETH',
+                                          decimals: 18
+                                        },
+                                        rpcUrls: ['https://mainnet.base.org'],
+                                        blockExplorerUrls: ['https://basescan.org']
+                                      }]
+                                    });
+                                  } catch (addError) {
+                                    throw new Error('Failed to add Base network to wallet');
+                                  }
+                                } else {
+                                  throw new Error('Failed to switch to Base network');
+                                }
+                              }
 
                               // Prepare metadata
                               console.log('Preparing metadata with share image:', game.shareImageUrl);
@@ -2415,7 +2449,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                               const walletClient = createWalletClient({
                                 account: userAddress as `0x${string}`,
                                 chain: base,
-                                transport: custom(window.ethereum!)
+                                transport: custom(sdk.wallet.ethProvider)
                               });
                               console.log('Blockchain clients configured');
 
@@ -2471,7 +2505,25 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                                 const result = await Promise.race([
                                   (async () => {
                                     try {
-                                      console.log('Sending transaction with value:', coinParams.initialPurchaseWei.toString());
+                                      // Log the exact value being sent
+                                      console.log('Transaction value details:', {
+                                        rawValue: coinParams.initialPurchaseWei.toString(),
+                                        inEth: Number(coinParams.initialPurchaseWei) / 1e18,
+                                        inWei: coinParams.initialPurchaseWei.toString(),
+                                        type: typeof coinParams.initialPurchaseWei
+                                      });
+
+                                      // Verify the transaction value is correct
+                                      const expectedValue = 10000000000000n;
+                                      if (coinParams.initialPurchaseWei !== expectedValue) {
+                                        console.warn('Transaction value mismatch:', {
+                                          expected: expectedValue.toString(),
+                                          actual: coinParams.initialPurchaseWei.toString()
+                                        });
+                                        // Force the correct value
+                                        coinParams.initialPurchaseWei = expectedValue;
+                                      }
+
                                       const tx = await createCoin(coinParams, walletClient, publicClient);
                                       console.log('Transaction sent:', tx.hash);
                                       return tx;
