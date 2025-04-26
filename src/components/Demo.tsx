@@ -2381,9 +2381,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                                   method: 'wallet_switchEthereumChain',
                                   params: [{ chainId: '0x2105' }], // 8453 in hex
                                 });
-                              } catch (switchError: { code: number; message: string }) {
+                              } catch (switchError: unknown) {
                                 // This error code indicates that the chain has not been added to MetaMask
-                                if (switchError.code === 4902) {
+                                if (typeof switchError === 'object' && switchError !== null && 'code' in switchError && switchError.code === 4902) {
                                   try {
                                     await sdk.wallet.ethProvider.request({
                                       method: 'wallet_addEthereumChain',
