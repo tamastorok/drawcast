@@ -2400,6 +2400,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                                       }]
                                     });
                                   } catch (addError) {
+                                    console.error('Failed to add Base network:', addError);
                                     throw new Error('Failed to add Base network to wallet');
                                   }
                                 } else {
