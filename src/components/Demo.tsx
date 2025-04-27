@@ -1927,8 +1927,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             <Image
               src={selectedGame.imageUrl}
               alt="Drawing to guess"
-              fill
+              width={500}
+              height={500}
               className="object-contain"
+              quality={75}
+              priority
+              sizes="(max-width: 768px) 100vw, 500px"
             />
           )}
         </div>
@@ -2381,8 +2385,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             <Image
               src={selectedDrawing.imageUrl}
               alt="Drawing"
-              fill
+              width={400}
+              height={400}
               className="object-contain"
+              quality={75}
+              priority
+              sizes="(max-width: 768px) 100vw, 400px"
             />
           </div>
 
