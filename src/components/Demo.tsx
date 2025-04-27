@@ -105,6 +105,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     guesses?: Guess[];
     expiredAt: Date;
     totalGuesses: number;
+    isBanned?: boolean;
   }>>([]);
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [showTimeUpPopup, setShowTimeUpPopup] = useState(false);
@@ -723,9 +724,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             createdAt: data.createdAt.toDate(),
             guesses: data.guesses || [],
             isMinted: data.isMinted || false,
-            tokenAddress: data.tokenAddress
+            tokenAddress: data.tokenAddress,
+            isBanned: data.isBanned || false
           };
-        });
+        }).filter(game => !game.isBanned); // Filter out banned drawings
         
         setCreatedGames(gamesData);
       } catch (error) {
@@ -1817,6 +1819,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     // Check if current user is the drawer
     const isDrawer = context?.user?.fid?.toString() === selectedGame.userFid;
 
+    // Check if user is moderator
+    const isModerator = context?.user?.fid === 234692;
+
     // Find next unsolved drawing
     const findNextUnsolvedDrawing = () => {
       const unsolvedGames = games.filter(game => {
@@ -1996,9 +2001,46 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             </>
           )}
 
+          {isModerator && (
+            <button
+              onClick={async () => {
+                try {
+                  const gameRef = doc(db, 'games', selectedGame.id);
+                  await setDoc(gameRef, { isBanned: true }, { merge: true });
+                  setSelectedGame(null);
+                  // Refresh the games list
+                  const gamesRef = collection(db, 'games');
+                  const q = query(gamesRef, orderBy('createdAt', 'desc'));
+                  const querySnapshot = await getDocs(q);
+                  const gamesData = querySnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                      id: doc.id,
+                      imageUrl: data.imageUrl,
+                      prompt: data.prompt,
+                      createdAt: data.createdAt.toDate(),
+                      expiredAt: data.expiredAt.toDate(),
+                      userFid: data.userFid,
+                      username: data.username,
+                      guesses: data.guesses || [],
+                      totalGuesses: data.totalGuesses || 0,
+                      isBanned: data.isBanned || false
+                    };
+                  });
+                  setGames(gamesData);
+                } catch (error) {
+                  console.error('Error hiding drawing:', error);
+                }
+              }}
+              className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors transform rotate-[-1deg] border-2 border-dashed border-white mt-4"
+            >
+              Hide Drawing
+            </button>
+          )}
+
           {/* Share on Warpcast button */}
           {!isExpired && (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 mt-4">
               <button
                 onClick={async () => {
                   const gameUrl = `${window.location.origin}/games/${selectedGame.id}`;
@@ -2047,7 +2089,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       const isExpired = game.expiredAt.getTime() <= new Date().getTime();
       const hasMaxGuesses = game.totalGuesses >= 10;
       const isOwnDrawing = game.userFid === context?.user?.fid?.toString();
-      return !isExpired && !hasMaxGuesses && !isOwnDrawing;
+      const isBanned = game.isBanned || false;
+      return !isExpired && !hasMaxGuesses && !isOwnDrawing && !isBanned;
     });
 
     // Filter games based on active tab
@@ -2308,6 +2351,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const renderDrawingDetails = () => {
     if (!selectedDrawing) return null;
 
+    const isModerator = context?.user?.fid === 234692;
+
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-[#f9f7f0] p-6 rounded-lg max-w-sm w-full mx-4 relative border-4 border-dashed border-gray-400 transform rotate-[-1deg] max-h-[90vh] flex flex-col">
@@ -2335,6 +2380,43 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               className="object-contain"
             />
           </div>
+
+          {isModerator && (
+            <button
+              onClick={async () => {
+                try {
+                  const gameRef = doc(db, 'games', selectedDrawing.id);
+                  await setDoc(gameRef, { isBanned: true }, { merge: true });
+                  setSelectedDrawing(null);
+                  // Refresh the games list
+                  const gamesRef = collection(db, 'games');
+                  const q = query(gamesRef, orderBy('createdAt', 'desc'));
+                  const querySnapshot = await getDocs(q);
+                  const gamesData = querySnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                      id: doc.id,
+                      imageUrl: data.imageUrl,
+                      prompt: data.prompt,
+                      createdAt: data.createdAt.toDate(),
+                      expiredAt: data.expiredAt.toDate(),
+                      userFid: data.userFid,
+                      username: data.username,
+                      guesses: data.guesses || [],
+                      totalGuesses: data.totalGuesses || 0,
+                      isBanned: data.isBanned || false
+                    };
+                  });
+                  setGames(gamesData);
+                } catch (error) {
+                  console.error('Error hiding drawing:', error);
+                }
+              }}
+              className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors transform rotate-[-1deg] border-2 border-dashed border-white mb-4"
+            >
+              Hide Drawing
+            </button>
+          )}
 
           <div className="overflow-y-auto flex-1 pr-2">
             <div className="space-y-2">
@@ -2732,9 +2814,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             createdAt: data.createdAt.toDate(),
             guesses: data.guesses || [],
             isMinted: data.isMinted || false,
-            tokenAddress: data.tokenAddress
+            tokenAddress: data.tokenAddress,
+            isBanned: data.isBanned || false
           };
-        });
+        }).filter(game => !game.isBanned); // Filter out banned drawings
         
         setCreatedGames(gamesData);
     } catch (error) {
