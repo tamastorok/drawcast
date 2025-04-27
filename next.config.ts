@@ -13,7 +13,6 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 2678400,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Add more aggressive optimization settings
     unoptimized: false,
     loader: 'default',
     path: '/_next/image',
