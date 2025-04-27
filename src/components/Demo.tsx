@@ -1749,6 +1749,37 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       
       // Clear the input
       setCurrentGuess('');
+
+      // Refresh the games list to get updated data
+      try {
+        const gamesRef = collection(db, 'games');
+        const q = query(gamesRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        
+        const gamesData = await Promise.all(querySnapshot.docs.map(async (gameDoc) => {
+          const gameData = gameDoc.data();
+          const userDocRef = doc(db, 'users', gameData.userFid as string);
+          const userDoc = await getDoc(userDocRef);
+          const userData = userDoc.data() as { username?: string } | undefined;
+          const username = userData?.username || 'Anonymous';
+          
+          return {
+            id: gameDoc.id,
+            imageUrl: gameData.imageUrl as string || '',
+            prompt: gameData.prompt as string || '',
+            createdAt: (gameData.createdAt as { toDate: () => Date }).toDate(),
+            expiredAt: (gameData.expiredAt as { toDate: () => Date }).toDate(),
+            userFid: gameData.userFid as string || '',
+            username: username,
+            guesses: gameData.guesses || [],
+            totalGuesses: gameData.totalGuesses || 0
+          };
+        }));
+        
+        setGames(gamesData);
+      } catch (error) {
+        console.error('Error refreshing games list:', error);
+      }
       
     } catch (error) {
       console.error('Error submitting guess:', error);
@@ -1814,6 +1845,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         setSelectedGame(nextGame);
         setCurrentGuess('');
         setGuessError(null);
+      } else {
+        // If no more unsolved games, show a message
+        setGuessError('No more drawings available to guess!');
       }
       // Add a small delay to show loading state
       setTimeout(() => {
