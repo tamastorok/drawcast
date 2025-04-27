@@ -1183,6 +1183,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   width={32} 
                   height={32} 
                   className="rounded-full transform rotate-[2deg]"
+                  quality={75}
+                  unoptimized
                 />
               )}
               <div className="flex-1">
@@ -2512,6 +2514,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                       className="object-cover"
                       quality={75}
                       unoptimized
+                      loading="lazy"
                     />
                   </div>
                   <div className="flex flex-col gap-2 flex-1">
