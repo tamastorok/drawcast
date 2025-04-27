@@ -898,6 +898,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                       title="OG user"
                       priority
                       quality={75}
+                      unoptimized
                     />
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       OG user
@@ -1229,6 +1230,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     height={32} 
                     className="rounded-full transform rotate-[-2deg]"
                     quality={75}
+                    unoptimized
                   />
                 )}
                 <div className="flex-1">
@@ -2497,10 +2499,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     <Image
                       src={game.shareImageUrl || game.imageUrl}
                       alt={game.prompt}
-                      fill
+                      width={96}
+                      height={96}
                       className="object-cover"
                       quality={75}
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      unoptimized
                     />
                   </div>
                   <div className="flex flex-col gap-2 flex-1">
@@ -2933,7 +2936,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   }}
                 >
                   <span className="text-2xl animate-wiggle">
-                    <Image src="/draw.png" alt="Quiz" width={24} height={24} className="transform rotate-[2deg]" priority quality={75} />
+                    <Image src="/draw.png" alt="Quiz" width={24} height={24} className="transform rotate-[2deg]" priority quality={75} unoptimized />
                   </span>
                   <span className="text-xs">Create</span>
                 </button>
@@ -2950,7 +2953,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   }}
                 >
                   <span className="text-2xl">
-                    <Image src="/guess.png" alt="Guess" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} />
+                    <Image src="/guess.png" alt="Guess" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} unoptimized />
                   </span>
                   <span className="text-xs">Join</span>
                 </button>
@@ -2966,7 +2969,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   }}
                 >
                   <span className="text-2xl">
-                    <Image src="/collection.png" alt="Collection" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} />
+                    <Image src="/collection.png" alt="Collection" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} unoptimized />
                   </span>
                   <span className="text-xs">Collect</span>
                 </button>
@@ -2982,7 +2985,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   }}
                 > 
                   <span className="text-2xl">
-                    <Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} className="transform rotate-[1deg]" priority quality={75} />
+                    <Image src="/leaderboard_black.png" alt="Leaderboard" width={24} height={24} className="transform rotate-[1deg]" priority quality={75} unoptimized />
                   </span>
                   <span className="text-xs">Rank</span>
                 </button>
@@ -2998,7 +3001,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   }}
                 >
                   <div className="text-2xl">
-                    <Image src="/profile.png" alt="Profile" width={24} height={24} className="transform rotate-[-1deg]" priority quality={75} />
+                    <Image src="/profile.png" alt="Profile" width={24} height={24} className="transform rotate-[-1deg]" priority quality={75} unoptimized />
                   </div>
                   <span className="text-xs">Profile</span>
                 </button>
