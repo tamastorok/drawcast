@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
         hostname: '**',
       },
     ],
-    deviceSizes: [640, 750, 828, 1080, 1200],
+    deviceSizes: [360, 375, 384, 390, 393, 402, 412, 428, 430],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
     minimumCacheTTL: 2678400,
     dangerouslyAllowSVG: true,
