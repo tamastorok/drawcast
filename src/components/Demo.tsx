@@ -2478,7 +2478,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
   const renderCollection = () => {
     // Check if user has access
-    const hasAccess = context?.user?.fid === 234692;
+    const hasAccess = context?.user?.fid ? [234692, 1049448].includes(context.user.fid) : false;
 
     if (!hasAccess) {
       return (
