@@ -931,28 +931,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         {/* Rank Boxes */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[2deg] border-2 border-dashed border-gray-400">
-            <div className="text-sm text-gray-600 mb-1">Drawer Rank</div>
+
             <div className="text-2xl font-bold text-gray-800">
               {leaderboardData.currentUser?.drawersRank ? `#${leaderboardData.currentUser.drawersRank}` : '-'}
             </div>
-          </div>
-          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-2deg] border-2 border-dashed border-gray-400">
-            <div className="text-sm text-gray-600 mb-1">Guesser Rank</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {leaderboardData.currentUser?.guessersRank ? `#${leaderboardData.currentUser.guessersRank}` : '-'}
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[2deg] border-2 border-dashed border-gray-400">
-            <div className="text-2xl font-bold text-gray-800">
-              {userStats?.correctGuesses || 0}
-            </div>
-            <div className="text-sm text-gray-800">
-              Correct guesses
-            </div>
+            <div className="text-sm text-gray-600 mb-1">Drawer Rank</div>
           </div>
           <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-2deg] border-2 border-dashed border-gray-400">
             <div className="text-2xl font-bold text-gray-800">
@@ -962,6 +945,26 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               Game solutions
             </div>
           </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-2deg] border-2 border-dashed border-gray-400">
+            <div className="text-2xl font-bold text-gray-800">
+              {leaderboardData.currentUser?.guessersRank ? `#${leaderboardData.currentUser.guessersRank}` : '-'}
+            </div>
+            <div className="text-sm text-gray-600 mb-1">Guesser Rank</div>
+
+          </div>
+          <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[2deg] border-2 border-dashed border-gray-400">
+            <div className="text-2xl font-bold text-gray-800">
+              {userStats?.correctGuesses || 0}
+            </div>
+            <div className="text-sm text-gray-800">
+              Correct guesses
+            </div>
+          </div>
+
         </div>
 
         {/* Created Games Section */}
@@ -2926,6 +2929,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     </button>
                     <p className="text-sm text-gray-600 text-center">You&apos;ll have 30 seconds to draw a prompt.</p>
                   </div>
+                  <p className="text-sm text-gray-600 text-center">Letters are not allowed in your drawing.</p>
+
                 </div>
               )}
             </div>
