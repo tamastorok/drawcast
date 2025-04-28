@@ -2529,25 +2529,19 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                         <button
                           onClick={async () => {
                             if (mintingGames.has(game.id)) return;
-                            
                             try {
                               setMintingGames(prev => new Set(prev).add(game.id));
                               console.log('Starting mint process for game:', game.id);
-                              
                               // Connect wallet first
-                              console.log('Requesting wallet connection...');
                               if (!isSDKLoaded || !context) {
                                 throw new Error('Farcaster Frame SDK not loaded');
                               }
-                              
                               // Get the wallet address using the SDK's wallet provider
                               const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
                               const userAddress = accounts[0];
                               if (!userAddress) {
                                 throw new Error('Wallet connection required');
                               }
-                              console.log('Wallet connected:', userAddress);
-
                               // Switch to Base network
                               try {
                                 await sdk.wallet.ethProvider.request({
@@ -2555,7 +2549,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                                   params: [{ chainId: '0x2105' }], // 8453 in hex
                                 });
                               } catch (switchError: unknown) {
-                                // This error code indicates that the chain has not been added to MetaMask
                                 if (typeof switchError === 'object' && switchError !== null && 'code' in switchError && switchError.code === 4902) {
                                   try {
                                     await sdk.wallet.ethProvider.request({
@@ -2563,11 +2556,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                                       params: [{
                                         chainId: '0x2105',
                                         chainName: 'Base',
-                                        nativeCurrency: {
-                                          name: 'ETH',
-                                          symbol: 'ETH',
-                                          decimals: 18
-                                        },
+                                        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
                                         rpcUrls: ['https://mainnet.base.org'],
                                         blockExplorerUrls: ['https://basescan.org']
                                       }]
@@ -2580,192 +2569,87 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                                   throw new Error('Failed to switch to Base network');
                                 }
                               }
-
                               // Prepare metadata
-                              console.log('Preparing metadata with share image:', game.shareImageUrl);
                               const metadata = {
                                 name: `Drawcast: ${game.id}`,
                                 description: `This is a(n) ${game.prompt} drawn by ${context?.user?.username || 'Anonymous'} on Drawcast.xyz. Join the fun, challenge friends and earn points: drawcast.xyz`,
                                 image: game.shareImageUrl || game.imageUrl,
                                 attributes: [
-                                  {
-                                    trait_type: "Created At",
-                                    value: game.createdAt.toISOString()
-                                  }
+                                  { trait_type: "Created At", value: game.createdAt.toISOString() }
                                 ]
                               };
-                              console.log('Metadata prepared:', metadata);
-
                               // Upload metadata to Firebase Storage
-                              console.log('Uploading metadata to Firebase Storage...');
                               const metadataPath = `metadata/${game.id}.json`;
                               const metadataRef = ref(storage, metadataPath);
                               const metadataString = JSON.stringify(metadata, null, 2);
-                              
                               await uploadString(metadataRef, metadataString, 'raw', {
                                 contentType: 'application/json',
-                                customMetadata: {
-                                  uploadedBy: context.user.fid.toString()
-                                }
+                                customMetadata: { uploadedBy: context.user.fid.toString() }
                               });
-                              
                               // Get the metadata URL through our API endpoint
                               const metadataUrl = `${window.location.origin}/api/metadata/${game.id}`;
-                              console.log('Metadata accessible at:', metadataUrl);
-
                               // Set up viem clients
-                              console.log('Setting up blockchain clients...');
                               const publicClient = createPublicClient({
                                 chain: base,
                                 transport: http("https://mainnet.base.org"),
                               });
-                              
                               const walletClient = createWalletClient({
                                 account: userAddress as `0x${string}`,
                                 chain: base,
                                 transport: custom(sdk.wallet.ethProvider)
                               });
-                              console.log('Blockchain clients configured');
-
-                              // Define coin parameters
-                              console.log('Preparing coin parameters...');
+                              // Define coin parameters (do NOT set initialPurchaseWei)
                               const coinParams = {
                                 name: `Drawcast: ${game.prompt}`,
                                 symbol: "DWT",
                                 uri: metadataUrl,
                                 payoutRecipient: userAddress as `0x${string}`,
                                 platformReferrer: "0xAbE4976624c9A6c6Ce0D382447E49B7feb639565" as `0x${string}`,
-                                initialPurchaseWei: 10000000000000n,
-                                tickLower: -199200, // Default tick lower for Uniswap V3 pool
+                                tickLower: -199200,
                               };
-                              console.log('Coin configuration:', {
-                                name: coinParams.name,
-                                symbol: coinParams.symbol,
-                                metadataUrl: metadataUrl,
-                                payoutRecipient: userAddress,
-                                platformReferrer: coinParams.platformReferrer,
-                                initialPurchaseWei: coinParams.initialPurchaseWei.toString(),
-                                tickLower: coinParams.tickLower
+                              // Always use Zora SDK's createCoin function
+                              const timeoutPromise = new Promise((_, reject) => {
+                                setTimeout(() => reject(new Error('Coin creation timed out after 60 seconds')), 60000);
                               });
-
-                              // Validate clients
-                              if (!walletClient || !publicClient) {
-                                throw new Error('Blockchain clients not properly initialized');
-                              }
-
-                              try {
-                                // Add timeout to prevent hanging
-                                const timeoutPromise = new Promise((_, reject) => {
-                                  setTimeout(() => reject(new Error('Coin creation timed out after 60 seconds')), 60000);
-                                });
-
-                                console.log('Starting coin creation process...');
-                                
-                                // Check if wallet is connected to Base network
-                                const chainId = await walletClient.getChainId();
-                                console.log('Current chain ID:', chainId);
-                                console.log('Base chain ID:', base.id);
-
-                                // Check wallet balance
-                                const balance = await publicClient.getBalance({
-                                  address: userAddress as `0x${string}`
-                                });
-                                console.log('Wallet balance:', balance.toString());
-                                
-                                if (balance < coinParams.initialPurchaseWei) {
-                                  throw new Error(`Insufficient balance. Please add at least ${coinParams.initialPurchaseWei.toString()} wei to your wallet for initial liquidity.`);
-                                }
-
-                                const result = await Promise.race([
-                                  (async () => {
-                                    try {
-                                      // Log the exact value being sent
-                                      console.log('Transaction value details:', {
-                                        rawValue: coinParams.initialPurchaseWei.toString(),
-                                        inEth: Number(coinParams.initialPurchaseWei) / 1e18,
-                                        inWei: coinParams.initialPurchaseWei.toString(),
-                                        type: typeof coinParams.initialPurchaseWei
+                              const result = await Promise.race([
+                                (async () => {
+                                  try {
+                                    const tx = await createCoin(coinParams, walletClient, publicClient);
+                                    console.log('Transaction sent:', tx.hash);
+                                    return tx;
+                                  } catch (error) {
+                                    console.error('Error in createCoin:', error);
+                                    if (error instanceof Error) {
+                                      console.error('CreateCoin error details:', {
+                                        message: error.message,
+                                        stack: error.stack
                                       });
-
-                                      // Verify the transaction value is correct
-                                      const expectedValue = 10000000000000n;
-                                      if (coinParams.initialPurchaseWei !== expectedValue) {
-                                        console.warn('Transaction value mismatch:', {
-                                          expected: expectedValue.toString(),
-                                          actual: coinParams.initialPurchaseWei.toString()
-                                        });
-                                        // Force the correct value
-                                        coinParams.initialPurchaseWei = expectedValue;
-                                      }
-
-                                      const tx = await createCoin(coinParams, walletClient, publicClient);
-                                      console.log('Transaction sent:', tx.hash);
-                                      return tx;
-                                    } catch (error) {
-                                      console.error('Error in createCoin:', error);
-                                      if (error instanceof Error) {
-                                        console.error('CreateCoin error details:', {
-                                          message: error.message,
-                                          stack: error.stack
-                                        });
-                                      }
-                                      throw error;
                                     }
-                                  })(),
-                                  timeoutPromise
-                                ]) as { hash: `0x${string}`; address: `0x${string}` };
-
-                                // Verify transaction
-                                console.log('Verifying transaction...');
-                                const receipt = await publicClient.waitForTransactionReceipt({
-                                  hash: result.hash
-                                });
-                                
-                                if (receipt.status === 'success') {
-                                  console.log('Transaction confirmed:', {
-                                    hash: result.hash,
-                                    blockNumber: receipt.blockNumber,
-                                    coinAddress: result.address
-                                  });
-                                  
-                                  // Get coin deployment details
-                                  const coinDeployment = getCoinCreateFromLogs(receipt);
-                                  if (coinDeployment) {
-                                    console.log('Market details:', {
-                                      coin: coinDeployment.coin,
-                                      pool: coinDeployment.pool
-                                    });
+                                    throw error;
                                   }
-
-                                  // Update game document with isMinted field and token address
-                                  const gameRef = doc(db, 'games', game.id);
-                                  await setDoc(gameRef, {
+                                })(),
+                                timeoutPromise
+                              ]) as { hash: `0x${string}`; address: `0x${string}` };
+                              // Wait for transaction receipt
+                              const receipt = await publicClient.waitForTransactionReceipt({ hash: result.hash });
+                              if (receipt.status === 'success') {
+                                const coinDeployment = getCoinCreateFromLogs(receipt);
+                                // Update game document with isMinted field and token address
+                                const gameRef = doc(db, 'games', game.id);
+                                await setDoc(gameRef, {
+                                  isMinted: true,
+                                  tokenAddress: coinDeployment?.coin
+                                }, { merge: true });
+                                setCreatedGames(prev => prev.map(g =>
+                                  g.id === game.id ? {
+                                    ...g,
                                     isMinted: true,
                                     tokenAddress: coinDeployment?.coin
-                                  }, { merge: true });
-
-                                  // Update local state to reflect the minted status
-                                  setCreatedGames(prev => prev.map(g => 
-                                    g.id === game.id ? { 
-                                      ...g, 
-                                      isMinted: true,
-                                      tokenAddress: coinDeployment?.coin
-                                    } : g
-                                  ));
-                                } else {
-                                  throw new Error('Transaction failed');
-                                }
-                              } catch (error) {
-                                console.error('Error creating coin:', error);
-                                if (error instanceof Error) {
-                                  console.error('Error details:', {
-                                    message: error.message,
-                                    stack: error.stack
-                                  });
-                                }
-                                throw error; // Re-throw to be caught by outer try-catch
+                                  } : g
+                                ));
+                              } else {
+                                throw new Error('Transaction failed');
                               }
-
                             } catch (error) {
                               console.error('Error in mint process:', error);
                               if (error instanceof Error) {
