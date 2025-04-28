@@ -452,8 +452,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         canvas.style.width = '100%';
         canvas.style.height = '100%';
         // Set actual pixel dimensions to 600x600
-        canvas.width = 600;
-        canvas.height = 600;
+        canvas.width = 424;
+        canvas.height = 424;
         
         // Fill canvas with white background
         ctx.fillStyle = 'white';
