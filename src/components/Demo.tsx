@@ -2696,14 +2696,18 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                           {mintingGames.has(game.id) ? 'Coining...' : 'Coin it!'}
                         </button>
                       ) : (
-                        <a
-                          href={`https://zora.co/coin/base:${game.tokenAddress}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={async () => {
+                            try {
+                              await sdk.actions.openUrl(`https://zora.co/coin/base:${game.tokenAddress}`);
+                            } catch (error) {
+                              console.error('Error opening Zora link:', error);
+                            }
+                          }}
                           className="bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors transform rotate-[1deg] border-2 border-dashed border-white text-sm w-fit"
                         >
                           View on Zora
-                        </a>
+                        </button>
                       )}
                     </div>
                   </div>
