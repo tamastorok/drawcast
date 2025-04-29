@@ -80,6 +80,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     isEarlyAdopter?: boolean;
     streak?: number;
     streakPoints?: number;
+    isCoined?: boolean;
   } | null>(null);
   const [createdGames, setCreatedGames] = useState<Array<{
     id: string;
@@ -631,7 +632,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             gameSolutions: userData.gameSolutions || 0,
             isEarlyAdopter: userData.isEarlyAdopter || false,
             streak: userData.streak || 1,
-            streakPoints: userData.streakPoints || 1
+            streakPoints: userData.streakPoints || 1,
+            isCoined: userData.isCoined || false
           });
         } else {
           setUserStats({
@@ -641,7 +643,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             gameSolutions: 0,
             isEarlyAdopter: false,
             streak: 1,
-            streakPoints: 1
+            streakPoints: 1,
+            isCoined: false
           });
         }
 
@@ -743,8 +746,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   }, [context?.user?.fid, isDrawingsExpanded, db]);
 
   const getLevelInfo = (points: number) => {
-    if (points >= 20000) return { level: 16, name: "Drawing God 💎" };
-    if (points >= 16000) return { level: 15, name: "Cosmic Creator 🌌" };
+    if (points >= 24000) return { level: 16, name: "Drawing God 💎" };
+    if (points >= 18000) return { level: 15, name: "Cosmic Creator 🌌" };
     if (points >= 12000) return { level: 14, name: "Divine Illustrator ✨" };
     if (points >= 8000) return { level: 13, name: "Legendary Muse 🕊️" };
     if (points >= 4500) return { level: 12, name: "Mythic Artist 🔱" };
@@ -903,6 +906,50 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     />
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       OG user
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {userStats?.isCoined && (
+              <div className="bg-blue-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-blue-400">
+                <div className="mb-1 flex justify-center items-center">
+                  <div className="relative group">
+                    <Image 
+                      src="/coinerbadge.png" 
+                      alt="Coiner" 
+                      width={40} 
+                      height={40} 
+                      className="rounded-full transform rotate-[-2deg] cursor-help"
+                      title="Coiner"
+                      priority
+                      quality={75}
+                      unoptimized
+                    />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      Coiner
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {!userStats?.isCoined && (
+              <div className="bg-gray-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-gray-400 opacity-50">
+                <div className="mb-1 flex justify-center items-center">
+                  <div className="relative group">
+                    <Image 
+                      src="/coinerbadge.png" 
+                      alt="Coiner (Locked)" 
+                      width={40} 
+                      height={40} 
+                      className="rounded-full transform rotate-[-2deg] cursor-help grayscale"
+                      title="Coin a drawing to unlock this badge"
+                      priority
+                      quality={75}
+                      unoptimized
+                    />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      Coin a drawing on the Collect page to unlock this badge!
                     </div>
                   </div>
                 </div>
