@@ -2479,7 +2479,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
   const renderCollection = () => {
     // Check if user has access
-    const hasAccess = context?.user?.fid ? [234692, 1049448].includes(context.user.fid) : false;
+    const hasAccess = context?.user?.fid ? [234692, 1049448, 1020976].includes(context.user.fid) : false;
 
     if (!hasAccess) {
       return (
@@ -2662,6 +2662,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                                   isMinted: true,
                                   tokenAddress: coinDeployment?.coin
                                 }, { merge: true });
+
+                                // Update user document with isCoined field
+                                const userRef = doc(db, 'users', context.user.fid.toString());
+                                await setDoc(userRef, {
+                                  isCoined: true
+                                }, { merge: true });
+
                                 setCreatedGames(prev => prev.map(g =>
                                   g.id === game.id ? {
                                     ...g,
