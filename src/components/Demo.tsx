@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useFrame } from "~/components/providers/FrameProvider";
 import { sdk } from '@farcaster/frame-sdk'
@@ -171,7 +171,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const analytics = getAnalytics(app);
 
   // Helper function to track events
-  const trackEvent = (eventName: string, eventParams?: Record<string, string | number | boolean>) => {
+  const trackEvent = useCallback((eventName: string, eventParams?: Record<string, string | number | boolean>) => {
     if (typeof window !== 'undefined' && analytics) {
       logEvent(analytics, eventName, {
         ...eventParams,
@@ -180,7 +180,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         timestamp: new Date().toISOString()
       });
     }
-  };
+  }, [analytics, context?.user?.fid, context?.user?.username]);
 
   const castTextVariations = [
     "Think you can crack this drawing on Drawcast? Prove it and earn points. 🎨🕵️",
@@ -912,7 +912,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               </div>
             )}
             {userStats?.isCoined && (
-              <div className="bg-blue-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-blue-400">
+              <div className="bg-yellow-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-yellow-400">
                 <div className="mb-1 flex justify-center items-center">
                   <div className="relative group">
                     <Image 
@@ -2390,7 +2390,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     } else if (showProfile) {
       trackEvent('profile_view');
     }
-  }, [isDrawing, showGuess, showLeaderboard, showProfile]);
+  }, [isDrawing, showGuess, showLeaderboard, showProfile, trackEvent]);
 
   // Track draw button click
   const handleDrawClick = () => {
@@ -2599,6 +2599,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                           onClick={async () => {
                             if (mintingGames.has(game.id)) return;
                             try {
+                              trackEvent('coin_it_button_click');
                               setMintingGames(prev => new Set(prev).add(game.id));
                               console.log('Starting mint process for game:', game.id);
                               // Connect wallet first
@@ -2806,7 +2807,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         }).filter(game => !game.isBanned); // Filter out banned drawings
         
         setCreatedGames(gamesData);
-    } catch (error) {
+      } catch (error) {
         console.error('Error fetching games:', error);
         setCreatedGames([]);
       } finally {
@@ -2816,6 +2817,13 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
     fetchCreatedGames();
   }, [context?.user?.fid, showCollection, db]);
+
+  // Track Collection page view
+  useEffect(() => {
+    if (showCollection) {
+      trackEvent('collection_page_view');
+    }
+  }, [showCollection, trackEvent]);
 
   return (
     <div
