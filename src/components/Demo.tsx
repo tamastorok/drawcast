@@ -35,6 +35,7 @@ interface LeaderboardUser {
   guessersRank?: number;
   gameSolutions?: number;
   correctGuesses?: number;
+  isCoined?: boolean;
 }
 
 interface LeaderboardData {
@@ -662,6 +663,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             points: data.points || 0,
             isPremium: data.isPremium || false,
             isEarlyAdopter: data.isEarlyAdopter || false,
+            isCoined: data.isCoined || false,
             gameSolutions: data.gameSolutions || 0,
             correctGuesses: data.correctGuesses || 0
           };
@@ -690,7 +692,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             drawersRank,
             guessersRank,
             gameSolutions: userStats?.gameSolutions || 0,
-            correctGuesses: userStats?.correctGuesses || 0
+            correctGuesses: userStats?.correctGuesses || 0,
+            isCoined: userStats?.isCoined || false
           }
         }));
       } catch (error) {
@@ -1109,6 +1112,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             points: data.points || 0,
             isPremium: data.isPremium || false,
             isEarlyAdopter: data.isEarlyAdopter || false,
+            isCoined: data.isCoined || false,
             gameSolutions: data.gameSolutions || 0,
             correctGuesses: data.correctGuesses || 0
           };
@@ -1256,6 +1260,21 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                       </div>
                     </div>
                   )}
+                  {user.isCoined && (
+                    <div className="relative group">
+                      <Image 
+                        src="/coinerbadge.png" 
+                        alt="Coiner" 
+                        width={20} 
+                        height={20} 
+                        className="rounded-full transform rotate-[-2deg] cursor-help"
+                        title="Coiner"
+                      />
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        Coiner
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="text-sm text-gray-600">
                   {activeLeaderboardTab === 'points' && `${user.points} points`}
@@ -1301,6 +1320,21 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                         />
                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                           OG user
+                        </div>
+                      </div>
+                    )}
+                    {leaderboardData.currentUser.isCoined && (
+                      <div className="relative group">
+                        <Image 
+                          src="/coinerbadge.png" 
+                          alt="Coiner" 
+                          width={20} 
+                          height={20} 
+                          className="rounded-full transform rotate-[-2deg] cursor-help"
+                          title="Coiner"
+                        />
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          Coined drawing on the Collect page!
                         </div>
                       </div>
                     )}
