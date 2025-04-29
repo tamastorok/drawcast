@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useFrame } from "~/components/providers/FrameProvider";
 import { sdk } from '@farcaster/frame-sdk'
@@ -143,6 +143,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   } | null>(null);
   const [isLoadingNextDrawing, setIsLoadingNextDrawing] = useState(false);
   const [activeLeaderboardTab, setActiveLeaderboardTab] = useState<'points' | 'drawers' | 'guessers'>('points');
+  const [showZoraInfoModal, setShowZoraInfoModal] = useState(false);
   // Add wallet connection state
 
   const firebaseConfig = {
@@ -2491,7 +2492,28 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
     return (
       <div>
-        <p className="text-l text-center mb-6 text-gray-600">Coin your drawings on Zora and <span className="font-bold">earn creator rewards!</span></p>
+        <p className="text-l text-center mb-6 text-gray-600">
+          Coin your drawings on Zora and <span className="font-bold">earn creator rewards!</span>
+        </p>
+        <p className="text-l text-center mb-6 text-gray-600 border-2 border-dashed border-blue-200 rounded-lg p-2 bg-blue-50 cursor-pointer" onClick={() => setShowZoraInfoModal(true)}>Details and troubleshooting</p>
+
+        {showZoraInfoModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-[#f9f7f0] rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">How this works</h3>
+                <button
+                  onClick={() => setShowZoraInfoModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {isLoadingGames ? (
           <div className="text-center text-gray-600">
             Loading your drawings...
@@ -2508,12 +2530,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 className={`w-full p-4 rounded-lg transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} border-2 border-dashed border-gray-400 bg-white`}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-24 h-24 relative bg-gray-100 rounded-lg overflow-hidden">
+                  <div className="w-24 h-16 relative bg-gray-100 rounded-lg overflow-hidden">
                     <Image
                       src={game.shareImageUrl || game.imageUrl}
                       alt={game.prompt}
                       width={96}
-                      height={96}
+                      height={64}
                       className="object-cover"
                       quality={75}
                       unoptimized
@@ -2737,8 +2759,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     fetchCreatedGames();
   }, [context?.user?.fid, showCollection, db]);
 
-
-  // Update the main content area to include the collection page
   return (
     <div
       style={{
@@ -2966,6 +2986,43 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
           {/* Add the drawing details modal */}
           {selectedDrawing && renderDrawingDetails()}
+
+          {showZoraInfoModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-[#f9f7f0] rounded-lg p-6 max-w-md w-full mx-4">
+                
+                <div className="flex justify-between items-center mb-4">
+                  
+                  <h3 className="text-xl font-bold">How this works</h3>
+                  <button
+                    onClick={() => setShowZoraInfoModal(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <p className="text-gray-600 font-bold border-2 border-dashed border-red-200 rounded-lg p-2 bg-red-50">
+                To coin a drawing, you need a funded preferred wallet.
+On Warpcast, go to Settings → Preferred Wallets to set it up.
+                </p>
+                <br/>
+                <p className="text-gray-600">When you coin a drawing, you deploy a Zora coin — a special ERC-20 media coin created using Zora&apos;s Coins Protocol.
+                </p>
+                <br/>
+                <p className="text-gray-600">
+                Your deployed coins become instantly tradable on Zora&apos;s market.
+                </p>
+                <br/>
+                <p className="text-gray-600 font-bold">
+                You will own 1% of the token supply (rest is available for the market) and earn 100% of the creator rewards.
+                </p>
+                <br/>
+
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
