@@ -2479,7 +2479,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
   const renderCollection = () => {
     // Check if user has access
-    const hasAccess = context?.user?.fid ? [234692, 1049448, 1020976].includes(context.user.fid) : false;
+    const hasAccess = context?.user?.fid ? [234692, 1049448, 1020976, 342127,423457].includes(context.user.fid) : false;
 
     if (!hasAccess) {
       return (
