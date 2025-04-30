@@ -10,7 +10,9 @@
     "description": "Create fast, fun sketches and challenge others. Share your art, guess drawings, win points, and climb the leaderboard. Thousands are having fun, join us!",
     "primaryCategory": "games",
     "screenshotUrls": [
-      "https://drawcast.xyz/drawscreen.png"
+      "https://firebasestorage.googleapis.com/v0/b/drawcast-ae4cf.firebasestorage.app/o/screenshots%2Fdrawscreen.png?alt=media&token=b15a110f-0800-4195-8043-caa2d542c249",
+      "https://firebasestorage.googleapis.com/v0/b/drawcast-ae4cf.firebasestorage.app/o/screenshots%2Fjoinscreen.png?alt=media&token=9d7c06c7-2e95-4601-afe0-53546507ff4a",
+      "https://firebasestorage.googleapis.com/v0/b/drawcast-ae4cf.firebasestorage.app/o/screenshots%2Frankscreen.png?alt=media&token=2806ebd5-26f5-4d6c-b5b9-265eef7abc7f"
     ],
     "version": "1",
     "iconUrl": "https://drawcast.xyz/icon.png",
