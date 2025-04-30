@@ -10,9 +10,7 @@
     "description": "Create fast, fun sketches and challenge others. Share your art, guess drawings, win points, and climb the leaderboard. Thousands are having fun, join us!",
     "primaryCategory": "games",
     "screenshotUrls": [
-      "https://drawcast.xyz/drawscreen.png",
-      "https://drawcast.xyz/joinscreen.png",
-      "https://drawcast.xyz/rankscreen.png"
+      "https://drawcast.xyz/drawscreen.png"
     ],
     "version": "1",
     "iconUrl": "https://drawcast.xyz/icon.png",
