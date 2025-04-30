@@ -921,17 +921,17 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   <div className="relative group">
                     <Image 
                       src="/coinerbadge.png" 
-                      alt="Coiner" 
+                      alt="Coined a drawing" 
                       width={40} 
                       height={40} 
                       className="rounded-full transform rotate-[-2deg] cursor-help"
-                      title="Coiner"
+                      title="Coined a drawing"
                       priority
                       quality={75}
                       unoptimized
                     />
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      Coiner
+                      Coined a drawing
                     </div>
                   </div>
                 </div>
@@ -1265,14 +1265,14 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     <div className="relative group">
                       <Image 
                         src="/coinerbadge.png" 
-                        alt="Coiner" 
+                        alt="Coined a drawing" 
                         width={20} 
                         height={20} 
                         className="rounded-full transform rotate-[-2deg] cursor-help"
-                        title="Coiner"
+                        title="Coined a drawing"
                       />
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        Coiner
+                        Coined a drawing
                       </div>
                     </div>
                   )}
@@ -1328,11 +1328,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                       <div className="relative group">
                         <Image 
                           src="/coinerbadge.png" 
-                          alt="Coiner" 
+                          alt="Coined a drawing on the Collect page!" 
                           width={20} 
                           height={20} 
                           className="rounded-full transform rotate-[-2deg] cursor-help"
-                          title="Coined drawing on the Collect page!"
+                          title="Coined a drawing on the Collect page!"
                         />
                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                           Coined drawing on the Collect page!
@@ -2561,18 +2561,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   };
 
   const renderCollection = () => {
-    // Check if user has access
-    const hasAccess = context?.user?.fid ? [234692, 1049448, 1020976, 342127,423457].includes(context.user.fid) : false;
-
-    if (!hasAccess) {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <h2 className="text-2xl font-bold text-center text-gray-800 transform rotate-[-2deg]">Collections are coming soon!</h2>
-          <p className="text-m text-gray-600 text-center mt-4 transform rotate-[1deg]">Stay tuned for updates.</p>
-        </div>
-      );
-    }
-
     return (
       <div>
         <p className="text-l text-center mb-6 text-gray-600">
