@@ -2983,7 +2983,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   <span className="text-xs">Join</span>
                 </button>
                 <button 
-                  className={`flex flex-col items-center justify-center w-full h-full ${showCollection ? 'bg-green-100' : ''} transform rotate-[2deg]`}
+                  className={`flex flex-col items-center justify-center w-full h-full ${showCollection ? 'bg-green-100' : ''} transform rotate-[2deg] relative`}
                   onClick={() => {
                     setShowLeaderboard(false);
                     setShowProfile(false);
@@ -2993,8 +2993,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setSelectedGame(null);
                   }}
                 >
-                  <span className="text-2xl">
-                    <Image src="/collection.png" alt="Collection" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} unoptimized />
+                  <span className="text-2xl relative">
+                    <Image src="/collection.png" alt="Collection" width={24} height={24} className="transform rotate-[-2deg] relative z-10" priority quality={75} unoptimized />
+                    <div className="absolute inset-[-30%] bg-[#FFD700] rounded-full blur-md opacity-90 group-hover:opacity-100 transition-opacity duration-1200 animate-pulse"></div>
                   </span>
                   <span className="text-xs">Collect</span>
                 </button>
