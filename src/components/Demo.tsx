@@ -1695,7 +1695,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             userFid: gameData.userFid as string || '',
             username: username,
             guesses: gameData.guesses || [],
-            totalGuesses: gameData.totalGuesses || 0
+            totalGuesses: gameData.totalGuesses || 0,
+            isBanned: gameData.isBanned || false
           };
         }));
         
@@ -1747,7 +1748,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             userFid: gameData.userFid as string || '',
             username: username,
             guesses: gameData.guesses || [],
-            totalGuesses: gameData.totalGuesses || 0
+            totalGuesses: gameData.totalGuesses || 0,
+            isBanned: gameData.isBanned || false
           };
         }));
         
@@ -1867,7 +1869,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             userFid: gameData.userFid as string || '',
             username: username,
             guesses: gameData.guesses || [],
-            totalGuesses: gameData.totalGuesses || 0
+            totalGuesses: gameData.totalGuesses || 0,
+            isBanned: gameData.isBanned || false
           };
         }));
         
@@ -1980,7 +1983,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   userFid: gameData.userFid as string || '',
                   username: username,
                   guesses: gameData.guesses || [],
-                  totalGuesses: gameData.totalGuesses || 0
+                  totalGuesses: gameData.totalGuesses || 0,
+                  isBanned: gameData.isBanned || false
                 };
               }));
               
