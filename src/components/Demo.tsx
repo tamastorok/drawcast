@@ -2795,7 +2795,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                           <button
                             onClick={async () => {
                               try {
-                                const castText = "I just coined my drawcast.xyz masterpiece on @zora! Check it out!";
+                                const castText = "I just coined my /drawcast masterpiece on @zora! Check it out!";
                                 await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(`https://zora.co/coin/base:${game.tokenAddress}`)}`);
                               } catch (error) {
                                 console.error('Error sharing to Warpcast:', error);
