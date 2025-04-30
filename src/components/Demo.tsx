@@ -715,7 +715,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         const gamesRef = collection(db, 'games');
         const q = query(
           gamesRef,
-          where('userFid', '==', context.user.fid.toString())
+          where('userFid', '==', context.user.fid.toString()),
+          orderBy('createdAt', 'desc')
         );
         const querySnapshot = await getDocs(q);
         
@@ -2934,7 +2935,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     </button>
                     <p className="text-sm text-gray-600 text-center">You&apos;ll have 30 seconds to draw a prompt.</p>
                   </div>
-                  <p className="text-sm text-gray-600 text-center">Letters are not allowed in your drawing.</p>
+                  <p className="text-sm text-red-600 text-center font-bold">Letters are not allowed in your drawing.</p>
 
                 </div>
               )}
