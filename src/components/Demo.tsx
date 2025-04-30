@@ -2787,18 +2787,33 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                           {mintingGames.has(game.id) ? 'Coining...' : 'Coin it!'}
                         </button>
                       ) : (
-                        <button
-                          onClick={async () => {
-                            try {
-                              await sdk.actions.openUrl(`https://zora.co/coin/base:${game.tokenAddress}`);
-                            } catch (error) {
-                              console.error('Error opening Zora link:', error);
-                            }
-                          }}
-                          className="bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors transform rotate-[1deg] border-2 border-dashed border-white text-sm w-fit"
-                        >
-                          View on Zora
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                await sdk.actions.openUrl(`https://zora.co/coin/base:${game.tokenAddress}`);
+                              } catch (error) {
+                                console.error('Error opening Zora link:', error);
+                              }
+                            }}
+                            className="bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors transform rotate-[1deg] border-2 border-dashed border-white text-sm w-fit"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const castText = "I just coined my drawcast.xyz masterpiece on @zora! Check it out!";
+                                await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(`https://zora.co/coin/base:${game.tokenAddress}`)}`);
+                              } catch (error) {
+                                console.error('Error sharing to Warpcast:', error);
+                              }
+                            }}
+                            className="bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors transform rotate-[-1deg] border-2 border-dashed border-white text-sm w-fit"
+                          >
+                            Share
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
