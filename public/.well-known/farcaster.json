@@ -6,6 +6,14 @@
   },
   "frame": {
     "name": "Drawcast",
+    "subtitle": "Draw and challenge friends",
+    "description": "Create fast, fun sketches and challenge others. Share your art, guess drawings, win points, and climb the leaderboard. Thousands are having fun, join us!",
+    "primaryCategory": "games",
+    "screenshotUrls": [
+      "https://example.com/screenshot1.png",
+      "https://example.com/screenshot2.png",
+      "https://example.com/screenshot3.png"
+    ],
     "version": "1",
     "iconUrl": "https://drawcast.xyz/icon.png",
     "homeUrl": "https://drawcast.xyz",
