@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '../../../lib/firebase-admin';
 
+// Configure longer timeout for this route
+export const maxDuration = 300; // 5 minutes
+
 interface UserData {
   id: string;
   username?: string;
@@ -20,10 +23,23 @@ interface UserData {
   weeklyTopGuesser?: number;
 }
 
+// Helper function to chunk array into smaller pieces
+function chunkArray<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
 export async function POST() {
   try {
+    console.log('Starting weekly ranking process...');
+    const startTime = Date.now();
+
     // Get all users
     const usersSnapshot = await adminDb.collection('users').get();
+    console.log(`Retrieved ${usersSnapshot.size} users from database`);
     
     // Create array of users with their weekly stats
     const users = usersSnapshot.docs.map(doc => ({
@@ -56,21 +72,26 @@ export async function POST() {
       topGuesser: topGuesser?.id
     });
 
-    // Create a batch for all updates
-    const batch = adminDb.batch();
+    // Process updates in chunks to avoid batch size limits
+    const BATCH_SIZE = 400; // Leave some room for the top user updates
+    const userChunks = chunkArray(users, BATCH_SIZE);
+    console.log(`Processing updates in ${userChunks.length} chunks`);
 
     try {
+      // First, handle the special cases (top users)
+      const specialBatch = adminDb.batch();
+      
       // Update the top user's weeklyWins count
       const topUserRef = adminDb.collection('users').doc(topUser.id);
-      batch.update(topUserRef, {
+      specialBatch.update(topUserRef, {
         weeklyWins: (topUser.weeklyWins || 0) + 1,
-        weeklyPoints: 0 // Reset weekly points
+        weeklyPoints: 0
       });
 
       // Update top drawer if exists
       if (topDrawer && (topDrawer.weeklyGameSolutions ?? 0) > 0) {
         const topDrawerRef = adminDb.collection('users').doc(topDrawer.id);
-        batch.update(topDrawerRef, {
+        specialBatch.update(topDrawerRef, {
           weeklyTopDrawer: (topDrawer.weeklyTopDrawer || 0) + 1,
           weeklyGameSolutions: 0
         });
@@ -79,26 +100,34 @@ export async function POST() {
       // Update top guesser if exists
       if (topGuesser && (topGuesser.weeklyCorrectGuesses ?? 0) > 0) {
         const topGuesserRef = adminDb.collection('users').doc(topGuesser.id);
-        batch.update(topGuesserRef, {
+        specialBatch.update(topGuesserRef, {
           weeklyTopGuesser: (topGuesser.weeklyTopGuesser || 0) + 1,
           weeklyCorrectGuesses: 0
         });
       }
 
-      // Reset weekly points and stats for all users
-      users.forEach(user => {
-        const userRef = adminDb.collection('users').doc(user.id);
-        batch.update(userRef, { 
-          weeklyPoints: 0,
-          weeklyGameSolutions: 0,
-          weeklyCorrectGuesses: 0
-        });
-      });
+      console.log('Committing special batch updates...');
+      await specialBatch.commit();
+      console.log('Special batch updates committed successfully');
 
-      console.log('Committing batch updates...');
-      // Commit all updates
-      await batch.commit();
-      console.log('Batch updates committed successfully');
+      // Then process the regular user updates in chunks
+      for (let i = 0; i < userChunks.length; i++) {
+        const chunk = userChunks[i];
+        const batch = adminDb.batch();
+        
+        chunk.forEach(user => {
+          const userRef = adminDb.collection('users').doc(user.id);
+          batch.update(userRef, { 
+            weeklyPoints: 0,
+            weeklyGameSolutions: 0,
+            weeklyCorrectGuesses: 0
+          });
+        });
+
+        console.log(`Committing batch ${i + 1}/${userChunks.length}...`);
+        await batch.commit();
+        console.log(`Batch ${i + 1}/${userChunks.length} committed successfully`);
+      }
 
     } catch (batchError: unknown) {
       console.error('Error during batch operations:', batchError);
@@ -106,8 +135,12 @@ export async function POST() {
       throw new Error(`Batch operation failed: ${error.message}`);
     }
 
+    const endTime = Date.now();
+    console.log(`Weekly ranking process completed in ${(endTime - startTime) / 1000} seconds`);
+
     return NextResponse.json({
       message: 'Weekly ranking processed successfully',
+      processingTime: `${(endTime - startTime) / 1000} seconds`,
       topUser: {
         id: topUser.id,
         username: topUser.username || 'Anonymous',
@@ -127,7 +160,6 @@ export async function POST() {
   } catch (error: unknown) {
     console.error('Error processing weekly ranking:', error);
     const err = error as Error;
-    // Return more detailed error information
     return NextResponse.json(
       { 
         error: 'Failed to process weekly ranking',
