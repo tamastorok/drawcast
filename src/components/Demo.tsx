@@ -334,7 +334,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               gamesCreated: 0,
               gameSolutions: 0,
               streak: 1,
-              streakPoints: 1
+              streakPoints: 1,
+              weeklyPoints: 0,
+              weeklyGameSolutions: 0,
+              weeklyCorrectGuesses: 0
             });
           } else {
             console.log('Updating existing user document');
@@ -1825,13 +1828,17 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         // Update guesser's fields - increment points by 10 for correct guess
         batch.update(guesserRef, {
           correctGuesses: increment(1),
-          points: increment(10)
+          points: increment(10),
+          weeklyPoints: increment(10),
+          weeklyCorrectGuesses: increment(1)
         });
 
         // Update creator's fields - increment points by 10 for solution
         batch.update(creatorRef, {
           gameSolutions: increment(1),
-          points: increment(10)
+          points: increment(10),
+          weeklyPoints: increment(10),
+          weeklyGameSolutions: increment(1)
         });
       }
 

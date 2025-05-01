@@ -1,0 +1,65 @@
+name: Weekly Points Ranking
+
+on:
+  schedule:
+    # Run at Monday 00:00 UTC
+    - cron: "0 0 * * 1"
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  update-weekly-winner:
+    name: Update Weekly Winner
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Update weekly winner
+        run: |
+          echo "Starting weekly points ranking job..."
+
+          # Debug: Check if secret is set (without revealing the value)
+          if [ -z "$ACTIONS_SECRET" ]; then
+            echo "Error: ACTIONS_SECRET is not set"
+            exit 1
+          fi
+
+          # Construct the Authorization header
+          AUTH_HEADER="Authorization: Bearer $ACTIONS_SECRET"
+
+          echo "Processing weekly ranking..."
+          response=$(curl -s -w "\n%{http_code}" \
+            -X POST https://drawcast.xyz/api/process-weekly-ranking \
+            -H "$AUTH_HEADER" \
+            -H "Content-Type: application/json" \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5)
+
+          # Split response into body and status code
+          body=$(echo "$response" | head -n -1)
+          status_code=$(echo "$response" | tail -n 1)
+
+          echo "Response status code: $status_code"
+          echo "Response body: $body"
+
+          # Check if the request was successful
+          if [ "$status_code" -eq 200 ]; then
+            echo "Weekly ranking processed successfully!"
+            exit 0
+          else
+            echo "Failed to process weekly ranking"
+            exit 1
+          fi
+        env:
+          ACTIONS_SECRET: ${{ secrets.ACTIONS_SECRET }}
