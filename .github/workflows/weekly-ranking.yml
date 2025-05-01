@@ -28,9 +28,21 @@ jobs:
         run: |
           echo "Starting weekly points ranking job..."
 
-          # Debug: Check if secret is set (without revealing the value)
+          # Debug: Check if secrets are set (without revealing the values)
           if [ -z "$ACTIONS_SECRET" ]; then
             echo "Error: ACTIONS_SECRET is not set"
+            exit 1
+          fi
+          if [ -z "$FIREBASE_PROJECT_ID" ]; then
+            echo "Error: FIREBASE_PROJECT_ID is not set"
+            exit 1
+          fi
+          if [ -z "$FIREBASE_CLIENT_EMAIL" ]; then
+            echo "Error: FIREBASE_CLIENT_EMAIL is not set"
+            exit 1
+          fi
+          if [ -z "$FIREBASE_PRIVATE_KEY" ]; then
+            echo "Error: FIREBASE_PRIVATE_KEY is not set"
             exit 1
           fi
 
@@ -42,7 +54,10 @@ jobs:
             -X POST https://drawcast.xyz/api/process-weekly-ranking \
             -H "$AUTH_HEADER" \
             -H "Content-Type: application/json" \
-            --max-time 30 \
+            -H "X-Firebase-Project-ID: $FIREBASE_PROJECT_ID" \
+            -H "X-Firebase-Client-Email: $FIREBASE_CLIENT_EMAIL" \
+            -H "X-Firebase-Private-Key: $FIREBASE_PRIVATE_KEY" \
+            --max-time 300 \
             --retry 3 \
             --retry-delay 5)
 

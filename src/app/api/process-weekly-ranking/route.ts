@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '../../../lib/firebase-admin';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
 // Configure longer timeout for this route
 export const maxDuration = 300; // 5 minutes
@@ -32,10 +33,65 @@ function chunkArray<T>(array: T[], size: number): T[][] {
   return chunks;
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     console.log('Starting weekly ranking process...');
     const startTime = Date.now();
+
+    // Get Firebase credentials from headers
+    const projectId = request.headers.get('x-firebase-project-id');
+    const clientEmail = request.headers.get('x-firebase-client-email');
+    const privateKey = request.headers.get('x-firebase-private-key');
+
+    console.log('Firebase credentials check:', {
+      hasProjectId: !!projectId,
+      hasClientEmail: !!clientEmail,
+      hasPrivateKey: !!privateKey
+    });
+
+    // Check if all required credentials are present
+    if (!projectId || !clientEmail || !privateKey) {
+      throw new Error('Missing required Firebase credentials in headers');
+    }
+
+    // Initialize Firebase Admin with credentials from headers
+    if (!getApps().length) {
+      try {
+        console.log('Initializing Firebase Admin with credentials from headers...');
+        
+        // Clean and format the private key
+        let formattedPrivateKey = privateKey;
+        // Remove any surrounding quotes
+        formattedPrivateKey = formattedPrivateKey.replace(/^"|"$/g, '');
+        // Replace escaped newlines with actual newlines
+        formattedPrivateKey = formattedPrivateKey.replace(/\\n/g, '\n');
+        // Ensure the key starts and ends with the correct markers
+        if (!formattedPrivateKey.startsWith('-----BEGIN PRIVATE KEY-----')) {
+          formattedPrivateKey = '-----BEGIN PRIVATE KEY-----\n' + formattedPrivateKey;
+        }
+        if (!formattedPrivateKey.endsWith('-----END PRIVATE KEY-----')) {
+          formattedPrivateKey = formattedPrivateKey + '\n-----END PRIVATE KEY-----';
+        }
+
+        // Set NODE_TLS_REJECT_UNAUTHORIZED environment variable
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+        initializeApp({
+          credential: cert({
+            projectId,
+            clientEmail,
+            privateKey: formattedPrivateKey,
+          })
+        });
+
+        // Reset NODE_TLS_REJECT_UNAUTHORIZED after initialization
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
+        console.log('Firebase Admin initialized successfully');
+      } catch (error) {
+        console.error('Error initializing Firebase Admin:', error);
+        throw error;
+      }
+    }
 
     // Get all users
     const usersSnapshot = await adminDb.collection('users').get();
