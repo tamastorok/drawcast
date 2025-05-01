@@ -1923,7 +1923,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     const isDrawer = context?.user?.fid?.toString() === selectedGame.userFid;
 
     // Check if user is moderator
-    const isModerator = context?.user?.fid === 234692;
+    const moderatorFids = [234692, 1049448]; // Add your new FID here
+    const isModerator = context?.user?.fid && moderatorFids.includes(context.user.fid);
 
     // Find next unsolved drawing
     const findNextUnsolvedDrawing = () => {
