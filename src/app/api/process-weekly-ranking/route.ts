@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '../../../lib/firebase';
-import { collection, getDocs, doc, updateDoc, increment, writeBatch } from 'firebase/firestore';
+import { adminDb } from '../../../lib/firebase-admin';
 
 interface UserData {
   id: string;
@@ -20,8 +19,7 @@ interface UserData {
 export async function POST() {
   try {
     // Get all users
-    const usersRef = collection(db, 'users');
-    const usersSnapshot = await getDocs(usersRef);
+    const usersSnapshot = await adminDb.collection('users').get();
     
     // Create array of users with their weekly points
     const users = usersSnapshot.docs.map(doc => ({
@@ -40,19 +38,23 @@ export async function POST() {
       return NextResponse.json({ message: 'No users found' }, { status: 200 });
     }
 
+    // Create a batch for all updates
+    const batch = adminDb.batch();
+
     // Update the top user's weeklyWins count
-    const userRef = doc(db, 'users', topUser.id);
-    await updateDoc(userRef, {
-      weeklyWins: increment(1),
+    const topUserRef = adminDb.collection('users').doc(topUser.id);
+    batch.update(topUserRef, {
+      weeklyWins: (topUser.weeklyWins || 0) + 1,
       weeklyPoints: 0 // Reset weekly points
     });
 
     // Reset weekly points for all users
-    const batch = writeBatch(db);
     users.forEach(user => {
-      const userRef = doc(db, 'users', user.id);
+      const userRef = adminDb.collection('users').doc(user.id);
       batch.update(userRef, { weeklyPoints: 0 });
     });
+
+    // Commit all updates
     await batch.commit();
 
     return NextResponse.json({
