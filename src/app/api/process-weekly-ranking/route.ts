@@ -34,6 +34,8 @@ export async function POST() {
       weeklyCorrectGuesses: doc.data().weeklyCorrectGuesses || 0
     })) as UserData[];
 
+    console.log(`Processing ${users.length} users for weekly ranking`);
+
     // Sort users by different criteria
     const sortedByPoints = [...users].sort((a, b) => b.weeklyPoints - a.weeklyPoints);
     const sortedBySolutions = [...users].sort((a, b) => (b.weeklyGameSolutions || 0) - (a.weeklyGameSolutions || 0));
@@ -48,46 +50,61 @@ export async function POST() {
       return NextResponse.json({ message: 'No users found' }, { status: 200 });
     }
 
+    console.log('Top users identified:', {
+      topUser: topUser.id,
+      topDrawer: topDrawer?.id,
+      topGuesser: topGuesser?.id
+    });
+
     // Create a batch for all updates
     const batch = adminDb.batch();
 
-    // Update the top user's weeklyWins count
-    const topUserRef = adminDb.collection('users').doc(topUser.id);
-    batch.update(topUserRef, {
-      weeklyWins: (topUser.weeklyWins || 0) + 1,
-      weeklyPoints: 0 // Reset weekly points
-    });
-
-    // Update top drawer if exists
-    if (topDrawer && (topDrawer.weeklyGameSolutions ?? 0) > 0) {
-      const topDrawerRef = adminDb.collection('users').doc(topDrawer.id);
-      batch.update(topDrawerRef, {
-        weeklyTopDrawer: (topDrawer.weeklyTopDrawer || 0) + 1,
-        weeklyGameSolutions: 0
+    try {
+      // Update the top user's weeklyWins count
+      const topUserRef = adminDb.collection('users').doc(topUser.id);
+      batch.update(topUserRef, {
+        weeklyWins: (topUser.weeklyWins || 0) + 1,
+        weeklyPoints: 0 // Reset weekly points
       });
+
+      // Update top drawer if exists
+      if (topDrawer && (topDrawer.weeklyGameSolutions ?? 0) > 0) {
+        const topDrawerRef = adminDb.collection('users').doc(topDrawer.id);
+        batch.update(topDrawerRef, {
+          weeklyTopDrawer: (topDrawer.weeklyTopDrawer || 0) + 1,
+          weeklyGameSolutions: 0
+        });
+      }
+
+      // Update top guesser if exists
+      if (topGuesser && (topGuesser.weeklyCorrectGuesses ?? 0) > 0) {
+        const topGuesserRef = adminDb.collection('users').doc(topGuesser.id);
+        batch.update(topGuesserRef, {
+          weeklyTopGuesser: (topGuesser.weeklyTopGuesser || 0) + 1,
+          weeklyCorrectGuesses: 0
+        });
+      }
+
+      // Reset weekly points and stats for all users
+      users.forEach(user => {
+        const userRef = adminDb.collection('users').doc(user.id);
+        batch.update(userRef, { 
+          weeklyPoints: 0,
+          weeklyGameSolutions: 0,
+          weeklyCorrectGuesses: 0
+        });
+      });
+
+      console.log('Committing batch updates...');
+      // Commit all updates
+      await batch.commit();
+      console.log('Batch updates committed successfully');
+
+    } catch (batchError: unknown) {
+      console.error('Error during batch operations:', batchError);
+      const error = batchError as Error;
+      throw new Error(`Batch operation failed: ${error.message}`);
     }
-
-    // Update top guesser if exists
-    if (topGuesser && (topGuesser.weeklyCorrectGuesses ?? 0) > 0) {
-      const topGuesserRef = adminDb.collection('users').doc(topGuesser.id);
-      batch.update(topGuesserRef, {
-        weeklyTopGuesser: (topGuesser.weeklyTopGuesser || 0) + 1,
-        weeklyCorrectGuesses: 0
-      });
-    }
-
-    // Reset weekly points and stats for all users
-    users.forEach(user => {
-      const userRef = adminDb.collection('users').doc(user.id);
-      batch.update(userRef, { 
-        weeklyPoints: 0,
-        weeklyGameSolutions: 0,
-        weeklyCorrectGuesses: 0
-      });
-    });
-
-    // Commit all updates
-    await batch.commit();
 
     return NextResponse.json({
       message: 'Weekly ranking processed successfully',
@@ -107,10 +124,16 @@ export async function POST() {
         weeklyCorrectGuesses: topGuesser.weeklyCorrectGuesses
       } : null
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error processing weekly ranking:', error);
+    const err = error as Error;
+    // Return more detailed error information
     return NextResponse.json(
-      { error: 'Failed to process weekly ranking' },
+      { 
+        error: 'Failed to process weekly ranking',
+        details: err.message,
+        stack: err.stack
+      },
       { status: 500 }
     );
   }
