@@ -14,6 +14,10 @@ interface UserData {
   streakPoints?: number;
   isEarlyAdopter?: boolean;
   isCoined?: boolean;
+  weeklyGameSolutions?: number;
+  weeklyCorrectGuesses?: number;
+  weeklyTopDrawer?: number;
+  weeklyTopGuesser?: number;
 }
 
 export async function POST() {
@@ -21,18 +25,24 @@ export async function POST() {
     // Get all users
     const usersSnapshot = await adminDb.collection('users').get();
     
-    // Create array of users with their weekly points
+    // Create array of users with their weekly stats
     const users = usersSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      weeklyPoints: doc.data().weeklyPoints || 0
+      weeklyPoints: doc.data().weeklyPoints || 0,
+      weeklyGameSolutions: doc.data().weeklyGameSolutions || 0,
+      weeklyCorrectGuesses: doc.data().weeklyCorrectGuesses || 0
     })) as UserData[];
 
-    // Sort users by weekly points in descending order
-    const sortedUsers = users.sort((a, b) => b.weeklyPoints - a.weeklyPoints);
+    // Sort users by different criteria
+    const sortedByPoints = [...users].sort((a, b) => b.weeklyPoints - a.weeklyPoints);
+    const sortedBySolutions = [...users].sort((a, b) => (b.weeklyGameSolutions || 0) - (a.weeklyGameSolutions || 0));
+    const sortedByGuesses = [...users].sort((a, b) => (b.weeklyCorrectGuesses || 0) - (a.weeklyCorrectGuesses || 0));
 
-    // Get the top user
-    const topUser = sortedUsers[0];
+    // Get the top users
+    const topUser = sortedByPoints[0];
+    const topDrawer = sortedBySolutions[0];
+    const topGuesser = sortedByGuesses[0];
 
     if (!topUser) {
       return NextResponse.json({ message: 'No users found' }, { status: 200 });
@@ -48,10 +58,32 @@ export async function POST() {
       weeklyPoints: 0 // Reset weekly points
     });
 
-    // Reset weekly points for all users
+    // Update top drawer if exists
+    if (topDrawer && (topDrawer.weeklyGameSolutions ?? 0) > 0) {
+      const topDrawerRef = adminDb.collection('users').doc(topDrawer.id);
+      batch.update(topDrawerRef, {
+        weeklyTopDrawer: (topDrawer.weeklyTopDrawer || 0) + 1,
+        weeklyGameSolutions: 0
+      });
+    }
+
+    // Update top guesser if exists
+    if (topGuesser && (topGuesser.weeklyCorrectGuesses ?? 0) > 0) {
+      const topGuesserRef = adminDb.collection('users').doc(topGuesser.id);
+      batch.update(topGuesserRef, {
+        weeklyTopGuesser: (topGuesser.weeklyTopGuesser || 0) + 1,
+        weeklyCorrectGuesses: 0
+      });
+    }
+
+    // Reset weekly points and stats for all users
     users.forEach(user => {
       const userRef = adminDb.collection('users').doc(user.id);
-      batch.update(userRef, { weeklyPoints: 0 });
+      batch.update(userRef, { 
+        weeklyPoints: 0,
+        weeklyGameSolutions: 0,
+        weeklyCorrectGuesses: 0
+      });
     });
 
     // Commit all updates
@@ -63,7 +95,17 @@ export async function POST() {
         id: topUser.id,
         username: topUser.username || 'Anonymous',
         weeklyPoints: topUser.weeklyPoints
-      }
+      },
+      topDrawer: topDrawer ? {
+        id: topDrawer.id,
+        username: topDrawer.username || 'Anonymous',
+        weeklyGameSolutions: topDrawer.weeklyGameSolutions
+      } : null,
+      topGuesser: topGuesser ? {
+        id: topGuesser.id,
+        username: topGuesser.username || 'Anonymous',
+        weeklyCorrectGuesses: topGuesser.weeklyCorrectGuesses
+      } : null
     });
   } catch (error) {
     console.error('Error processing weekly ranking:', error);
