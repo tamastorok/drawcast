@@ -1962,57 +1962,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     
     return (
       <div>
-        <button
-          onClick={async () => {
-            // Fetch fresh data before going back to list
-            try {
-              const gamesRef = collection(db, 'games');
-              const q = query(gamesRef, orderBy('createdAt', 'desc'));
-              const querySnapshot = await getDocs(q);
-              
-              const gamesData = await Promise.all(querySnapshot.docs.map(async (gameDoc) => {
-                const gameData = gameDoc.data();
-                const userDocRef = doc(db, 'users', gameData.userFid as string);
-                const userDoc = await getDoc(userDocRef);
-                const userData = userDoc.data() as { username?: string } | undefined;
-                const username = userData?.username || 'Anonymous';
-                
-                return {
-                  id: gameDoc.id,
-                  imageUrl: gameData.imageUrl as string || '',
-                  prompt: gameData.prompt as string || '',
-                  createdAt: (gameData.createdAt as { toDate: () => Date }).toDate(),
-                  expiredAt: (gameData.expiredAt as { toDate: () => Date }).toDate(),
-                  userFid: gameData.userFid as string || '',
-                  username: username,
-                  guesses: gameData.guesses || [],
-                  totalGuesses: gameData.totalGuesses || 0,
-                  isBanned: gameData.isBanned || false
-                };
-              }));
-              
-              setGames(gamesData);
-            } catch (error) {
-              console.error('Error fetching updated games:', error);
-            }
-            
-            setSelectedGame(null);
-            setCurrentGuess('');
-            setGuessError(null);
-          }}
-          className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] px-3 py-1 rounded-lg"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-          <span>Back to list</span>
-        </button>
-        <h1 className="text-2xl font-bold text-center mb-4">Make your guess!</h1>
+        <h1 className="text-2xl font-bold text-center mb-1 text-gray-600">Make your guess!</h1>
         <div className="text-center text-gray-600 mb-4">
-          Drawing by {selectedGame.username}
-        </div>
-        <div className="text-center text-gray-600 mb-4">
-          {selectedGame.totalGuesses}/10 players
+          <p className="text-sm text-center text-gray-600 mb-4">You have only one chance.</p>
+          
         </div>
         <div className="aspect-square relative bg-white rounded-lg overflow-hidden">
           {isLoadingNextDrawing ? (
@@ -2032,12 +1985,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             />
           )}
         </div>
-        {!isExpired && !isDrawer && (
-          <p className="text-sm text-center text-gray-600 mb-4">
-            Earn 10 points for successfully guessing this drawing. <br />
-            <span className="font-bold">You can guess only once.</span>
-          </p>
-        )}
+        <div className="text-center text-gray-600 mb-4 text-xs">
+          Drawing by {selectedGame.username}. {selectedGame.totalGuesses}/10 players
+        </div>
             
         <div className="space-y-4">
           {isExpired ? (
