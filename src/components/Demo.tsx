@@ -342,6 +342,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           } else {
             console.log('Updating existing user document');
             const currentLevel = getLevelInfo(userDoc.data().points || 0).level;
+            const lastKnownLevel = userDoc.data().lastKnownLevel || 1;
+            // Initialize previousLevel from Firestore
+            setPreviousLevel(lastKnownLevel);
+            
             // Only update the fields we want to change, preserve existing streak values
             await setDoc(userRef, {
               ...userData,
@@ -373,13 +377,16 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     initializeUser();
   }, [context?.user, db, auth]);
 
-  // Update the level change effect to also update Firestore
+  // Update the level change effect to handle first load
   useEffect(() => {
     if (userStats?.points !== undefined && context?.user?.fid) {
       const currentLevel = getLevelInfo(userStats.points).level;
       
-      // If we have a previous level and it's different from current level
-      if (previousLevel !== null && currentLevel > previousLevel) {
+      // Check if we should show level up modal
+      const shouldShowLevelUp = previousLevel !== null && currentLevel > previousLevel;
+      
+      if (shouldShowLevelUp && !isDrawing) {  // Only show if not on drawing page
+        console.log('Level up detected:', { previousLevel, currentLevel });
         setNewLevelInfo(getLevelInfo(userStats.points));
         setShowLevelUpModal(true);
 
@@ -393,7 +400,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       // Update previous level
       setPreviousLevel(currentLevel);
     }
-  }, [userStats?.points, context?.user?.fid, db]);
+  }, [userStats?.points, context?.user?.fid, db, isDrawing]);
 
   // Fetch and generate random prompt
   useEffect(() => {
@@ -617,10 +624,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     stopDrawing();
   };
 
-  // Fetch user stats and created games when profile is shown
+  // Fetch user stats when profile is shown
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!context?.user?.fid || !showProfile) return;
+      if (!context?.user?.fid) return;
 
       try {
         // Fetch user stats
@@ -652,53 +659,56 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           });
         }
 
-        // Fetch all users for ranking
-        const usersRef = collection(db, 'users');
-        const usersSnapshot = await getDocs(usersRef);
-        
-        // Process users
-        const users = usersSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            fid: parseInt(doc.id),
-            username: data.username || 'Anonymous',
-            pfpUrl: data.pfpUrl || '',
-            points: data.points || 0,
-            isPremium: data.isPremium || false,
-            isEarlyAdopter: data.isEarlyAdopter || false,
-            isCoined: data.isCoined || false,
-            gameSolutions: data.gameSolutions || 0,
-            correctGuesses: data.correctGuesses || 0
-          };
-        });
+        // Fetch leaderboard data if profile or leaderboard page is shown
+        if (showProfile || showLeaderboard) {
+          // Fetch all users for ranking
+          const usersRef = collection(db, 'users');
+          const usersSnapshot = await getDocs(usersRef);
+          
+          // Process users
+          const users = usersSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              fid: parseInt(doc.id),
+              username: data.username || 'Anonymous',
+              pfpUrl: data.pfpUrl || '',
+              points: data.points || 0,
+              isPremium: data.isPremium || false,
+              isEarlyAdopter: data.isEarlyAdopter || false,
+              isCoined: data.isCoined || false,
+              gameSolutions: data.gameSolutions || 0,
+              correctGuesses: data.correctGuesses || 0
+            };
+          });
 
-        // Sort users by different criteria
-        const pointsRanked = [...users].sort((a, b) => b.points - a.points);
-        const drawersRanked = [...users].sort((a, b) => (b.gameSolutions || 0) - (a.gameSolutions || 0));
-        const guessersRanked = [...users].sort((a, b) => (b.correctGuesses || 0) - (a.correctGuesses || 0));
+          // Sort users by different criteria
+          const pointsRanked = [...users].sort((a, b) => b.points - a.points);
+          const drawersRanked = [...users].sort((a, b) => (b.gameSolutions || 0) - (a.gameSolutions || 0));
+          const guessersRanked = [...users].sort((a, b) => (b.correctGuesses || 0) - (a.correctGuesses || 0));
 
-        // Find current user's ranks
-        const currentUserFid = context.user.fid;
-        const pointsRank = pointsRanked.findIndex(user => user.fid === currentUserFid) + 1;
-        const drawersRank = drawersRanked.findIndex(user => user.fid === currentUserFid) + 1;
-        const guessersRank = guessersRanked.findIndex(user => user.fid === currentUserFid) + 1;
+          // Find current user's ranks
+          const currentUserFid = context.user.fid;
+          const pointsRank = pointsRanked.findIndex(user => user.fid === currentUserFid) + 1;
+          const drawersRank = drawersRanked.findIndex(user => user.fid === currentUserFid) + 1;
+          const guessersRank = guessersRanked.findIndex(user => user.fid === currentUserFid) + 1;
 
-        // Update leaderboard data with all ranks
-        setLeaderboardData(prev => ({
-          ...prev,
-          currentUser: {
-            fid: currentUserFid,
-            username: context.user.username || 'Anonymous',
-            pfpUrl: context.user.pfpUrl || '',
-            points: userStats?.points || 0,
-            pointsRank,
-            drawersRank,
-            guessersRank,
-            gameSolutions: userStats?.gameSolutions || 0,
-            correctGuesses: userStats?.correctGuesses || 0,
-            isCoined: userStats?.isCoined || false
-          }
-        }));
+          // Update leaderboard data with all ranks
+          setLeaderboardData(prev => ({
+            ...prev,
+            currentUser: {
+              fid: currentUserFid,
+              username: context.user.username || 'Anonymous',
+              pfpUrl: context.user.pfpUrl || '',
+              points: userStats?.points || 0,
+              pointsRank,
+              drawersRank,
+              guessersRank,
+              gameSolutions: userStats?.gameSolutions || 0,
+              correctGuesses: userStats?.correctGuesses || 0,
+              isCoined: userStats?.isCoined || false
+            }
+          }));
+        }
       } catch (error) {
         console.error('Error fetching user data:', error);
         setUserStats(null);
@@ -706,7 +716,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     };
 
     fetchUserData();
-  }, [context?.user?.fid, showProfile, db]);
+  }, [context?.user?.fid, showProfile, showLeaderboard, db]);
 
   // Fetch created games when section is expanded
   useEffect(() => {
@@ -1589,23 +1599,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         }}
       >
         <div className="w-[300px] mx-auto px-2">
-          <button
-            onClick={() => {
-              if (timerRef.current) {
-                clearInterval(timerRef.current);
-              }
-              setIsDrawing(false);
-              setShowTimeUpPopup(false);
-            }}
-            className="flex items-center gap-1 text-gray-800 hover:text-gray-600 mb-2 transition-colors transform rotate-[-1deg] px-3 py-1 rounded-lg"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            <span>Back to home</span>
-          </button>
-          <h1 className="text-2xl font-bold text-center mb-4 text-gray-600">Draw: {currentPrompt || 'Loading...'}</h1>
-          <div className="text-center mb-4 text-gray-600">
+          <h1 className="text-2xl font-bold text-center mb-1 text-gray-600">Draw: {currentPrompt || 'Loading...'}</h1>
+          <div className="text-center mb-1 text-gray-600">
             Time left: {timeLeft}s
           </div>
 
@@ -1625,7 +1620,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             />
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-2">
 
             <button 
               onClick={handleDrawingSubmit}
