@@ -2405,7 +2405,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             
             <button
               onClick={async () => {
-                const shareText = `I just reached Level ${newLevelInfo.level}: ${newLevelInfo.name} on drawcast.xyz `;
+                const shareText = `I just reached Level ${newLevelInfo.level}: ${newLevelInfo.name} on drawcast.xyz`;
                 try {
                   await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}`);
                 } catch (error) {
