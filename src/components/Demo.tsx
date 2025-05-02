@@ -82,6 +82,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     streak?: number;
     streakPoints?: number;
     isCoined?: boolean;
+    weeklyWins?: number;
+    weeklyTopDrawer?: number;
+    weeklyTopGuesser?: number;
   } | null>(null);
   const [createdGames, setCreatedGames] = useState<Array<{
     id: string;
@@ -644,7 +647,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             isEarlyAdopter: userData.isEarlyAdopter || false,
             streak: userData.streak || 1,
             streakPoints: userData.streakPoints || 1,
-            isCoined: userData.isCoined || false
+            isCoined: userData.isCoined || false,
+            weeklyWins: userData.weeklyWins || 0,
+            weeklyTopDrawer: userData.weeklyTopDrawer || 0,
+            weeklyTopGuesser: userData.weeklyTopGuesser || 0
           });
         } else {
           setUserStats({
@@ -655,7 +661,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             isEarlyAdopter: false,
             streak: 1,
             streakPoints: 1,
-            isCoined: false
+            isCoined: false,
+            weeklyWins: 0,
+            weeklyTopDrawer: 0,
+            weeklyTopGuesser: 0
           });
         }
 
@@ -904,17 +913,17 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
         {/* Badges Section */}
         <div className="mb-6">
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-2 flex-wrap">
             {/* Early Adopter Badge */}
             {userStats?.isEarlyAdopter && (
-              <div className="bg-green-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-green-400">
-                <div className="mb-1 flex justify-center items-center">
+              <div className="bg-red-100 p-1 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-red-400">
+                <div className="flex justify-center items-center">
                   <div className="relative group">
                     <Image 
                       src="/OGbadge.png" 
                       alt="Early Adopter" 
-                      width={40} 
-                      height={40} 
+                      width={32} 
+                      height={32} 
                       className="rounded-full transform rotate-[-2deg] cursor-help"
                       title="OG user"
                       priority
@@ -924,19 +933,21 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       OG user
                     </div>
+                    <p className="text-xs text-gray-600">OG</p>
                   </div>
                 </div>
               </div>
             )}
-            {userStats?.isCoined && (
-              <div className="bg-yellow-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-yellow-400">
-                <div className="mb-1 flex justify-center items-center">
+            {/* Coined Badge */}
+            {userStats?.isCoined ? (
+              <div className="bg-yellow-100 p-1 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-yellow-400">
+                <div className="flex justify-center items-center">
                   <div className="relative group">
                     <Image 
                       src="/coinerbadge.png" 
                       alt="Coined a drawing" 
-                      width={40} 
-                      height={40} 
+                      width={32} 
+                      height={32} 
                       className="rounded-full transform rotate-[-2deg] cursor-help"
                       title="Coined a drawing"
                       priority
@@ -946,27 +957,166 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       Coined a drawing
                     </div>
+                    <p className="text-xs text-gray-600">Coin</p>
                   </div>
                 </div>
               </div>
-            )}
-            {!userStats?.isCoined && (
-              <div className="bg-gray-100 p-3 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-gray-400 opacity-50">
-                <div className="mb-1 flex justify-center items-center">
+            ) : (
+              <div className="bg-gray-100 p-1 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-gray-400">
+                <div className="flex justify-center items-center">
                   <div className="relative group">
                     <Image 
                       src="/coinerbadge.png" 
                       alt="Coiner (Locked)" 
-                      width={40} 
-                      height={40} 
+                      width={32} 
+                      height={32} 
                       className="rounded-full transform rotate-[-2deg] cursor-help grayscale"
                       title="Coin a drawing to unlock this badge"
                       priority
                       quality={75}
                       unoptimized
+                      style={{ opacity: 0.5 }}
+                    />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      Coin a drawing on the Collect page <br /> to unlock this badge!
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Weekly Winner Badge */}
+            {userStats?.weeklyWins && userStats.weeklyWins > 0 ? (
+              <div className="bg-purple-100 p-1 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-purple-400">
+                <div className="flex justify-center items-center">
+                  <div className="relative group">
+                    <Image 
+                      src="/weeklyTop.png" 
+                      alt="Weekly Winner" 
+                      width={32} 
+                      height={32} 
+                      className="rounded-full transform rotate-[-2deg] cursor-help"
+                      title="Weekly Winner"
+                      priority
+                      quality={75}
+                      unoptimized
                     />
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      Coin a drawing on the Collect page to unlock this badge!
+                      Weekly Winner
+                    </div>
+                    <p className="text-xs text-gray-600">x{userStats.weeklyWins}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-100 p-1 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-gray-400">
+                <div className="flex justify-center items-center">
+                  <div className="relative group">
+                    <Image 
+                      src="/weeklyTop.png" 
+                      alt="Weekly Winner (Locked)" 
+                      width={32} 
+                      height={32} 
+                      className="rounded-full transform rotate-[-2deg] cursor-help grayscale"
+                      title="Become the top scorer of the week to unlock this badge"
+                      priority
+                      quality={75}
+                      unoptimized
+                      style={{ opacity: 0.5 }}
+                    />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      Earn the most points in the week <br /> to unlock this badge!
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Weekly Top Drawer Badge */}
+            {userStats?.weeklyTopDrawer && userStats.weeklyTopDrawer > 0 ? (
+              <div className="bg-blue-100 p-1 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-blue-400">
+                <div className="flex justify-center items-center">
+                  <div className="relative group">
+                    <Image 
+                      src="/topDrawer.png" 
+                      alt="Weekly Top Drawer" 
+                      width={32} 
+                      height={32} 
+                      className="rounded-full transform rotate-[-2deg] cursor-help"
+                      title="Weekly Top Drawer"
+                      priority
+                      quality={75}
+                      unoptimized
+                    />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      Weekly Top Drawer
+                    </div>
+                    <p className="text-xs text-gray-600">x{userStats.weeklyTopDrawer}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-100 p-1 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-gray-400">
+                <div className="flex justify-center items-center">
+                  <div className="relative group">
+                    <Image 
+                      src="/topDrawer.png" 
+                      alt="Weekly Top Drawer (Locked)" 
+                      width={32} 
+                      height={32} 
+                      className="rounded-full transform rotate-[-2deg] cursor-help grayscale"
+                      title="Become the top drawer of the week to unlock this badge"
+                      priority
+                      quality={75}
+                      unoptimized
+                      style={{ opacity: 0.5 }}
+                    />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      Become the top drawer of the week <br /> to unlock this badge!
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Weekly Top Guesser Badge */}
+            {userStats?.weeklyTopGuesser && userStats.weeklyTopGuesser > 0 ? (
+              <div className="bg-green-100 p-1 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-green-400">
+                <div className="flex justify-center items-center">
+                  <div className="relative group">
+                    <Image 
+                      src="/topGuesser.png" 
+                      alt="Weekly Top Guesser" 
+                      width={32} 
+                      height={32} 
+                      className="rounded-full transform rotate-[-2deg] cursor-help"
+                      title="Weekly Top Guesser"
+                      priority
+                      quality={75}
+                      unoptimized
+                    />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      Weekly Top Guesser
+                    </div>
+                    <p className="text-xs text-gray-600">x{userStats.weeklyTopGuesser}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-100 p-1 rounded-lg text-center transform rotate-[1deg] border-2 border-dashed border-gray-400">
+                <div className="flex justify-center items-center">
+                  <div className="relative group">
+                    <Image 
+                      src="/topGuesser.png" 
+                      alt="Weekly Top Guesser (Locked)" 
+                      width={32} 
+                      height={32} 
+                      className="rounded-full transform rotate-[-2deg] cursor-help grayscale"
+                      title="Become the top guesser of the week to unlock this badge"
+                      priority
+                      quality={75}
+                      unoptimized
+                      style={{ opacity: 0.5 }}
+                    />
+                    <div className="absolute bottom-full left-3/4 transform -translate-x-3/4 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      Become the top guesser of the week <br /> to unlock this badge!
                     </div>
                   </div>
                 </div>
@@ -994,7 +1144,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         </div>
 
         {/* Rank Boxes */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[2deg] border-2 border-dashed border-gray-400">
 
             <div className="text-2xl font-bold text-gray-800">
@@ -1006,14 +1156,14 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             <div className="text-2xl font-bold text-gray-800">
               {userStats?.gameSolutions || 0}
             </div>
-            <div className="text-sm text-gray-800">
+            <div className="text-sm text-gray-600">
               Game solutions
             </div>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-2 mb-6">
           <div className="bg-gray-100 p-4 rounded-lg text-center transform rotate-[-2deg] border-2 border-dashed border-gray-400">
             <div className="text-2xl font-bold text-gray-800">
               {leaderboardData.currentUser?.guessersRank ? `#${leaderboardData.currentUser.guessersRank}` : '-'}
@@ -1025,7 +1175,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             <div className="text-2xl font-bold text-gray-800">
               {userStats?.correctGuesses || 0}
             </div>
-            <div className="text-sm text-gray-800">
+            <div className="text-sm text-gray-600">
               Correct guesses
             </div>
           </div>
@@ -1967,7 +2117,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           <p className="text-sm text-center text-gray-600 mb-4">You have only one chance.</p>
           
         </div>
-        <div className="aspect-square relative bg-white rounded-lg overflow-hidden">
+        <div className="aspect-square relative bg-white rounded-lg overflow-hidden mb-2">
           {isLoadingNextDrawing ? (
             <div className="w-full h-full flex items-center justify-center bg-gray-100">
               <div className="text-gray-600 text-lg">Loading...</div>
