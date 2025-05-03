@@ -1918,6 +1918,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       await batch.commit();
       console.log('Batch committed successfully');
       
+      // Track drawing submission event
+      trackEvent('drawing_submitted');
+      
       setLastCreatedGameId(newGameRef.id);
       setShowSharePopup(true);
       setIsDrawing(false); // Exit drawing mode after successful submission
@@ -1983,6 +1986,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     const castText = `${randomCastText}\n\nArtist: @${context?.user?.username || 'Anonymous'}\n\n${gameUrl}`;
 
     try {
+      // Track share event
+      trackEvent('drawing_shared');
+
       // Open the compose window with the game URL
       await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`);
       setShowSharePopup(false);
@@ -2211,6 +2217,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         isCorrect,
         createdAt: new Date()
       };
+
+      // Track correct guess event
+      if (isCorrect) {
+        trackEvent('correct_guess');
+      }
 
       // Use a batch to ensure atomicity
       const batch = writeBatch(db);
@@ -3106,6 +3117,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                                   isCoined: true
                                 }, { merge: true });
 
+                                // Track successful coining event
+                                trackEvent('drawing_coined_success');
+
                                 setCreatedGames(prev => prev.map(g =>
                                   g.id === game.id ? {
                                     ...g,
@@ -3157,6 +3171,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                             onClick={async () => {
                               try {
                                 const castText = "I just coined my /drawcast masterpiece on @zora! Check it out!";
+                                // Track share event
+                                trackEvent('drawing_shared');
                                 await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(`https://zora.co/coin/base:${game.tokenAddress}`)}`);
                               } catch (error) {
                                 console.error('Error sharing to Warpcast:', error);
