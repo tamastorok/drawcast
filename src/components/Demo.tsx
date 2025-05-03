@@ -1298,11 +1298,40 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           };
         });
 
-        // Sort users by points in descending order
-        const sortedUsers = users.sort((a, b) => b.points - a.points);
+        // Sort users based on active time period and tab
+        let sortedUsers: LeaderboardUser[];
+        if (activeTimePeriodTab === 'weekly') {
+          switch (activeLeaderboardTab) {
+            case 'points':
+              sortedUsers = users.sort((a, b) => (b.weeklyPoints || 0) - (a.weeklyPoints || 0));
+              break;
+            case 'drawers':
+              sortedUsers = users.sort((a, b) => (b.weeklyGameSolutions || 0) - (a.weeklyGameSolutions || 0));
+              break;
+            case 'guessers':
+              sortedUsers = users.sort((a, b) => (b.weeklyCorrectGuesses || 0) - (a.weeklyCorrectGuesses || 0));
+              break;
+            default:
+              sortedUsers = users.sort((a, b) => (b.weeklyPoints || 0) - (a.weeklyPoints || 0));
+          }
+        } else {
+          switch (activeLeaderboardTab) {
+            case 'points':
+              sortedUsers = users.sort((a, b) => b.points - a.points);
+              break;
+            case 'drawers':
+              sortedUsers = users.sort((a, b) => (b.gameSolutions || 0) - (a.gameSolutions || 0));
+              break;
+            case 'guessers':
+              sortedUsers = users.sort((a, b) => (b.correctGuesses || 0) - (a.correctGuesses || 0));
+              break;
+            default:
+              sortedUsers = users.sort((a, b) => b.points - a.points);
+          }
+        }
 
         // Add rank to each user
-        const rankedUsers = sortedUsers.map((user, index) => ({
+        const rankedUsers = sortedUsers.map((user: LeaderboardUser, index: number) => ({
           ...user,
           rank: index + 1
         }));
@@ -1347,7 +1376,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     if (showLeaderboard) {
       fetchLeaderboardData();
     }
-  }, [showLeaderboard, context?.user?.fid, db]);
+  }, [showLeaderboard, context?.user?.fid, db, activeTimePeriodTab, activeLeaderboardTab]);
 
   const renderLeaderboard = () => {
     // Sort users based on active tab
