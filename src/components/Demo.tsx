@@ -2590,6 +2590,17 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   const randomCastText = castTextVariations[Math.floor(Math.random() * castTextVariations.length)];
                   const castText = `${randomCastText}\n\nArtist: @${selectedGame.username}\n\n${gameUrl}`;
                   try {
+                    // Track share event
+                    trackEvent('drawing_shared');
+                    
+                    // Update daily shared count
+                    if (context?.user?.fid) {
+                      const userRef = doc(db, 'users', context.user.fid.toString());
+                      await updateDoc(userRef, {
+                        dailyShared: increment(1)
+                      });
+                    }
+                    
                     await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`);
                   } catch (error) {
                     console.error('Error sharing to Warpcast:', error);
