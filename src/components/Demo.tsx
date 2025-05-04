@@ -5,13 +5,14 @@ import Image from "next/image";
 import { useFrame } from "~/components/providers/FrameProvider";
 import { sdk } from '@farcaster/frame-sdk'
 import { initializeApp, getApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where, limit, startAfter } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { getAuth, signInAnonymously } from "firebase/auth";
 import { getAnalytics, logEvent } from "firebase/analytics";
 import { createCoin, getCoinCreateFromLogs } from "@zoralabs/coins-sdk";
 import { createWalletClient, createPublicClient, http, custom } from "viem";
 import { base } from "viem/chains";
+import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
 // Add type declaration for window.ethereum
 declare global {
@@ -154,6 +155,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [activeLeaderboardTab, setActiveLeaderboardTab] = useState<'points' | 'drawers' | 'guessers'>('points');
   const [activeTimePeriodTab, setActiveTimePeriodTab] = useState<'all-time' | 'weekly'>('all-time');
   const [showZoraInfoModal, setShowZoraInfoModal] = useState(false);
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const GAMES_PER_PAGE = 150;
   // Add wallet connection state
 
   const firebaseConfig = {
@@ -2083,98 +2088,110 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   };
 
   // Fetch games when guess page is shown
-  useEffect(() => {
-    const fetchGames = async () => {
-      try {
-        setIsLoadingGames(true); // Set loading state to true before fetching
-        const gamesRef = collection(db, 'games');
-        const q = query(gamesRef, orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
-        
-        const gamesData = await Promise.all(querySnapshot.docs.map(async (gameDoc) => {
-          const gameData = gameDoc.data();
-          const userDocRef = doc(db, 'users', gameData.userFid as string);
-          const userDoc = await getDoc(userDocRef);
-          const userData = userDoc.data() as { username?: string } | undefined;
-          const username = userData?.username || 'Anonymous';
-          
-          return {
-            id: gameDoc.id,
-            imageUrl: gameData.imageUrl as string || '',
-            prompt: gameData.prompt as string || '',
-            createdAt: (gameData.createdAt as { toDate: () => Date }).toDate(),
-            expiredAt: (gameData.expiredAt as { toDate: () => Date }).toDate(),
-            userFid: gameData.userFid as string || '',
-            username: username,
-            guesses: gameData.guesses || [],
-            totalGuesses: gameData.totalGuesses || 0,
-            isBanned: gameData.isBanned || false
-          };
-        }));
-        
-        setGames(gamesData);
-        
-        // If we have an initialGameId, select that game
-        if (initialGameId) {
-          const game = gamesData.find(g => g.id === initialGameId);
-          if (game) {
-            setSelectedGame(game);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching games:', error);
-      } finally {
-        setIsLoadingGames(false); // Set loading state to false after fetching
+  const fetchGames = async (isInitial = true) => {
+    try {
+      if (isInitial) {
+        setIsLoadingGames(true);
+      } else {
+        setIsLoadingMore(true);
       }
-    };
 
+      const gamesRef = collection(db, 'games');
+      let q = query(
+        gamesRef,
+        orderBy('createdAt', 'desc'),
+        limit(GAMES_PER_PAGE)
+      );
+
+      // If not initial load and we have a last visible document, start after it
+      if (!isInitial && lastVisible) {
+        q = query(
+          gamesRef,
+          orderBy('createdAt', 'desc'),
+          startAfter(lastVisible),
+          limit(GAMES_PER_PAGE)
+        );
+      }
+
+      const querySnapshot = await getDocs(q);
+      
+      // Update last visible document
+      const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+      setLastVisible(lastDoc);
+      
+      // Check if we have more documents
+      setHasMore(querySnapshot.docs.length === GAMES_PER_PAGE);
+
+      const gamesData = await Promise.all(querySnapshot.docs.map(async (gameDoc: QueryDocumentSnapshot<DocumentData>) => {
+        const gameData = gameDoc.data();
+        const userDocRef = doc(db, 'users', gameData.userFid as string);
+        const userDoc = await getDoc(userDocRef);
+        const userData = userDoc.data() as { username?: string } | undefined;
+        const username = userData?.username || 'Anonymous';
+        
+        return {
+          id: gameDoc.id,
+          imageUrl: gameData.imageUrl as string || '',
+          prompt: gameData.prompt as string || '',
+          createdAt: (gameData.createdAt as { toDate: () => Date }).toDate(),
+          expiredAt: (gameData.expiredAt as { toDate: () => Date }).toDate(),
+          userFid: gameData.userFid as string || '',
+          username: username,
+          guesses: gameData.guesses || [],
+          totalGuesses: gameData.totalGuesses || 0,
+          isBanned: gameData.isBanned || false
+        };
+      }));
+      
+      if (isInitial) {
+        setGames(gamesData);
+      } else {
+        setGames(prev => [...prev, ...gamesData]);
+      }
+      
+      // If we have an initialGameId, select that game
+      if (isInitial && initialGameId) {
+        const game = gamesData.find((g: { id: string }) => g.id === initialGameId);
+        if (game) {
+          setSelectedGame(game);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching games:', error);
+    } finally {
+      setIsLoadingGames(false);
+      setIsLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
     if (showGuess) {
-      fetchGames();
+      fetchGames(true);
     }
   }, [showGuess, db, initialGameId]);
 
-  // Refresh games when switching tabs
+  // Add intersection observer for infinite scrolling
   useEffect(() => {
-    const fetchGames = async () => {
-      if (!showGuess) return;
-      
-      try {
-        setIsLoadingGames(true);
-        const gamesRef = collection(db, 'games');
-        const q = query(gamesRef, orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
-        
-        const gamesData = await Promise.all(querySnapshot.docs.map(async (gameDoc) => {
-          const gameData = gameDoc.data();
-          const userDocRef = doc(db, 'users', gameData.userFid as string);
-          const userDoc = await getDoc(userDocRef);
-          const userData = userDoc.data() as { username?: string } | undefined;
-          const username = userData?.username || 'Anonymous';
-          
-          return {
-            id: gameDoc.id,
-            imageUrl: gameData.imageUrl as string || '',
-            prompt: gameData.prompt as string || '',
-            createdAt: (gameData.createdAt as { toDate: () => Date }).toDate(),
-            expiredAt: (gameData.expiredAt as { toDate: () => Date }).toDate(),
-            userFid: gameData.userFid as string || '',
-            username: username,
-            guesses: gameData.guesses || [],
-            totalGuesses: gameData.totalGuesses || 0,
-            isBanned: gameData.isBanned || false
-          };
-        }));
-        
-        setGames(gamesData);
-      } catch (error) {
-        console.error('Error refreshing games:', error);
-      } finally {
-        setIsLoadingGames(false);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoadingGames) {
+          fetchGames(false);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const loadMoreTrigger = document.getElementById('load-more-trigger');
+    if (loadMoreTrigger) {
+      observer.observe(loadMoreTrigger);
+    }
+
+    return () => {
+      if (loadMoreTrigger) {
+        observer.unobserve(loadMoreTrigger);
       }
     };
-
-    fetchGames();
-  }, [activeGuessTab, showGuess, db]);
+  }, [hasMore, isLoadingMore, isLoadingGames, lastVisible]);
 
   const handleGuessSubmit = async () => {
     // Check authentication state
@@ -2586,7 +2603,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     });
 
     return (
-      <div>
+      <div className="max-w-2xl mx-auto p-4">
         <h1 className="text-l text-center mb-6 text-gray-600">Guess the drawings, earn points and climb the leaderboard!</h1>
         
         {/* Tabs */}
@@ -2635,47 +2652,58 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               {activeGuessTab === 'wrong' && 'You haven\'t made any wrong guesses yet!'}
             </div>
           ) : (
-            filteredGames.map((game) => {
-              // Check if current user has already guessed this game
-              const userGuess = game.guesses?.find(
-                (guess: Guess) => guess.userId === context?.user?.fid?.toString()
-              );
+            <>
+              {filteredGames.map((game) => {
+                // Check if current user has already guessed this game
+                const userGuess = game.guesses?.find(
+                  (guess: Guess) => guess.userId === context?.user?.fid?.toString()
+                );
 
-              const timeInfo = formatTimeRemaining(game.expiredAt);
+                const timeInfo = formatTimeRemaining(game.expiredAt);
 
-              return (
-                <button
-                  key={game.id}
-                  onClick={() => handleGameJoin(game.id)}
-                  className={`w-full p-4 ${
-                    userGuess 
-                      ? userGuess.isCorrect
-                        ? 'bg-green-100'
-                        : 'bg-red-100'
-                      : 'bg-gray-100 hover:bg-gray-200'
-                  } rounded-lg text-left transition-colors transform rotate-${Math.random() > 0.5 ? '[1deg]' : '[-1deg]'} border-2 border-dashed border-gray-400`}
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="text-gray-600">
-                        Drawing by {game.username}
+                return (
+                  <button
+                    key={game.id}
+                    onClick={() => handleGameJoin(game.id)}
+                    className={`w-full p-4 ${
+                      userGuess 
+                        ? userGuess.isCorrect
+                          ? 'bg-green-100'
+                          : 'bg-red-100'
+                        : 'bg-gray-100 hover:bg-gray-200'
+                    } rounded-lg text-left transition-colors transform rotate-${Math.random() > 0.5 ? '[1deg]' : '[-1deg]'} border-2 border-dashed border-gray-400`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-gray-600">
+                          Drawing by {game.username}
+                        </div>
+                        <div className={`text-xs mt-1 ${timeInfo.isEnded ? 'text-red-600' : 'text-gray-500'}`}>
+                          {timeInfo.text}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {game.totalGuesses}/10 players
+                        </div>
                       </div>
-                      <div className={`text-xs mt-1 ${timeInfo.isEnded ? 'text-red-600' : 'text-gray-500'}`}>
-                        {timeInfo.text}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {game.totalGuesses}/10 players
-                      </div>
+                      {userGuess && (
+                        <div className="text-sm font-medium">
+                          {userGuess.isCorrect ? 'Solved' : 'Wrong'}
+                        </div>
+                      )}
                     </div>
-                    {userGuess && (
-                      <div className="text-sm font-medium">
-                        {userGuess.isCorrect ? 'Solved' : 'Wrong'}
-                      </div>
-                    )}
+                  </button>
+                );
+              })}
+              
+              {/* Load more trigger */}
+              <div id="load-more-trigger" className="h-4 w-full">
+                {isLoadingMore && (
+                  <div className="text-center text-gray-600 py-2">
+                    Loading more games...
                   </div>
-                </button>
-              );
-            })
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
