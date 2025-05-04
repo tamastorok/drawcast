@@ -190,7 +190,26 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const GAMES_PER_PAGE = 150;
   const [showQuest, setShowQuest] = useState(false);
+  const [isDailyQuestCompleted, setIsDailyQuestCompleted] = useState(false);
   // Add wallet connection state
+
+  // Add function to calculate remaining time
+  const getQuestTimeInfo = useCallback(() => {
+    const now = new Date();
+    const questEndTime = new Date();
+    questEndTime.setUTCHours(13, 0, 0, 0); // 1 PM UTC
+
+    // If current time is past 1 PM UTC, set to next day
+    if (now > questEndTime) {
+      questEndTime.setUTCDate(questEndTime.getUTCDate() + 1);
+    }
+
+    const timeDiff = questEndTime.getTime() - now.getTime();
+    const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+    return { hours, minutes };
+  }, []);
 
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -2707,14 +2726,31 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           <div className="mb-4">
             <button
               onClick={() => setShowQuest(true)}
-              className="w-full p-4 rounded-lg transform rotate-[1deg] border-2 border-dashed border-gray-400 bg-white hover:bg-gray-50 transition-colors animate-glow"
+              disabled={isDailyQuestCompleted}
+              className={`w-full p-4 rounded-lg transform rotate-[1deg] border-2 border-dashed border-gray-400 bg-white transition-colors ${
+                isDailyQuestCompleted 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'hover:bg-gray-50 animate-glow'
+              }`}
             >
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Image src="/quest.png" alt="Quest" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} unoptimized />
-                  <span className="text-gray-800">Daily Quests</span>
+              <div className="flex flex-row items-center justify-center gap-4">
+                <Image src="/quest.png" alt="Quest" width={30} height={30} />
+                <div className="flex flex-col flex-1 items-center">
+                  <div className="flex justify-center items-center mb-2 w-full">
+                    <span className="text-gray-800 font-bold text-sm">
+                      {isDailyQuestCompleted 
+                        ? "Quest is completed!"
+                        : "Quest: Earn 100 points!"
+                      }
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-600 text-center">
+                    {isDailyQuestCompleted 
+                      ? `Next quest in ${getQuestTimeInfo().hours}h ${getQuestTimeInfo().minutes}m`
+                      : `Ends in ${getQuestTimeInfo().hours}h ${getQuestTimeInfo().minutes}m`
+                    }
+                  </div>
                 </div>
-                <span className="text-gray-600">+100 points</span>
               </div>
             </button>
           </div>
@@ -3353,6 +3389,43 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     }
   }, [showCollection, trackEvent]);
 
+  // Add checkDailyQuestCompletion function
+  const checkDailyQuestCompletion = useCallback(async () => {
+    if (!userStats || !context?.user?.fid) return;
+    
+    try {
+      const userRef = doc(db, 'users', context.user.fid.toString());
+      
+      // Check if conditions are met
+      const isCompleted = 
+        (userStats.dailyGamesCreated || 0) >= 3 &&
+        (userStats.dailyCorrectGuesses || 0) >= 3 &&
+        (userStats.dailyShared || 0) >= 1;
+
+      // Update database with the result
+      await setDoc(userRef, {
+        isDailyQuestCompleted: isCompleted
+      }, { merge: true });
+
+      // Update local state
+      setIsDailyQuestCompleted(isCompleted);
+    } catch (error) {
+      console.error('Error updating daily quest completion status:', error);
+    }
+  }, [userStats, context?.user?.fid, db]);
+
+  // Add useEffect to check quest completion when userStats changes
+  useEffect(() => {
+    checkDailyQuestCompletion();
+  }, [userStats, checkDailyQuestCompletion]);
+
+  // Add useEffect to check quest completion when guess page is shown
+  useEffect(() => {
+    if (showGuess) {
+      checkDailyQuestCompletion();
+    }
+  }, [showGuess, checkDailyQuestCompletion]);
+
   return (
     <div
       style={{
@@ -3674,13 +3747,15 @@ On Warpcast, go to Settings → Preferred Wallets to set it up.
                   <div className="bg-white p-4 rounded-lg border-2 border-dashed border-gray-400 transform rotate-[1deg]">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        <Image src="/share.png" alt="Share" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} unoptimized />
+                        <Image src="/shareicon.png" alt="Share" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} unoptimized />
                         <span className="text-gray-800">Share a drawing on Warpcast</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-gray-600">({userStats?.dailyShared || 0}/1)</span>
-                        {userStats?.dailyShared && userStats.dailyShared >= 1 && (
+                        {userStats?.dailyShared && userStats.dailyShared >= 1 ? (
                           <span className="text-green-500">✓</span>
+                        ) : (
+                          <span> </span>
                         )}
                       </div>
                     </div>
