@@ -43,6 +43,7 @@ interface LeaderboardUser {
   dailyGamesCreated?: number;
   dailyShared?: number;
   dailyCorrectGuesses?: number;
+  dailyQuests?: number;
 }
 
 interface LeaderboardData {
@@ -120,6 +121,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     dailyGamesCreated?: number;
     dailyShared?: number;
     dailyCorrectGuesses?: number;
+    dailyQuests?: number;
   } | null>(null);
   const [createdGames, setCreatedGames] = useState<Array<{
     id: string;
@@ -403,7 +405,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               weeklyCorrectGuesses: 0,
               dailyGamesCreated: 0,
               dailyShared: 0,
-              dailyCorrectGuesses: 0
+              dailyCorrectGuesses: 0,
+              dailyQuests: 0
             });
           } else {
             console.log('Updating existing user document');
@@ -717,7 +720,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             weeklyPoints: userData.weeklyPoints || 0,
             dailyGamesCreated: userData.dailyGamesCreated || 0,
             dailyShared: userData.dailyShared || 0,
-            dailyCorrectGuesses: userData.dailyCorrectGuesses || 0
+            dailyCorrectGuesses: userData.dailyCorrectGuesses || 0,
+            dailyQuests: userData.dailyQuests || 0
           });
         } else {
           setUserStats({
@@ -735,7 +739,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             weeklyPoints: 0,
             dailyGamesCreated: 0,
             dailyShared: 0,
-            dailyCorrectGuesses: 0
+            dailyCorrectGuesses: 0,
+            dailyQuests: 0
           });
         }
 
@@ -3404,7 +3409,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       // Update database with the result
       await setDoc(userRef, {
-        isDailyQuestCompleted: isCompleted
+        isDailyQuestCompleted: isCompleted,
+        // Only increment dailyQuests if the quest was just completed
+        ...(isCompleted && !userStats.isDailyQuestCompleted ? { dailyQuests: increment(1) } : {})
       }, { merge: true });
 
       // Update local state
