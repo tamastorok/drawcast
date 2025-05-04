@@ -201,9 +201,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const getQuestTimeInfo = useCallback(() => {
     const now = new Date();
     const questEndTime = new Date();
-    questEndTime.setUTCHours(13, 0, 0, 0); // 1 PM UTC
+    questEndTime.setUTCHours(12, 0, 0, 0); // 12 PM UTC
 
-    // If current time is past 1 PM UTC, set to next day
+    // If current time is past 12 PM UTC, set to next day
     if (now > questEndTime) {
       questEndTime.setUTCDate(questEndTime.getUTCDate() + 1);
     }
