@@ -44,6 +44,7 @@ interface LeaderboardUser {
   dailyShared?: number;
   dailyCorrectGuesses?: number;
   dailyQuests?: number;
+  isDailyQuestCompleted?: boolean;
 }
 
 interface LeaderboardData {
@@ -122,6 +123,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     dailyShared?: number;
     dailyCorrectGuesses?: number;
     dailyQuests?: number;
+    isDailyQuestCompleted?: boolean;
   } | null>(null);
   const [createdGames, setCreatedGames] = useState<Array<{
     id: string;
@@ -721,7 +723,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             dailyGamesCreated: userData.dailyGamesCreated || 0,
             dailyShared: userData.dailyShared || 0,
             dailyCorrectGuesses: userData.dailyCorrectGuesses || 0,
-            dailyQuests: userData.dailyQuests || 0
+            dailyQuests: userData.dailyQuests || 0,
+            isDailyQuestCompleted: userData.isDailyQuestCompleted || false
           });
         } else {
           setUserStats({
@@ -740,7 +743,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             dailyGamesCreated: 0,
             dailyShared: 0,
             dailyCorrectGuesses: 0,
-            dailyQuests: 0
+            dailyQuests: 0,
+            isDailyQuestCompleted: false
           });
         }
 
