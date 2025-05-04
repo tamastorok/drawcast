@@ -3733,8 +3733,10 @@ On Warpcast, go to Settings → Preferred Wallets to set it up.
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-gray-600">({userStats?.dailyGamesCreated || 0}/3)</span>
-                        {userStats?.dailyGamesCreated && userStats.dailyGamesCreated >= 3 && (
+                        {userStats?.dailyGamesCreated && userStats.dailyGamesCreated >= 3 ? (
                           <span className="text-green-500">✓</span>
+                        ) : (
+                          <span> </span>
                         )}
                       </div>
                     </div>
@@ -3748,8 +3750,10 @@ On Warpcast, go to Settings → Preferred Wallets to set it up.
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-gray-600">({userStats?.dailyCorrectGuesses || 0}/3)</span>
-                        {userStats?.dailyCorrectGuesses && userStats.dailyCorrectGuesses >= 3 && (
+                        {userStats?.dailyCorrectGuesses && userStats.dailyCorrectGuesses >= 3 ? (
                           <span className="text-green-500">✓</span>
+                        ) : (
+                          <span> </span>
                         )}
                       </div>
                     </div>
