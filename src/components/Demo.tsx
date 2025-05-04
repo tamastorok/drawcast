@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useFrame } from "~/components/providers/FrameProvider";
 import { sdk } from '@farcaster/frame-sdk'
 import { initializeApp, getApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where, limit, startAfter } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, getDocs, arrayUnion, increment, writeBatch, where, limit, startAfter, updateDoc } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { getAuth, signInAnonymously } from "firebase/auth";
 import { getAnalytics, logEvent } from "firebase/analytics";
@@ -40,6 +40,9 @@ interface LeaderboardUser {
   weeklyPoints?: number;
   weeklyGameSolutions?: number;
   weeklyCorrectGuesses?: number;
+  dailyGamesCreated?: number;
+  dailyShared?: number;
+  dailyCorrectGuesses?: number;
 }
 
 interface LeaderboardData {
@@ -61,6 +64,30 @@ interface AuthState {
   userId: string | null;
   error: string | null;
 }
+
+// Add this at the top of the file, after the imports
+const styles = `
+  @keyframes glow {
+    0% {
+      box-shadow: 0 0 5px rgba(234, 179, 8, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 15px rgba(234, 179, 8, 0.8);
+    }
+    100% {
+      box-shadow: 0 0 5px rgba(234, 179, 8, 0.5);
+    }
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+`;
+
+// Add this right after the styles constant
+const styleSheet = document.createElement("style");
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);
 
 export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const { isSDKLoaded, context } = useFrame();
@@ -90,6 +117,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     weeklyTopDrawer?: number;
     weeklyTopGuesser?: number;
     weeklyPoints?: number;
+    dailyGamesCreated?: number;
+    dailyShared?: number;
+    dailyCorrectGuesses?: number;
   } | null>(null);
   const [createdGames, setCreatedGames] = useState<Array<{
     id: string;
@@ -159,6 +189,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const GAMES_PER_PAGE = 150;
+  const [showQuest, setShowQuest] = useState(false);
   // Add wallet connection state
 
   const firebaseConfig = {
@@ -350,7 +381,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               streakPoints: 1,
               weeklyPoints: 0,
               weeklyGameSolutions: 0,
-              weeklyCorrectGuesses: 0
+              weeklyCorrectGuesses: 0,
+              dailyGamesCreated: 0,
+              dailyShared: 0,
+              dailyCorrectGuesses: 0
             });
           } else {
             console.log('Updating existing user document');
@@ -661,7 +695,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             weeklyWins: userData.weeklyWins || 0,
             weeklyTopDrawer: userData.weeklyTopDrawer || 0,
             weeklyTopGuesser: userData.weeklyTopGuesser || 0,
-            weeklyPoints: userData.weeklyPoints || 0
+            weeklyPoints: userData.weeklyPoints || 0,
+            dailyGamesCreated: userData.dailyGamesCreated || 0,
+            dailyShared: userData.dailyShared || 0,
+            dailyCorrectGuesses: userData.dailyCorrectGuesses || 0
           });
         } else {
           setUserStats({
@@ -676,7 +713,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             weeklyWins: 0,
             weeklyTopDrawer: 0,
             weeklyTopGuesser: 0,
-            weeklyPoints: 0
+            weeklyPoints: 0,
+            dailyGamesCreated: 0,
+            dailyShared: 0,
+            dailyCorrectGuesses: 0
           });
         }
 
@@ -1916,7 +1956,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       // Update user's gamesCreated count
       const userRef = doc(db, 'users', context.user.fid.toString());
       batch.update(userRef, {
-        gamesCreated: increment(1)
+        gamesCreated: increment(1),
+        dailyGamesCreated: increment(1)
       });
 
       console.log('Committing batch...');
@@ -1993,6 +2034,14 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     try {
       // Track share event
       trackEvent('drawing_shared');
+
+      // Update daily shared count
+      if (context?.user?.fid) {
+        const userRef = doc(db, 'users', context.user.fid.toString());
+        await updateDoc(userRef, {
+          dailyShared: increment(1)
+        });
+      }
 
       // Open the compose window with the game URL
       await sdk.actions.openUrl(`https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(gameUrl)}`);
@@ -2261,7 +2310,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           correctGuesses: increment(1),
           points: increment(10),
           weeklyPoints: increment(10),
-          weeklyCorrectGuesses: increment(1)
+          weeklyCorrectGuesses: increment(1),
+          dailyCorrectGuesses: increment(1)
         });
 
         // Update creator's fields - increment points by 10 for solution
@@ -2381,6 +2431,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
     const handleNextDrawing = () => {
       setIsLoadingNextDrawing(true);
+      setIsSubmittingGuess(false); // Reset the submitting state
       const nextGame = findNextUnsolvedDrawing();
       if (nextGame) {
         setSelectedGame(nextGame);
@@ -2639,6 +2690,24 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             Wrong
           </button>
         </div>
+
+        {/* Quest Item */}
+        {context?.user?.fid === 234692 && (
+          <div className="mb-4">
+            <button
+              onClick={() => setShowQuest(true)}
+              className="w-full p-4 rounded-lg transform rotate-[1deg] border-2 border-dashed border-gray-400 bg-white hover:bg-gray-50 transition-colors animate-glow"
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Image src="/quest.png" alt="Quest" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} unoptimized />
+                  <span className="text-gray-800">Daily Quests</span>
+                </div>
+                <span className="text-gray-600">+100 points</span>
+              </div>
+            </button>
+          </div>
+        )}
 
         <div className="space-y-2">
           {isLoadingGames ? (
@@ -3148,7 +3217,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                                 // Track successful coining event
                                 trackEvent('drawing_coined_success');
 
-                                setCreatedGames(prev => prev.map(g =>
+                                setCreatedGames(prev => prev.map(g => 
                                   g.id === game.id ? {
                                     ...g,
                                     isMinted: true,
@@ -3357,7 +3426,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           {/* Bottom navigation - Fixed */}
           <div className="fixed bottom-0 left-0 right-0 bg-[#f9f7f0] border-t-2 border-dashed border-gray-400 z-10">
             <div className="w-[300px] mx-auto">
-              <div className="flex justify-around items-center h-[70px]">
+              <div className="flex justify-around items-center h-[70px] gap-2">
                 <button 
                   className={`flex flex-col items-center justify-center w-full h-full ${!showLeaderboard && !showProfile && !isDrawing && !showGuess && !showCollection ? 'bg-green-100' : ''} transform rotate-[-1deg]`}
                   onClick={() => {
@@ -3383,7 +3452,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setShowGuess(true);
                     setShowCollection(false);
                     setSelectedGame(null);
-                    // ... existing refresh games code ...
                   }}
                 >
                   <span className="text-2xl">
@@ -3535,6 +3603,78 @@ On Warpcast, go to Settings → Preferred Wallets to set it up.
                 </p>
                 <br/>
 
+              </div>
+            </div>
+          )}
+
+          {/* Quest Modal */}
+          {showQuest && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-[#f9f7f0] p-6 rounded-lg max-w-sm w-full mx-4 relative border-4 border-dashed border-gray-400 transform rotate-[-1deg]">
+                {/* Close button */}
+                <button
+                  onClick={() => setShowQuest(false)}
+                  className="absolute top-2 right-2 text-gray-800 hover:text-gray-600 transform rotate-[2deg] border-2 border-dashed border-gray-400 px-2 py-1 rounded-lg"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-bold mb-4 text-gray-800 transform rotate-[1deg]">Daily Quest!</h2>
+                  <p className="text-gray-600 mb-6 transform rotate-[-2deg]">
+                    Complete all tasks every day to earn 100 bonus points!
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-lg border-2 border-dashed border-gray-400 transform rotate-[1deg]">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Image src="/draw.png" alt="Draw" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} unoptimized />
+                        <span className="text-gray-800">Create 3 drawings</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">({userStats?.dailyGamesCreated || 0}/3)</span>
+                        {userStats?.dailyGamesCreated && userStats.dailyGamesCreated >= 3 && (
+                          <span className="text-green-500">✓</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border-2 border-dashed border-gray-400 transform rotate-[-1deg]">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Image src="/guess.png" alt="Guess" width={24} height={24} className="transform rotate-[2deg]" priority quality={75} unoptimized />
+                        <span className="text-gray-800">Guess 3 drawings correctly</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">({userStats?.dailyCorrectGuesses || 0}/3)</span>
+                        {userStats?.dailyCorrectGuesses && userStats.dailyCorrectGuesses >= 3 && (
+                          <span className="text-green-500">✓</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border-2 border-dashed border-gray-400 transform rotate-[1deg]">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Image src="/share.png" alt="Share" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} unoptimized />
+                        <span className="text-gray-800">Share a drawing on Warpcast</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">({userStats?.dailyShared || 0}/1)</span>
+                        {userStats?.dailyShared && userStats.dailyShared >= 1 && (
+                          <span className="text-green-500">✓</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
