@@ -187,7 +187,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   } | null>(null);
   const [isLoadingNextDrawing, setIsLoadingNextDrawing] = useState(false);
   const [activeLeaderboardTab, setActiveLeaderboardTab] = useState<'points' | 'drawers' | 'guessers'>('points');
-  const [activeTimePeriodTab, setActiveTimePeriodTab] = useState<'all-time' | 'weekly'>('all-time');
+  const [activeTimePeriodTab, setActiveTimePeriodTab] = useState<'all-time' | 'weekly'>('weekly');
   const [showZoraInfoModal, setShowZoraInfoModal] = useState(false);
   const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -1484,18 +1484,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         {/* Time Period Tabs */}
         <div className="flex gap-2 mb-4 mt-4">
           <button
-            onClick={() => setActiveTimePeriodTab('all-time')}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[-1deg] border-2 border-dashed ${
-              activeTimePeriodTab === 'all-time' 
-                ? 'bg-[#0c703b] text-white border-white' 
-                : 'bg-gray-100 text-gray-600 border-gray-400'
-            }`}
-          >
-            All-time
-          </button>
-          <button
             onClick={() => setActiveTimePeriodTab('weekly')}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[1deg] border-2 border-dashed ${
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[-1deg] border-2 border-dashed ${
               activeTimePeriodTab === 'weekly' 
                 ? 'bg-[#0c703b] text-white border-white' 
                 : 'bg-gray-100 text-gray-600 border-gray-400'
@@ -1503,74 +1493,146 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           >
             Weekly
           </button>
+          <button
+            onClick={() => setActiveTimePeriodTab('all-time')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[1deg] border-2 border-dashed ${
+              activeTimePeriodTab === 'all-time' 
+                ? 'bg-[#0c703b] text-white border-white' 
+                : 'bg-gray-100 text-gray-600 border-gray-400'
+            }`}
+          >
+            All-time
+          </button>
         </div>
 
         {activeTimePeriodTab === 'weekly' ? (
-          context?.user?.fid === 234692 ? (
-            <>
-              {/* Category Tabs */}
-              <div className="flex gap-2 mb-4">
-                <button
-                  onClick={() => setActiveLeaderboardTab('points')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[-1deg] border-2 border-dashed ${
-                    activeLeaderboardTab === 'points' 
-                      ? 'bg-[#0c703b] text-white border-white' 
-                      : 'bg-gray-100 text-gray-600 border-gray-400'
-                  }`}
-                >
-                  🏆
-                </button>
-                <button
-                  onClick={() => setActiveLeaderboardTab('drawers')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[1deg] border-2 border-dashed ${
-                    activeLeaderboardTab === 'drawers' 
-                      ? 'bg-[#0c703b] text-white border-white' 
-                      : 'bg-gray-100 text-gray-600 border-gray-400'
-                  }`}
-                >
-                  Drawers
-                </button>
-                <button
-                  onClick={() => setActiveLeaderboardTab('guessers')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[-2deg] border-2 border-dashed ${
-                    activeLeaderboardTab === 'guessers' 
-                      ? 'bg-[#0c703b] text-white border-white' 
-                      : 'bg-gray-100 text-gray-600 border-gray-400'
-                  }`}
-                >
-                  Guessers
-                </button>
-              </div>
+          <>
+            {/* Category Tabs */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setActiveLeaderboardTab('points')}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[-1deg] border-2 border-dashed ${
+                  activeLeaderboardTab === 'points' 
+                    ? 'bg-[#0c703b] text-white border-white' 
+                    : 'bg-gray-100 text-gray-600 border-gray-400'
+                }`}
+              >
+                🏆
+              </button>
+              <button
+                onClick={() => setActiveLeaderboardTab('drawers')}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[1deg] border-2 border-dashed ${
+                  activeLeaderboardTab === 'drawers' 
+                    ? 'bg-[#0c703b] text-white border-white' 
+                    : 'bg-gray-100 text-gray-600 border-gray-400'
+                }`}
+              >
+                Drawers
+              </button>
+              <button
+                onClick={() => setActiveLeaderboardTab('guessers')}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors transform rotate-[-2deg] border-2 border-dashed ${
+                  activeLeaderboardTab === 'guessers' 
+                    ? 'bg-[#0c703b] text-white border-white' 
+                    : 'bg-gray-100 text-gray-600 border-gray-400'
+                }`}
+              >
+                Guessers
+              </button>
+            </div>
 
-              <div className="space-y-2">
-                {sortedUsers.map((user, index) => (
-                  <div 
-                    key={user.fid}
-                    className={`p-3 rounded-lg flex items-center gap-3 transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} ${
-                      context?.user?.fid === user.fid 
-                        ? 'bg-green-100' 
-                        : 'bg-gray-100'
+            <div className="space-y-2">
+              {sortedUsers.map((user, index) => (
+                <div 
+                  key={user.fid}
+                  className={`p-3 rounded-lg flex items-center gap-3 transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} ${
+                    context?.user?.fid === user.fid 
+                      ? 'bg-green-100' 
+                      : 'bg-gray-100'
                     } border-2 border-dashed border-gray-400`}
+                >
+                  <div className="text-lg font-bold w-8">{index + 1}</div>
+                  {user.pfpUrl && (
+                    <Image 
+                      src={user.pfpUrl} 
+                      alt={user.username} 
+                      width={32} 
+                      height={32} 
+                      className="rounded-full transform rotate-[2deg]"
+                      quality={75}
+                      unoptimized
+                    />
+                  )}
+                  <div className="flex-1">
+                    <div className="font-bold flex items-center gap-2">
+                      {user.username}
+                      {user.isEarlyAdopter && (
+                        <div className="relative group">
+                          <Image 
+                            src="/OGbadge.png" 
+                            alt="Early Adopter" 
+                            width={20} 
+                            height={20} 
+                            className="rounded-full transform rotate-[-2deg] cursor-help"
+                            title="OG user"
+                          />
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            OG user
+                          </div>
+                        </div>
+                      )}
+                      {user.isCoined && (
+                        <div className="relative group">
+                          <Image 
+                            src="/coinerbadge.png" 
+                            alt="Coined a drawing" 
+                            width={20} 
+                            height={20} 
+                            className="rounded-full transform rotate-[-2deg] cursor-help"
+                            title="Coined a drawing"
+                          />
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            Coined a drawing
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {activeLeaderboardTab === 'points' && `${user.weeklyPoints || 0} points`}
+                      {activeLeaderboardTab === 'drawers' && `${user.weeklyGameSolutions || 0} solutions`}
+                      {activeLeaderboardTab === 'guessers' && `${user.weeklyCorrectGuesses || 0} correct guesses`}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Show current user's position if not in top 10 */}
+              {leaderboardData.currentUser && !sortedUsers.some(u => u.fid === leaderboardData.currentUser?.fid) && (
+                <>
+                  <div className="h-4"></div>
+                  <div className="border-t-2 border-dashed border-gray-400 my-2"></div>
+                  <div 
+                    className="p-3 bg-green-100 rounded-lg flex items-center gap-3 transform rotate-[1deg] border-2 border-dashed border-gray-400"
                   >
-                    <div className="text-lg font-bold w-8">{index + 1}</div>
-                    {user.pfpUrl && (
+                    <div className="text-lg font-bold w-8">{leaderboardData.currentUser.rank}</div>
+                    {leaderboardData.currentUser.pfpUrl && (
                       <Image 
-                        src={user.pfpUrl} 
-                        alt={user.username} 
+                        src={leaderboardData.currentUser.pfpUrl} 
+                        alt={leaderboardData.currentUser.username} 
                         width={32} 
                         height={32} 
-                        className="rounded-full transform rotate-[2deg]"
+                        className="rounded-full transform rotate-[-2deg]"
                         quality={75}
                         unoptimized
                       />
                     )}
                     <div className="flex-1">
                       <div className="font-bold flex items-center gap-2">
-                        {user.username}
-                        {user.isEarlyAdopter && (
+                        {leaderboardData.currentUser.username}
+                        {leaderboardData.currentUser.isEarlyAdopter && (
                           <div className="relative group">
                             <Image 
-                              src="/OGbadge.png" 
+                              src="/icon.png" 
                               alt="Early Adopter" 
                               width={20} 
                               height={20} 
@@ -1582,101 +1644,33 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                             </div>
                           </div>
                         )}
-                        {user.isCoined && (
+                        {leaderboardData.currentUser.isCoined && (
                           <div className="relative group">
                             <Image 
                               src="/coinerbadge.png" 
-                              alt="Coined a drawing" 
+                              alt="Coined a drawing on the Collect page!" 
                               width={20} 
                               height={20} 
                               className="rounded-full transform rotate-[-2deg] cursor-help"
-                              title="Coined a drawing"
+                              title="Coined a drawing on the Collect page!"
                             />
                             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              Coined a drawing
+                              Coined drawing on the Collect page!
                             </div>
                           </div>
                         )}
                       </div>
                       <div className="text-sm text-gray-600">
-                        {activeLeaderboardTab === 'points' && `${user.weeklyPoints || 0} points`}
-                        {activeLeaderboardTab === 'drawers' && `${user.weeklyGameSolutions || 0} solutions`}
-                        {activeLeaderboardTab === 'guessers' && `${user.weeklyCorrectGuesses || 0} correct guesses`}
+                        {activeLeaderboardTab === 'points' && `${leaderboardData.currentUser.weeklyPoints || 0} points`}
+                        {activeLeaderboardTab === 'drawers' && `${leaderboardData.currentUser.weeklyGameSolutions || 0} solutions`}
+                        {activeLeaderboardTab === 'guessers' && `${leaderboardData.currentUser.weeklyCorrectGuesses || 0} correct guesses`}
                       </div>
                     </div>
                   </div>
-                ))}
-
-                {/* Show current user's position if not in top 10 */}
-                {leaderboardData.currentUser && !sortedUsers.some(u => u.fid === leaderboardData.currentUser?.fid) && (
-                  <>
-                    <div className="h-4"></div>
-                    <div className="border-t-2 border-dashed border-gray-400 my-2"></div>
-                    <div 
-                      className="p-3 bg-green-100 rounded-lg flex items-center gap-3 transform rotate-[1deg] border-2 border-dashed border-gray-400"
-                    >
-                      <div className="text-lg font-bold w-8">{leaderboardData.currentUser.rank}</div>
-                      {leaderboardData.currentUser.pfpUrl && (
-                        <Image 
-                          src={leaderboardData.currentUser.pfpUrl} 
-                          alt={leaderboardData.currentUser.username} 
-                          width={32} 
-                          height={32} 
-                          className="rounded-full transform rotate-[-2deg]"
-                          quality={75}
-                          unoptimized
-                        />
-                      )}
-                      <div className="flex-1">
-                        <div className="font-bold flex items-center gap-2">
-                          {leaderboardData.currentUser.username}
-                          {leaderboardData.currentUser.isEarlyAdopter && (
-                            <div className="relative group">
-                              <Image 
-                                src="/icon.png" 
-                                alt="Early Adopter" 
-                                width={20} 
-                                height={20} 
-                                className="rounded-full transform rotate-[-2deg] cursor-help"
-                                title="OG user"
-                              />
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                OG user
-                              </div>
-                            </div>
-                          )}
-                          {leaderboardData.currentUser.isCoined && (
-                            <div className="relative group">
-                              <Image 
-                                src="/coinerbadge.png" 
-                                alt="Coined a drawing on the Collect page!" 
-                                width={20} 
-                                height={20} 
-                                className="rounded-full transform rotate-[-2deg] cursor-help"
-                                title="Coined a drawing on the Collect page!"
-                              />
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                Coined drawing on the Collect page!
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {activeLeaderboardTab === 'points' && `${leaderboardData.currentUser.weeklyPoints || 0} points`}
-                          {activeLeaderboardTab === 'drawers' && `${leaderboardData.currentUser.weeklyGameSolutions || 0} solutions`}
-                          {activeLeaderboardTab === 'guessers' && `${leaderboardData.currentUser.weeklyCorrectGuesses || 0} correct guesses`}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="text-center p-4 bg-gray-100 rounded-lg text-gray-600 transform rotate-[1deg] border-2 border-dashed border-gray-400">
-              Weekly rankings are coming!
+                </>
+              )}
             </div>
-          )
+          </>
         ) : (
           <>
             {/* Category Tabs */}
@@ -1721,7 +1715,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     context?.user?.fid === user.fid 
                       ? 'bg-green-100' 
                       : 'bg-gray-100'
-                  } border-2 border-dashed border-gray-400`}
+                    } border-2 border-dashed border-gray-400`}
                 >
                   <div className="text-lg font-bold w-8">{index + 1}</div>
                   {user.pfpUrl && (
