@@ -195,6 +195,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const GAMES_PER_PAGE = 150;
   const [showQuest, setShowQuest] = useState(false);
   const [isDailyQuestCompleted, setIsDailyQuestCompleted] = useState(false);
+  const [selectedColor, setSelectedColor] = useState('black');
   // Add wallet connection state
 
   // Add function to calculate remaining time
@@ -543,14 +544,24 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Set drawing style
-        ctx.strokeStyle = 'black';
+        // Set initial drawing style
+        ctx.strokeStyle = selectedColor;
         ctx.lineWidth = 5;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
       }
     }
-  }, [isDrawing]);
+  }, [isDrawing]); // Remove selectedColor dependency
+
+  // Update stroke color when selectedColor changes
+  useEffect(() => {
+    if (isDrawing && canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.strokeStyle = selectedColor;
+      }
+    }
+  }, [selectedColor, isDrawing]);
 
   // Timer effect
   useEffect(() => {
@@ -2090,9 +2101,28 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       >
         <div className="w-[300px] mx-auto px-2">
           <h1 className="text-2xl font-bold text-center mb-1 text-gray-600">Draw: {currentPrompt || 'Loading...'}</h1>
-          <div className="text-center mb-1 text-gray-600">
+          <div className="text-center mb-1 text-gray-600 mb-5">
             Time left: {timeLeft}s
           </div>
+
+          {/* Color Picker - Admin Only */}
+          {context?.user?.fid === 234692 && (
+            <div className="bg-gray-100 p-3 rounded-lg mb-2 border-2 border-dashed border-gray-400 transform rotate-[-1deg]">
+              <div className="flex justify-center gap-2">
+                {['black', 'red', 'blue', 'green', 'yellow', 'brown'].map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setSelectedColor(color)}
+                    className={`w-8 h-8 rounded-full border-2 ${
+                      selectedColor === color ? 'border-gray-800 scale-110' : 'border-gray-300'
+                    } transition-transform hover:scale-105`}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Drawing Canvas Area */}
           <div className="w-full aspect-square bg-white rounded-lg mb-4 border-2 border-gray-300 overflow-hidden select-none"
