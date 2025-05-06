@@ -41,6 +41,34 @@ async function processBatch(tokens: NotificationToken[], batchSize: number = 100
   return results;
 }
 
+// Function to handle notifications asynchronously
+async function handleNotifications() {
+  try {
+    // Get all notification tokens with pagination
+    const { notificationTokens } = await fetchNotificationTokens();
+    console.log("Found tokens:", notificationTokens.length);
+    
+    // Filter for enabled tokens only
+    const enabledTokens = notificationTokens.filter(token => token.status === 'enabled');
+    console.log("Enabled tokens:", enabledTokens.length);
+    
+    if (enabledTokens.length === 0) {
+      console.log("No users have enabled notifications");
+      return;
+    }
+    
+    // Process tokens in batches
+    const results = await processBatch(enabledTokens, 100, 1000);
+    console.log("Notifications sent successfully", {
+      totalProcessed: results.length,
+      successful: results.filter(r => r.result.state === "success").length,
+      failed: results.filter(r => r.result.state === "error").length
+    });
+  } catch (error) {
+    console.error("Error in handleNotifications:", error);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log("Received request to send daily notifications");
@@ -77,29 +105,15 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Get all notification tokens with pagination
-    const { notificationTokens } = await fetchNotificationTokens();
-    console.log("Found tokens:", notificationTokens.length);
-    
-    // Filter for enabled tokens only
-    const enabledTokens = notificationTokens.filter(token => token.status === 'enabled');
-    console.log("Enabled tokens:", enabledTokens.length);
-    
-    if (enabledTokens.length === 0) {
-      return Response.json({ 
-        success: true, 
-        message: "No users have enabled notifications" 
-      });
-    }
-    
-    // Process tokens in batches
-    const results = await processBatch(enabledTokens, 10, 1000);
-    
-    console.log("Notifications sent successfully");
+    // Start processing notifications asynchronously
+    handleNotifications().catch(error => {
+      console.error("Error in async notification processing:", error);
+    });
+
+    // Return immediately
     return Response.json({ 
       success: true, 
-      results,
-      totalEnabledTokens: enabledTokens.length
+      message: "Notification process started" 
     });
   } catch (error) {
     console.error("Top-level error in send-daily-notification:", error);
