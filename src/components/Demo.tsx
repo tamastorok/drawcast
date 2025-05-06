@@ -3616,9 +3616,9 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   </svg>
                 </button>
 
-                <h2 className="text-xl font-bold text-center mb-2 text-gray-800 transform rotate-[1deg]">Great job! Submitted!</h2>
+                <h2 className="text-xl font-bold text-center mb-2 text-gray-800 transform rotate-[1deg]">Submitted, Great job!</h2>
                 <p className="text-center text-gray-600 mb-6 transform rotate-[-2deg]">
-                Invite your friends and earn points every time they guess correctly! 
+                Get more points by inviting friends on Warpcast!
                 </p>
 
                 <button
