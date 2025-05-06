@@ -21,11 +21,11 @@
       "doodle",
       "party game"
     ],
-    "heroImageUrl": "https://drawcast.xyz/Storehero.png",
+    "heroImageUrl": "https://drawcast.xyz/DrawcastHero.png",
     "tagline": "Draw, challenge friends & earn points",
     "ogTitle": "Drawcast - Fun Drawing Game",
     "ogDescription": "Create fun sketches, guess drawings, earn points, and climb the ranks. Join thousands already playing!",
-    "ogImageUrl": "https://drawcast.xyz/Storehero.png",
+    "ogImageUrl": "https://drawcast.xyz/DrawcastHero.png",
     "version": "1",
     "iconUrl": "https://drawcast.xyz/icon.png",
     "homeUrl": "https://drawcast.xyz",
