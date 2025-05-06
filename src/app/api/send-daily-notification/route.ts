@@ -1,5 +1,45 @@
 import { NextRequest } from "next/server";
 import { sendNeynarFrameNotification, fetchNotificationTokens, getNeynarClient } from "~/lib/neynar";
+import type { NotificationToken } from "~/lib/neynar";
+
+// Helper function to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to process tokens in batches
+async function processBatch(tokens: NotificationToken[], batchSize: number = 100, delayMs: number = 1000) {
+  const results = [];
+  for (let i = 0; i < tokens.length; i += batchSize) {
+    const batch = tokens.slice(i, i + batchSize);
+    console.log(`Processing batch ${i/batchSize + 1} of ${Math.ceil(tokens.length/batchSize)}`);
+    
+    const batchResults = await Promise.all(
+      batch.map(async (token) => {
+        console.log("Sending notification to FID:", token.fid);
+        try {
+          const result = await sendNeynarFrameNotification({
+            fid: token.fid,
+            title: "Drawcast",
+            body: "Time to draw and challenge your friends!",
+            targetUrl: "https://drawcast.xyz"
+          });
+          return { fid: token.fid, result };
+        } catch (error) {
+          console.error(`Error sending notification to FID ${token.fid}:`, error);
+          return { fid: token.fid, result: { state: "error", error } };
+        }
+      })
+    );
+    
+    results.push(...batchResults);
+    
+    // Add delay between batches, but not after the last batch
+    if (i + batchSize < tokens.length) {
+      console.log(`Waiting ${delayMs}ms before next batch...`);
+      await delay(delayMs);
+    }
+  }
+  return results;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,21 +92,8 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    // Send notification to each user with an enabled token
-    const results = await Promise.all(
-      enabledTokens.map(async (token) => {
-        console.log("Sending notification to FID:", token.fid);
-        // Send notification using Neynar
-        const result = await sendNeynarFrameNotification({
-          fid: token.fid,
-          title: "Drawcast",
-          body: "Time to draw and challenge your friends!",
-          targetUrl: "https://drawcast.xyz"
-        });
-        
-        return { fid: token.fid, result };
-      })
-    );
+    // Process tokens in batches
+    const results = await processBatch(enabledTokens, 10, 1000);
     
     console.log("Notifications sent successfully");
     return Response.json({ 

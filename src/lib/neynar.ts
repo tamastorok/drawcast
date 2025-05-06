@@ -2,7 +2,7 @@ import { NeynarAPIClient, Configuration } from "@neynar/nodejs-sdk";
 
 let neynarClient: NeynarAPIClient | null = null;
 
-interface NotificationToken {
+export interface NotificationToken {
   fid: number;
   token: string;
   url: string;
