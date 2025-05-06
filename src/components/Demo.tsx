@@ -2309,6 +2309,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       // Track correct guess event
       if (isCorrect) {
         trackEvent('correct_guess');
+      } else {
+        trackEvent('incorrect_guess');
       }
 
       // Use a batch to ensure atomicity
@@ -3414,10 +3416,15 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
       // Update local state
       setIsDailyQuestCompleted(isCompleted);
+
+      // Track quest completion in Google Analytics
+      if (isCompleted && !userStats.isDailyQuestCompleted) {
+        trackEvent('daily_quest_completed');
+      }
     } catch (error) {
       console.error('Error updating daily quest completion status:', error);
     }
-  }, [userStats, context?.user?.fid, db]);
+  }, [userStats, context?.user?.fid, db, trackEvent]);
 
   // Add useEffect to check quest completion when userStats changes
   useEffect(() => {
