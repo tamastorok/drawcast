@@ -5,8 +5,8 @@ import type { NotificationToken } from "~/lib/neynar";
 // Helper function to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Helper function to process tokens in batches
-async function processBatch(tokens: NotificationToken[], batchSize: number = 100, delayMs: number = 1000) {
+// Helper function to process tokens in batches with retries
+async function processBatch(tokens: NotificationToken[], batchSize: number = 100, delayMs: number = 1000, maxRetries: number = 3) {
   const results = [];
   for (let i = 0; i < tokens.length; i += batchSize) {
     const batch = tokens.slice(i, i + batchSize);
@@ -15,18 +15,43 @@ async function processBatch(tokens: NotificationToken[], batchSize: number = 100
     const batchResults = await Promise.all(
       batch.map(async (token) => {
         console.log("Sending notification to FID:", token.fid);
-        try {
-          const result = await sendNeynarFrameNotification({
-            fid: token.fid,
-            title: "Drawcast",
-            body: "Time to draw and challenge your friends!",
-            targetUrl: "https://drawcast.xyz"
-          });
-          return { fid: token.fid, result };
-        } catch (error) {
-          console.error(`Error sending notification to FID ${token.fid}:`, error);
-          return { fid: token.fid, result: { state: "error", error } };
+        let lastError;
+        
+        // Try up to maxRetries times
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            const result = await sendNeynarFrameNotification({
+              fid: token.fid,
+              title: "Drawcast",
+              body: "Time to draw and challenge your friends!",
+              targetUrl: "https://drawcast.xyz"
+            });
+            
+            // If successful or no token, return immediately
+            if (result.state === "success" || result.state === "no_token") {
+              return { fid: token.fid, result };
+            }
+            
+            // If error, wait before retrying
+            lastError = result.error;
+            if (attempt < maxRetries) {
+              const retryDelay = attempt * 1000; // Exponential backoff
+              console.log(`Retry ${attempt}/${maxRetries} for FID ${token.fid} after ${retryDelay}ms`);
+              await delay(retryDelay);
+            }
+          } catch (error) {
+            lastError = error;
+            if (attempt < maxRetries) {
+              const retryDelay = attempt * 1000; // Exponential backoff
+              console.log(`Retry ${attempt}/${maxRetries} for FID ${token.fid} after ${retryDelay}ms`);
+              await delay(retryDelay);
+            }
+          }
         }
+        
+        // If we get here, all retries failed
+        console.error(`All retries failed for FID ${token.fid}:`, lastError);
+        return { fid: token.fid, result: { state: "error", error: lastError } };
       })
     );
     
@@ -62,13 +87,14 @@ async function handleNotifications() {
           enabledTokens: 0,
           processed: 0,
           successful: 0,
-          failed: 0
+          failed: 0,
+          noToken: 0
         }
       };
     }
     
-    // Process tokens in batches
-    const results = await processBatch(enabledTokens, 100, 1000);
+    // Process tokens in batches of 100 with 1s delay
+    const results = await processBatch(enabledTokens, 100, 1000, 3);
     
     // Calculate statistics
     const stats = {
@@ -76,14 +102,18 @@ async function handleNotifications() {
       enabledTokens: enabledTokens.length,
       processed: results.length,
       successful: results.filter(r => r.result.state === "success").length,
-      failed: results.filter(r => r.result.state === "error").length
+      failed: results.filter(r => r.result.state === "error").length,
+      noToken: results.filter(r => r.result.state === "no_token").length
     };
     
     console.log("Notification sending complete", stats);
     
+    // Consider it a success if we have at least some successful notifications
+    const success = stats.successful > 0;
+    
     return {
-      success: true,
-      message: "Notifications sent successfully",
+      success,
+      message: success ? "Notifications sent successfully" : "No notifications were sent successfully",
       stats
     };
   } catch (error) {
