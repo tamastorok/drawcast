@@ -2769,39 +2769,37 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         </div>
 
         {/* Quest Item */}
-        {context?.user?.fid === 234692 && (
-          <div className="mb-4">
-            <button
-              onClick={() => setShowQuest(true)}
-              disabled={isDailyQuestCompleted}
-              className={`w-full p-4 rounded-lg transform rotate-[1deg] border-2 border-dashed border-gray-400 bg-white transition-colors ${
-                isDailyQuestCompleted 
-                  ? 'opacity-50 cursor-not-allowed' 
-                  : 'hover:bg-gray-50 animate-glow'
-              }`}
-            >
-              <div className="flex flex-row items-center justify-center gap-4">
-                <Image src="/quest.png" alt="Quest" width={30} height={30} />
-                <div className="flex flex-col flex-1 items-center">
-                  <div className="flex justify-center items-center mb-2 w-full">
-                    <span className="text-gray-800 font-bold text-sm">
-                      {isDailyQuestCompleted 
-                        ? "Quest is completed!"
-                        : "Quest: Earn 100 points!"
-                      }
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-600 text-center">
+        <div className="mb-4">
+          <button
+            onClick={() => setShowQuest(true)}
+            disabled={isDailyQuestCompleted}
+            className={`w-full p-4 rounded-lg transform rotate-[1deg] border-2 border-dashed border-gray-400 bg-white transition-colors ${
+              isDailyQuestCompleted 
+                ? 'opacity-50 cursor-not-allowed' 
+                : 'hover:bg-gray-50 animate-glow'
+            }`}
+          >
+            <div className="flex flex-row items-center justify-center gap-4">
+              <Image src="/quest.png" alt="Quest" width={30} height={30} />
+              <div className="flex flex-col flex-1 items-center">
+                <div className="flex justify-center items-center mb-2 w-full">
+                  <span className="text-gray-800 font-bold text-sm">
                     {isDailyQuestCompleted 
-                      ? `Next quest in ${getQuestTimeInfo().hours}h ${getQuestTimeInfo().minutes}m`
-                      : `Ends in ${getQuestTimeInfo().hours}h ${getQuestTimeInfo().minutes}m`
+                      ? "Quest is completed!"
+                      : "Quest: Earn 100 points!"
                     }
-                  </div>
+                  </span>
+                </div>
+                <div className="text-xs text-gray-600 text-center">
+                  {isDailyQuestCompleted 
+                    ? `Next quest in ${getQuestTimeInfo().hours}h ${getQuestTimeInfo().minutes}m`
+                    : `Ends in ${getQuestTimeInfo().hours}h ${getQuestTimeInfo().minutes}m`
+                  }
                 </div>
               </div>
-            </button>
-          </div>
-        )}
+            </div>
+          </button>
+        </div>
 
         <div className="space-y-2">
           {isLoadingGames ? (
@@ -3452,8 +3450,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       // Update database with the result
       await setDoc(userRef, {
         isDailyQuestCompleted: isCompleted,
-        // Only increment dailyQuests if the quest was just completed
-        ...(isCompleted && !userStats.isDailyQuestCompleted ? { dailyQuests: increment(1) } : {})
+        // Only increment dailyQuests and add points if the quest was just completed
+        ...(isCompleted && !userStats.isDailyQuestCompleted ? { 
+          dailyQuests: increment(1),
+          points: increment(100),
+          weeklyPoints: increment(100)
+        } : {})
       }, { merge: true });
 
       // Update local state
@@ -3592,8 +3594,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setSelectedGame(null);
                   }}
                 >
-                  <span className="text-2xl">
-                    <Image src="/guess.png" alt="Guess" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} unoptimized />
+                  <span className="text-2xl relative">
+                    <Image src="/guess.png" alt="Guess" width={24} height={24} className="transform rotate-[-2deg] relative z-10" priority quality={75} unoptimized />
+                    {!isDailyQuestCompleted && (
+                      <div className="absolute inset-[-30%] bg-[#FFD700] rounded-full blur-md opacity-90 group-hover:opacity-100 transition-opacity duration-1200 animate-pulse"></div>
+                    )}
                   </span>
                   <span className="text-xs">Join</span>
                 </button>
@@ -3608,9 +3613,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     setSelectedGame(null);
                   }}
                 >
-                  <span className="text-2xl relative">
-                    <Image src="/collection.png" alt="Collection" width={24} height={24} className="transform rotate-[-2deg] relative z-10" priority quality={75} unoptimized />
-                    <div className="absolute inset-[-30%] bg-[#FFD700] rounded-full blur-md opacity-90 group-hover:opacity-100 transition-opacity duration-1200 animate-pulse"></div>
+                  <span className="text-2xl">
+                    <Image src="/collection.png" alt="Collection" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} unoptimized />
                   </span>
                   <span className="text-xs">Collect</span>
                 </button>
