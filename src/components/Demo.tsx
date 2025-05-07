@@ -2771,7 +2771,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         {/* Quest Item */}
         <div className="mb-4">
           <button
-            onClick={() => setShowQuest(true)}
+            onClick={() => {
+              trackEvent('daily_quest_opened');
+              setShowQuest(true);
+            }}
             disabled={isDailyQuestCompleted}
             className={`w-full p-4 rounded-lg transform rotate-[1deg] border-2 border-dashed border-gray-400 bg-white transition-colors ${
               isDailyQuestCompleted 
