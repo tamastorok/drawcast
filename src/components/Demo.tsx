@@ -823,7 +823,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     };
 
     fetchUserData();
-  }, [context?.user?.fid, showProfile, showLeaderboard, db]);
+  }, [context?.user?.fid, showProfile, showLeaderboard, showGuess, db]);
 
   // Fetch created games when section is expanded
   useEffect(() => {
