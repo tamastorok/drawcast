@@ -41,7 +41,7 @@ async function processBatch(tokens: NotificationToken[], batchSize: number = 100
   return results;
 }
 
-// Function to handle notifications asynchronously
+// Function to handle notifications
 async function handleNotifications() {
   try {
     // Get all notification tokens with pagination
@@ -54,18 +54,45 @@ async function handleNotifications() {
     
     if (enabledTokens.length === 0) {
       console.log("No users have enabled notifications");
-      return;
+      return {
+        success: true,
+        message: "No enabled notification tokens found",
+        stats: {
+          totalTokens: notificationTokens.length,
+          enabledTokens: 0,
+          processed: 0,
+          successful: 0,
+          failed: 0
+        }
+      };
     }
     
     // Process tokens in batches
     const results = await processBatch(enabledTokens, 100, 1000);
-    console.log("Notifications sent successfully", {
-      totalProcessed: results.length,
+    
+    // Calculate statistics
+    const stats = {
+      totalTokens: notificationTokens.length,
+      enabledTokens: enabledTokens.length,
+      processed: results.length,
       successful: results.filter(r => r.result.state === "success").length,
       failed: results.filter(r => r.result.state === "error").length
-    });
+    };
+    
+    console.log("Notification sending complete", stats);
+    
+    return {
+      success: true,
+      message: "Notifications sent successfully",
+      stats
+    };
   } catch (error) {
     console.error("Error in handleNotifications:", error);
+    return {
+      success: false,
+      error: "Failed to send notifications",
+      details: error instanceof Error ? error.message : "Unknown error"
+    };
   }
 }
 
@@ -105,16 +132,14 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Start processing notifications asynchronously
-    handleNotifications().catch(error => {
-      console.error("Error in async notification processing:", error);
-    });
+    // Process notifications and wait for completion
+    const result = await handleNotifications();
+    
+    if (!result.success) {
+      return Response.json(result, { status: 500 });
+    }
 
-    // Return immediately
-    return Response.json({ 
-      success: true, 
-      message: "Notification process started" 
-    });
+    return Response.json(result);
   } catch (error) {
     console.error("Top-level error in send-daily-notification:", error);
     return Response.json({ 
