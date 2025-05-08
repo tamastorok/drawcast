@@ -1313,7 +1313,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                     }}
                     onPaymentStarted={(e) => {
                       if (analytics) {
-                        logEvent(analytics, 'clicked_upgrade_list');
+                        logEvent(analytics, 'premium_button_click');
                       }
                       console.log(e);
                     }}
@@ -1340,6 +1340,11 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                             premiumActivatedAt: new Date().toISOString(),
                             premiumDeactivatedAt: newDeactivationDate.toISOString()
                           });
+                          
+                          // Track premium upgrade event
+                          if (analytics) {
+                            logEvent(analytics, 'premium_upgrade');
+                          }
                           
                           // Refresh user stats
                           const updatedStats = await fetchUserStats(context.user.fid);
