@@ -13,15 +13,14 @@ import { createCoin, getCoinCreateFromLogs } from "@zoralabs/coins-sdk";
 import { createWalletClient, createPublicClient, http, custom } from "viem";
 import { base } from "viem/chains";
 import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { DaimoPayButton } from '@daimo/pay';
+import { getAddress } from 'viem';
 
-// Add type declaration for window.ethereum
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: unknown[] }) => Promise<string[]>;
-    };
-  }
-}
+// Add baseUSDC constant
+const baseUSDC = {
+  chainId: 8453,
+  token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+};
 
 interface LeaderboardUser {
   fid: number;
@@ -124,6 +123,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     dailyCorrectGuesses?: number;
     dailyQuests?: number;
     isDailyQuestCompleted?: boolean;
+    isPremium?: boolean;
   } | null>(null);
   const [createdGames, setCreatedGames] = useState<Array<{
     id: string;
@@ -197,6 +197,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [isDailyQuestCompleted, setIsDailyQuestCompleted] = useState(false);
   const [selectedColor, setSelectedColor] = useState('black');
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+  const [premiumExpirationDays, setPremiumExpirationDays] = useState<number | null>(null);
   // Add wallet connection state
 
   // Add function to calculate remaining time
@@ -736,7 +737,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             dailyShared: userData.dailyShared || 0,
             dailyCorrectGuesses: userData.dailyCorrectGuesses || 0,
             dailyQuests: userData.dailyQuests || 0,
-            isDailyQuestCompleted: userData.isDailyQuestCompleted || false
+            isDailyQuestCompleted: userData.isDailyQuestCompleted || false,
+            isPremium: userData.isPremium || false
           });
         } else {
           setUserStats({
@@ -756,7 +758,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             dailyShared: 0,
             dailyCorrectGuesses: 0,
             dailyQuests: 0,
-            isDailyQuestCompleted: false
+            isDailyQuestCompleted: false,
+            isPremium: false
           });
         }
 
@@ -981,6 +984,41 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     }
   };
 
+  const fetchUserStats = async (fid: number) => {
+    try {
+      const userRef = doc(db, 'users', fid.toString());
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        return {
+          correctGuesses: data.correctGuesses || 0,
+          points: data.points || 0,
+          created: data.created || 0,
+          gameSolutions: data.gameSolutions || 0,
+          isEarlyAdopter: data.isEarlyAdopter || false,
+          streak: data.streak || 0,
+          streakPoints: data.streakPoints || 0,
+          isCoined: data.isCoined || false,
+          weeklyWins: data.weeklyWins || 0,
+          weeklyTopDrawer: data.weeklyTopDrawer || 0,
+          weeklyTopGuesser: data.weeklyTopGuesser || 0,
+          weeklyPoints: data.weeklyPoints || 0,
+          dailyGamesCreated: data.dailyGamesCreated || 0,
+          dailyShared: data.dailyShared || 0,
+          dailyCorrectGuesses: data.dailyCorrectGuesses || 0,
+          dailyQuests: data.dailyQuests || 0,
+          isDailyQuestCompleted: data.isDailyQuestCompleted || false,
+          isPremium: data.isPremium || false
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+      return null;
+    }
+  };
+
   const renderProfile = () => {
     return (
       <div>
@@ -998,8 +1036,26 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         </div>
 
         {/* Username */}
-        <h2 className="text-xl font-bold text-center mb-2 text-gray-800 transform rotate-[1deg]">
+        <h2 className="text-xl font-bold text-center mb-2 text-gray-800 transform rotate-[1deg] flex items-center justify-center gap-2">
           {context?.user?.username || 'Anonymous'}
+          {userStats?.isPremium && (
+            <div className="relative group">
+              <Image 
+                src="/Premium.png" 
+                alt="Premium" 
+                width={24} 
+                height={24} 
+                className="rounded-full transform rotate-[-2deg] cursor-help"
+                title="Premium User"
+                priority
+                quality={75}
+                unoptimized
+              />
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                Premium User
+              </div>
+            </div>
+          )}
         </h2>
 
         {/* Level Display */}
@@ -1222,6 +1278,162 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             )}
           </div>
         </div>
+
+        {/* Premium Plan Box */}
+        {!userStats?.isPremium && context?.user?.fid === 234692 && (
+          <div className="bg-gray-100 p-4 rounded-lg border-2 border-[#FFC024] transition-colors mb-6 transform rotate-[1deg] border-dashed">
+            <div className="flex justify-between items-start">
+              <div className="text-center w-full">
+                <h3 className="font-bold text-lg">Upgrade to Premium</h3>
+                <div className="text-sm text-gray-600 mt-1">
+                  <ul className="space-y-1">
+                    <li className="flex items-center gap-2">
+                      <span>✓</span>
+                      <span>Colored drawings</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span>✓</span>
+                      <span>Premium badge</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span>✓</span>
+                      <span>Support the app</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="mt-4">
+                  <DaimoPayButton.Custom
+                    appId="pay-glow-P36FYozSc24Ea6r75i8BAq"
+                    toChain={baseUSDC.chainId}
+                    toUnits="3.99"
+                    toToken={getAddress(baseUSDC.token)}
+                    toAddress="0xAbE4976624c9A6c6Ce0D382447E49B7feb639565"
+                    metadata={{
+                      name: "drawcast",
+                    }}
+                    onPaymentStarted={(e) => {
+                      if (analytics) {
+                        logEvent(analytics, 'clicked_upgrade_list');
+                      }
+                      console.log(e);
+                    }}
+                    onPaymentCompleted={async (e) => {
+                      console.log(e);
+                      if (context?.user?.fid) {
+                        try {
+                          const userRef = doc(db, 'users', context.user.fid.toString());
+                          const userDoc = await getDoc(userRef);
+                          const userData = userDoc.data();
+                          
+                          let newDeactivationDate;
+                          if (userData?.premiumDeactivatedAt) {
+                            const currentDeactivation = new Date(userData.premiumDeactivatedAt);
+                            newDeactivationDate = new Date(currentDeactivation.getTime() + (30 * 24 * 60 * 60 * 1000));
+                          } else {
+                            const now = new Date();
+                            newDeactivationDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+                          }
+
+                          await updateDoc(userRef, {
+                            isPremium: true,
+                            everPremium: true,
+                            premiumActivatedAt: new Date().toISOString(),
+                            premiumDeactivatedAt: newDeactivationDate.toISOString()
+                          });
+                          
+                          // Refresh user stats
+                          const updatedStats = await fetchUserStats(context.user.fid);
+                          setUserStats(updatedStats);
+                        } catch (error) {
+                          console.error('Error updating premium status:', error);
+                        }
+                      }
+                    }}
+                    paymentOptions={["Coinbase"]}
+                    preferredChains={[8453]}
+                  >
+                    {({ show }) => (
+                      <button 
+                        onClick={show} 
+                        className="bg-[#FFC024] text-black px-6 py-2 rounded-md hover:bg-[#FFB800] transition-colors font-medium text-sm transform rotate-[-1deg]"
+                      >
+                        $3.99/month
+                      </button>
+                    )}
+                  </DaimoPayButton.Custom>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Premium Expiration Notice */}
+        {userStats?.isPremium && premiumExpirationDays !== null && premiumExpirationDays <= 3 && premiumExpirationDays > 0 && (
+          <div className="bg-yellow-100 p-4 rounded-lg mb-6 transform rotate-[-1deg] border-2 border-dashed border-yellow-400">
+            <div className="flex flex-col items-center justify-center gap-3">
+              <span className="text-black">Your premium expires in {premiumExpirationDays} {premiumExpirationDays === 1 ? 'day' : 'days'}</span>
+              <DaimoPayButton.Custom
+                appId="pay-glow-P36FYozSc24Ea6r75i8BAq"
+                toChain={baseUSDC.chainId}
+                toUnits="3.99"
+                toToken={getAddress(baseUSDC.token)}
+                toAddress="0xAbE4976624c9A6c6Ce0D382447E49B7feb639565"
+                metadata={{
+                  name: "drawcast",
+                }}
+                onPaymentStarted={(e) => {
+                  if (analytics) {
+                    logEvent(analytics, 'clicked_renew_premium');
+                  }
+                  console.log(e);
+                }}
+                onPaymentCompleted={async (e) => {
+                  console.log(e);
+                  if (context?.user?.fid) {
+                    try {
+                      const userRef = doc(db, 'users', context.user.fid.toString());
+                      const userDoc = await getDoc(userRef);
+                      const userData = userDoc.data();
+                      
+                      let newDeactivationDate;
+                      if (userData?.premiumDeactivatedAt) {
+                        const currentDeactivation = new Date(userData.premiumDeactivatedAt);
+                        newDeactivationDate = new Date(currentDeactivation.getTime() + (30 * 24 * 60 * 60 * 1000));
+                      } else {
+                        const now = new Date();
+                        newDeactivationDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+                      }
+
+                      await updateDoc(userRef, {
+                        isPremium: true,
+                        everPremium: true,
+                        premiumActivatedAt: new Date().toISOString(),
+                        premiumDeactivatedAt: newDeactivationDate.toISOString()
+                      });
+                      
+                      // Refresh user stats
+                      const updatedStats = await fetchUserStats(context.user.fid);
+                      setUserStats(updatedStats);
+                    } catch (error) {
+                      console.error('Error updating premium status:', error);
+                    }
+                  }
+                }}
+                paymentOptions={["Coinbase"]}
+                preferredChains={[8453]}
+              >
+                {({ show }) => (
+                  <button 
+                    onClick={show} 
+                    className="bg-[#FFC024] text-black px-6 py-2 rounded-md hover:bg-[#FFB800] transition-colors font-medium text-sm transform rotate-[-1deg]"
+                  >
+                    Renew Now
+                  </button>
+                )}
+              </DaimoPayButton.Custom>
+            </div>
+          </div>
+        )}
 
         {/* Simplified Stats Box */}
         <div className="bg-gray-100 p-4 rounded-lg mb-6 transform rotate-[-1deg] border-2 border-dashed border-gray-400">
@@ -2119,20 +2331,29 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
           {/* Color Picker - Admin Only */}
           {context?.user?.fid === 234692 && (
-            <div className="bg-gray-100 p-3 rounded-lg mb-2 border-2 border-dashed border-gray-400 transform rotate-[-1deg]">
+            <div className="bg-gray-100 p-3 rounded-lg mb-2 border-2 border-dashed border-gray-400 transform rotate-[-1deg] relative group">
               <div className="flex justify-center gap-2">
                 {['black', 'red', 'blue', 'green', 'yellow', 'brown'].map((color) => (
                   <button
                     key={color}
-                    onClick={() => setSelectedColor(color)}
+                    onClick={() => userStats?.isPremium ? setSelectedColor(color) : null}
                     className={`w-8 h-8 rounded-full border-2 ${
                       selectedColor === color ? 'border-gray-800 scale-110' : 'border-gray-300'
-                    } transition-transform hover:scale-105`}
+                    } transition-transform ${userStats?.isPremium ? 'hover:scale-105' : 'opacity-50 cursor-not-allowed'}`}
                     style={{ backgroundColor: color }}
-                    title={color}
+                    title={userStats?.isPremium ? color : 'Premium feature'}
                   />
                 ))}
               </div>
+              {!userStats?.isPremium && (
+                <>
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+                    <div className="bg-gray-800 text-white px-3 py-2 rounded text-sm">
+                      Upgrade to premium to use colors
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -3484,6 +3705,27 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       checkDailyQuestCompletion();
     }
   }, [showGuess, checkDailyQuestCompletion]);
+
+  // Add useEffect for premium expiration
+  useEffect(() => {
+    const checkPremiumExpiration = async () => {
+      if (userStats?.isPremium && context?.user?.fid) {
+        const userRef = doc(db, 'users', context.user.fid.toString());
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const deactivationDate = new Date(userData.premiumDeactivatedAt);
+          const now = new Date();
+          const daysUntilExpiration = Math.ceil((deactivationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          setPremiumExpirationDays(daysUntilExpiration);
+        }
+      } else {
+        setPremiumExpirationDays(null);
+      }
+    };
+
+    checkPremiumExpiration();
+  }, [userStats?.isPremium, context?.user?.fid, db]);
 
   return (
     <div
