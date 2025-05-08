@@ -2330,19 +2330,19 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       >
         <div className="w-[300px] mx-auto px-2">
           <h1 className="text-2xl font-bold text-center mb-1 text-gray-600">Draw: {currentPrompt || 'Loading...'}</h1>
-          <div className="text-center mb-1 text-gray-600 mb-5">
+          <div className="text-center text-gray-600 mb-2">
             Time left: {timeLeft}s
           </div>
 
           {/* Color Picker - Admin Only */}
           {context?.user?.fid === 234692 && (
-            <div className="bg-gray-100 p-3 rounded-lg mb-2 border-2 border-dashed border-gray-400 transform rotate-[-1deg] relative group">
-              <div className="flex justify-center gap-2">
+            <div className="p-1 rounded-lg mb-1 transform rotate-[-1deg] relative group">
+              <div className="flex justify-center gap-1">
                 {['black', 'red', 'blue', 'green', 'yellow', 'brown'].map((color) => (
                   <button
                     key={color}
                     onClick={() => userStats?.isPremium ? setSelectedColor(color) : null}
-                    className={`w-8 h-8 rounded-full border-2 ${
+                    className={`w-6 h-6 rounded-full border-2 ${
                       selectedColor === color ? 'border-gray-800 scale-110' : 'border-gray-300'
                     } transition-transform ${userStats?.isPremium ? 'hover:scale-105' : 'opacity-50 cursor-not-allowed'}`}
                     style={{ backgroundColor: color }}
@@ -2353,7 +2353,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               {!userStats?.isPremium && (
                 <>
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
-                    <div className="bg-gray-800 text-white px-3 py-2 rounded text-sm">
+                    <div className="bg-gray-800 text-white px-2 py-1 rounded text-xs">
                       Upgrade to premium to use colors
                     </div>
                   </div>
@@ -2363,7 +2363,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           )}
 
           {/* Drawing Canvas Area */}
-          <div className="w-full aspect-square bg-white rounded-lg mb-4 border-2 border-gray-300 overflow-hidden select-none"
+          <div className="w-full aspect-square bg-white rounded-lg mb-2 border-2 border-gray-300 overflow-hidden select-none"
                style={{ touchAction: 'none' }}>
             <canvas
               ref={canvasRef}
