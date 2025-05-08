@@ -2,8 +2,8 @@ name: Daily Quest Reset
 
 on:
   schedule:
-    # Run at 11:59 PM UTC every day
-    - cron: "59 11 * * *"
+    # Run at 10:59 AM UTC every day
+    - cron: "59 10 * * *"
   # Allow manual trigger
   workflow_dispatch:
 
@@ -13,6 +13,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Reset daily quests
         run: |
           echo "Starting daily quest reset job..."
