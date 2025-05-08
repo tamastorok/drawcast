@@ -677,23 +677,38 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     lastPositionRef.current = null;
   };
 
-  // Mouse event handlers
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    startDrawing(e.clientX, e.clientY);
-  };
+  const drawDot = (x: number, y: number) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    draw(e.clientX, e.clientY);
-  };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const normalizedX = (x - rect.left) * scaleX;
+    const normalizedY = (y - rect.top) * scaleY;
 
-  const handleMouseUp = () => {
-    stopDrawing();
+    // Save the current context state
+    ctx.save();
+    
+    // Set dot-specific styles
+    ctx.lineWidth = 2;
+    ctx.fillStyle = ctx.strokeStyle; // Match fill color with stroke color
+    ctx.beginPath();
+    ctx.arc(normalizedX, normalizedY, 2, 0, 2 * Math.PI);
+    ctx.fill();  // Fill the circle
+    ctx.stroke(); // Add a stroke for better visibility
+    
+    // Restore the previous context state
+    ctx.restore();
   };
 
   // Touch event handlers
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const touch = e.touches[0];
+    drawDot(touch.clientX, touch.clientY);
     startDrawing(touch.clientX, touch.clientY);
   };
 
@@ -705,6 +720,20 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
+    stopDrawing();
+  };
+
+  // Mouse event handlers
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    drawDot(e.clientX, e.clientY);
+    startDrawing(e.clientX, e.clientY);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    draw(e.clientX, e.clientY);
+  };
+
+  const handleMouseUp = () => {
     stopDrawing();
   };
 
