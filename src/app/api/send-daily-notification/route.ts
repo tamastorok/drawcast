@@ -5,6 +5,23 @@ import type { NotificationToken } from "~/lib/neynar";
 // Helper function to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Notification message variations
+const NOTIFICATION_MESSAGES = [
+  "Time to draw and challenge your friends!",
+  "Ready for today's drawing challenge?",
+  "Your daily drawing adventure awaits!",
+  "New drawing prompt waiting for you!",
+  "Join the creative fun - it's drawing time!",
+  "Show off your artistic skills today!",
+  "Don't miss today's drawing challenge!"
+];
+
+// Helper function to get random message
+const getRandomMessage = () => {
+  const randomIndex = Math.floor(Math.random() * NOTIFICATION_MESSAGES.length);
+  return NOTIFICATION_MESSAGES[randomIndex];
+};
+
 // Helper function to process tokens in batches with retries
 async function processBatch(tokens: NotificationToken[], batchSize: number = 100, delayMs: number = 1000, maxRetries: number = 3) {
   const results = [];
@@ -23,7 +40,7 @@ async function processBatch(tokens: NotificationToken[], batchSize: number = 100
             const result = await sendNeynarFrameNotification({
               fid: token.fid,
               title: "Drawcast",
-              body: "Time to draw and challenge your friends!",
+              body: getRandomMessage(),
               targetUrl: "https://drawcast.xyz"
             });
             
