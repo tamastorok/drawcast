@@ -5,11 +5,15 @@ import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import Image from 'next/image';
 
 type Props = {
-  params: { fid: string };
+  params: Promise<{ fid: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { fid } = params;
+export async function generateMetadata(
+  { params }: Props
+): Promise<Metadata> {
+  const resolvedParams = await params;
+  const { fid } = resolvedParams;
 
   // Initialize Firebase
   const app = initializeApp({
@@ -151,7 +155,8 @@ function getLevelName(level: number): string {
 }
 
 export default async function ProfilePage({ params }: Props) {
-  const { fid } = params;
+  const resolvedParams = await params;
+  const { fid } = resolvedParams;
 
   // Initialize Firebase
   const app = initializeApp({
