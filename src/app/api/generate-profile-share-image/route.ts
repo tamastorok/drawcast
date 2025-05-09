@@ -7,7 +7,21 @@ import path from 'path';
 
 // Initialize Firebase Admin if it hasn't been initialized
 if (!getApps().length) {
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  if (!process.env.FIREBASE_ADMIN_PROJECT_ID) {
+    throw new Error('FIREBASE_ADMIN_PROJECT_ID is not set');
+  }
+  if (!process.env.FIREBASE_ADMIN_CLIENT_EMAIL) {
+    throw new Error('FIREBASE_ADMIN_CLIENT_EMAIL is not set');
+  }
+  if (!process.env.FIREBASE_ADMIN_PRIVATE_KEY) {
+    throw new Error('FIREBASE_ADMIN_PRIVATE_KEY is not set');
+  }
+  if (!process.env.FIREBASE_ADMIN_STORAGE_BUCKET) {
+    throw new Error('FIREBASE_ADMIN_STORAGE_BUCKET is not set');
+  }
+
+  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n');
+  
   initializeAdminApp({
     credential: cert({
       projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
