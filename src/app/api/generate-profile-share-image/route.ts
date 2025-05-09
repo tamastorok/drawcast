@@ -7,28 +7,28 @@ import path from 'path';
 
 // Initialize Firebase Admin if it hasn't been initialized
 if (!getApps().length) {
-  if (!process.env.FIREBASE_ADMIN_PROJECT_ID) {
-    throw new Error('FIREBASE_ADMIN_PROJECT_ID is not set');
+  if (!process.env.FIREBASE_PROJECT_ID) {
+    throw new Error('FIREBASE_PROJECT_ID is not set');
   }
-  if (!process.env.FIREBASE_ADMIN_CLIENT_EMAIL) {
-    throw new Error('FIREBASE_ADMIN_CLIENT_EMAIL is not set');
+  if (!process.env.FIREBASE_CLIENT_EMAIL) {
+    throw new Error('FIREBASE_CLIENT_EMAIL is not set');
   }
-  if (!process.env.FIREBASE_ADMIN_PRIVATE_KEY) {
-    throw new Error('FIREBASE_ADMIN_PRIVATE_KEY is not set');
+  if (!process.env.FIREBASE_PRIVATE_KEY) {
+    throw new Error('FIREBASE_PRIVATE_KEY is not set');
   }
-  if (!process.env.FIREBASE_ADMIN_STORAGE_BUCKET) {
-    throw new Error('FIREBASE_ADMIN_STORAGE_BUCKET is not set');
+  if (!process.env.FIREBASE_STORAGE_BUCKET) {
+    throw new Error('FIREBASE_STORAGE_BUCKET is not set');
   }
 
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n');
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
   
   initializeAdminApp({
     credential: cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey,
     }),
-    storageBucket: process.env.FIREBASE_ADMIN_STORAGE_BUCKET,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
   });
 }
 
