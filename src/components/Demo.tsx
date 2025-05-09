@@ -1049,6 +1049,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   };
 
   const renderProfile = () => {
+    const isAdmin = context?.user?.fid === 234692; // Hardcoded admin FID for now
+
     return (
       <div>
         {/* Profile Image */}
@@ -1064,28 +1066,64 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           )}
         </div>
 
-        {/* Username */}
-        <h2 className="text-xl font-bold text-center mb-2 text-gray-800 transform rotate-[1deg] flex items-center justify-center gap-2">
-          {context?.user?.username || 'Anonymous'}
-          {userStats?.isPremium && (
-            <div className="relative group">
-              <Image 
-                src="/Premium.png" 
-                alt="Premium" 
-                width={24} 
-                height={24} 
-                className="rounded-full transform rotate-[-2deg] cursor-help"
-                title="Premium User"
-                priority
-                quality={75}
-                unoptimized
-              />
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                Premium User
+        {/* Username and Share Button */}
+        <div className="flex items-center justify-center gap-4 mb-2">
+          <h2 className="text-xl font-bold text-gray-800 transform rotate-[1deg] flex items-center gap-2">
+            {context?.user?.username || 'Anonymous'}
+            {userStats?.isPremium && (
+              <div className="relative group">
+                <Image 
+                  src="/Premium.png" 
+                  alt="Premium" 
+                  width={24} 
+                  height={24} 
+                  className="rounded-full transform rotate-[-2deg] cursor-help"
+                  title="Premium User"
+                  priority
+                  quality={75}
+                  unoptimized
+                />
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  Premium User
+                </div>
               </div>
-            </div>
+            )}
+          </h2>
+          {isAdmin && (
+            <button
+              onClick={async () => {
+                if (context?.user?.fid) {
+                  try {
+                    // Generate and store the share image first
+                    const response = await fetch('/api/generate-profile-share-image', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ userId: context.user.fid.toString() }),
+                    });
+
+                    if (!response.ok) {
+                      throw new Error('Failed to generate share image');
+                    }
+
+                    // Open the profile URL in a new tab
+                    const profileUrl = `${window.location.origin}/profile/${context.user.fid}`;
+                    window.open(profileUrl, '_blank');
+                  } catch (error) {
+                    console.error('Error generating share image:', error);
+                    // Still open the profile URL even if share image generation fails
+                    const profileUrl = `${window.location.origin}/profile/${context.user.fid}`;
+                    window.open(profileUrl, '_blank');
+                  }
+                }
+              }}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded-md text-sm transform rotate-[-1deg] transition-colors"
+            >
+              Share Profile
+            </button>
           )}
-        </h2>
+        </div>
 
         {/* Level Display */}
         {userStats && (
