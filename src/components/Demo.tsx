@@ -411,7 +411,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
               dailyGamesCreated: 0,
               dailyShared: 0,
               dailyCorrectGuesses: 0,
-              dailyQuests: 0
+              dailyQuests: 0,
+              isFriendNotificationSent: false
             });
           } else {
             console.log('Updating existing user document');
@@ -2303,6 +2304,37 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
       setLastCreatedGameId(newGameRef.id);
       setShowSharePopup(true);
       setIsDrawing(false); // Exit drawing mode after successful submission
+
+      // After successful submission, send notifications to friends
+      try {
+        const userRef = doc(db, 'users', context.user.fid.toString());
+        const userDoc = await getDoc(userRef);
+        const userData = userDoc.data();
+
+        // Only send notification if it hasn't been sent before and user is admin
+        if (!userData?.isFriendNotificationSent && context.user.fid === 234692) {
+          const gameUrl = `${window.location.origin}/game/${newGameRef.id}`;
+          await fetch('/api/friend-notification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fid: context.user.fid,
+              username: context.user.username,
+              gameUrl,
+            }),
+          });
+
+          // Update the isFriendNotificationSent field
+          await updateDoc(userRef, {
+            isFriendNotificationSent: true
+          });
+        }
+      } catch (error) {
+        console.error('Failed to send friend notifications:', error);
+        // Don't throw here - we don't want to affect the main flow if notifications fail
+      }
 
     } catch (error) {
       console.error('Error uploading drawing or creating game:', error);

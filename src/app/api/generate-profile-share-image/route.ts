@@ -71,7 +71,7 @@ async function generateProfileShareImage(userId: string) {
   ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
   
   // Calculate card position
-  const cardY = 37; // Moved up from 100 to 37 (100 - 63)
+  const cardY = 10; // Moved up from 100 to 37 (100 - 63)
 
   // Draw dashed border for main card
   ctx.strokeStyle = '#9CA3AF'; // gray-400

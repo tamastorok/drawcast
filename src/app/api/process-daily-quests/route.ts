@@ -116,7 +116,8 @@ export async function POST(request: Request) {
             dailyGamesCreated: 0,
             dailyShared: 0,
             dailyCorrectGuesses: 0,
-            isDailyQuestCompleted: false
+            isDailyQuestCompleted: false,
+            isFriendNotificationSent: false
           });
         });
 
@@ -151,4 +152,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-} 
+}
