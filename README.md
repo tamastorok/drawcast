@@ -9,6 +9,8 @@ What makes Drawcast unique is that it aims to blend familiar user experience wit
 
 This lowers the barrier for new users to interact with onchain tools in a natural, fun way, without needing to understand complex underlying mechanisms.
 
+### Proudly built on Base 💙
+
 Learn more:
 - Website: https://drawcast.xyz/
 - Open on Farcaster: https://warpcast.com/?launchFrameUrl=https%3A%2F%2Fdrawcast.xyz
