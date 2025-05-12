@@ -1348,7 +1348,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         </div>
 
         {/* Premium Plan Box */}
-        {!userStats?.isPremium && context?.user?.fid === 234692 && (
+        {!userStats?.isPremium && (
           <div className="bg-gray-100 p-4 rounded-lg border-2 border-[#FFC024] transition-colors mb-6 transform rotate-[1deg] border-dashed">
             <div className="flex justify-between items-start">
               <div className="text-center w-full">
@@ -1373,7 +1373,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                   <DaimoPayButton.Custom
                     appId="pay-glow-P36FYozSc24Ea6r75i8BAq"
                     toChain={baseUSDC.chainId}
-                    toUnits="3.99"
+                    toUnits="2.99"
                     toToken={getAddress(baseUSDC.token)}
                     toAddress="0xAbE4976624c9A6c6Ce0D382447E49B7feb639565"
                     metadata={{
@@ -1430,7 +1430,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                         onClick={show} 
                         className="bg-[#FFC024] text-black px-6 py-2 rounded-md hover:bg-[#FFB800] transition-colors font-medium text-sm transform rotate-[-1deg]"
                       >
-                        $3.99/month
+                        $2.99/month
                       </button>
                     )}
                   </DaimoPayButton.Custom>
@@ -1868,21 +1868,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                       <div className="flex-1">
                         <div className="font-bold flex items-center gap-2">
                           {leaderboardData.currentUser.username}
-                          {leaderboardData.currentUser.isEarlyAdopter && (
-                            <div className="relative group">
-                              <Image 
-                                src="/OGbadge.png" 
-                                alt="Early Adopter" 
-                                width={20} 
-                                height={20} 
-                                className="rounded-full transform rotate-[-2deg] cursor-help"
-                                title="OG user"
-                              />
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                OG user
-                              </div>
-                            </div>
-                          )}
                           {leaderboardData.currentUser.isCoined && (
                             <div className="relative group">
                               <Image 
@@ -1895,6 +1880,21 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                               />
                               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 Coined a drawing
+                              </div>
+                            </div>
+                          )}
+                          {leaderboardData.currentUser.isPremium && (
+                            <div className="relative group">
+                              <Image 
+                                src="/premium.png" 
+                                alt="Premium User" 
+                                width={20} 
+                                height={20} 
+                                className="rounded-full transform rotate-[-2deg] cursor-help"
+                                title="Premium user"
+                              />
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                Premium user
                               </div>
                             </div>
                           )}
@@ -1938,21 +1938,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                       <div className="flex-1">
                         <div className="font-bold flex items-center gap-2">
                           {user.username}
-                          {user.isEarlyAdopter && (
-                            <div className="relative group">
-                              <Image 
-                                src="/OGbadge.png" 
-                                alt="Early Adopter" 
-                                width={20} 
-                                height={20} 
-                                className="rounded-full transform rotate-[-2deg] cursor-help"
-                                title="OG user"
-                              />
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                OG user
-                              </div>
-                            </div>
-                          )}
                           {user.isCoined && (
                             <div className="relative group">
                               <Image 
@@ -1965,6 +1950,21 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                               />
                               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 Coined a drawing
+                              </div>
+                            </div>
+                          )}
+                          {user.isPremium && (
+                            <div className="relative group">
+                              <Image 
+                                src="/premium.png" 
+                                alt="Premium User" 
+                                width={20} 
+                                height={20} 
+                                className="rounded-full transform rotate-[-2deg] cursor-help"
+                                title="Premium user"
+                              />
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                Premium user
                               </div>
                             </div>
                           )}
@@ -2036,21 +2036,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                       <div className="flex-1">
                         <div className="font-bold flex items-center gap-2">
                           {leaderboardData.currentUser.username}
-                          {leaderboardData.currentUser.isEarlyAdopter && (
-                            <div className="relative group">
-                              <Image 
-                                src="/OGbadge.png" 
-                                alt="Early Adopter" 
-                                width={20} 
-                                height={20} 
-                                className="rounded-full transform rotate-[-2deg] cursor-help"
-                                title="OG user"
-                              />
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                OG user
-                              </div>
-                            </div>
-                          )}
                           {leaderboardData.currentUser.isCoined && (
                             <div className="relative group">
                               <Image 
@@ -2063,6 +2048,21 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                               />
                               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 Coined a drawing
+                              </div>
+                            </div>
+                          )}
+                          {leaderboardData.currentUser.isPremium && (
+                            <div className="relative group">
+                              <Image 
+                                src="/premium.png" 
+                                alt="Premium User" 
+                                width={20} 
+                                height={20} 
+                                className="rounded-full transform rotate-[-2deg] cursor-help"
+                                title="Premium user"
+                              />
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                Premium user
                               </div>
                             </div>
                           )}
@@ -2106,21 +2106,6 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                       <div className="flex-1">
                         <div className="font-bold flex items-center gap-2">
                           {user.username}
-                          {user.isEarlyAdopter && (
-                            <div className="relative group">
-                              <Image 
-                                src="/OGbadge.png" 
-                                alt="Early Adopter" 
-                                width={20} 
-                                height={20} 
-                                className="rounded-full transform rotate-[-2deg] cursor-help"
-                                title="OG user"
-                              />
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                OG user
-                              </div>
-                            </div>
-                          )}
                           {user.isCoined && (
                             <div className="relative group">
                               <Image 
@@ -2133,6 +2118,21 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                               />
                               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 Coined a drawing
+                              </div>
+                            </div>
+                          )}
+                          {user.isPremium && (
+                            <div className="relative group">
+                              <Image 
+                                src="/premium.png" 
+                                alt="Premium User" 
+                                width={20} 
+                                height={20} 
+                                className="rounded-full transform rotate-[-2deg] cursor-help"
+                                title="Premium user"
+                              />
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                Premium user
                               </div>
                             </div>
                           )}
@@ -2311,8 +2311,8 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         const userDoc = await getDoc(userRef);
         const userData = userDoc.data();
 
-        // Only send notification if it hasn't been sent before and user is admin
-        if (!userData?.isFriendNotificationSent && context.user.fid === 234692) {
+        // Only send notification if it hasn't been sent before
+        if (!userData?.isFriendNotificationSent) {
           const gameUrl = `${window.location.origin}/game/${newGameRef.id}`;
           await fetch('/api/friend-notification', {
             method: 'POST',
@@ -2437,33 +2437,31 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             Time left: {timeLeft}s
           </div>
 
-          {/* Color Picker - Admin Only */}
-          {context?.user?.fid === 234692 && (
-            <div className="p-1 rounded-lg mb-1 transform rotate-[-1deg] relative group">
-              <div className="flex justify-center gap-1">
-                {['black', 'red', 'blue', 'green', 'yellow', 'brown'].map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => userStats?.isPremium ? setSelectedColor(color) : null}
-                    className={`w-6 h-6 rounded-full border-2 ${
-                      selectedColor === color ? 'border-gray-800 scale-110' : 'border-gray-300'
-                    } transition-transform ${userStats?.isPremium ? 'hover:scale-105' : 'opacity-50 cursor-not-allowed'}`}
-                    style={{ backgroundColor: color }}
-                    title={userStats?.isPremium ? color : 'Premium feature'}
-                  />
-                ))}
-              </div>
-              {!userStats?.isPremium && (
-                <>
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
-                    <div className="bg-gray-800 text-white px-2 py-1 rounded text-xs">
-                      Upgrade to premium to use colors
-                    </div>
-                  </div>
-                </>
-              )}
+          {/* Color Picker */}
+          <div className="p-1 rounded-lg mb-1 transform rotate-[-1deg] relative group">
+            <div className="flex justify-center gap-1">
+              {['black', 'red', 'blue', 'green', 'yellow', 'brown'].map((color) => (
+                <button
+                  key={color}
+                  onClick={() => userStats?.isPremium ? setSelectedColor(color) : null}
+                  className={`w-6 h-6 rounded-full border-2 ${
+                    selectedColor === color ? 'border-gray-800 scale-110' : 'border-gray-300'
+                  } transition-transform ${userStats?.isPremium ? 'hover:scale-105' : 'opacity-50 cursor-not-allowed'}`}
+                  style={{ backgroundColor: color }}
+                  title={userStats?.isPremium ? color : 'Premium feature'}
+                />
+              ))}
             </div>
-          )}
+            {!userStats?.isPremium && (
+              <>
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+                  <div className="bg-gray-800 text-white px-2 py-1 rounded text-xs">
+                    Upgrade to premium to use colors
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Drawing Canvas Area */}
           <div className="w-full aspect-square bg-white rounded-lg mb-2 border-2 border-gray-300 overflow-hidden select-none"

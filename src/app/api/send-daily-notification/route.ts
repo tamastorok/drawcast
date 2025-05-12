@@ -41,7 +41,7 @@ async function processBatch(tokens: NotificationToken[], batchSize: number = 100
               fid: token.fid,
               title: "Drawcast",
               body: getRandomMessage(),
-              targetUrl: "https://drawcast.xyz"
+              targetUrl: "https://drawcast.xyz/?utm_source=Notification&utm_medium=Daily"
             });
             
             // If successful or no token, return immediately
