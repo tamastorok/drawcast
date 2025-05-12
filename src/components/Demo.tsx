@@ -3496,12 +3496,12 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 className={`w-full p-4 rounded-lg transform rotate-${index % 2 === 0 ? '[-1deg]' : '[1deg]'} border-2 border-dashed border-gray-400 bg-white`}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-24 h-16 relative bg-gray-100 rounded-lg overflow-hidden">
+                  <div className="w-24 h-24 relative bg-gray-100 rounded-lg overflow-hidden">
                     <Image
-                      src={game.shareImageUrl || game.imageUrl}
+                      src={game.imageUrl}
                       alt={game.prompt}
                       width={96}
-                      height={64}
+                      height={96}
                       className="object-cover"
                       quality={75}
                       unoptimized
@@ -3562,7 +3562,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                               const metadata = {
                                 name: `Drawcast: ${game.id}`,
                                 description: `This is a(n) ${game.prompt} drawn by ${context?.user?.username || 'Anonymous'} on Drawcast.xyz. Join the fun, challenge friends and earn points: drawcast.xyz`,
-                                image: game.shareImageUrl || game.imageUrl,
+                                image: game.imageUrl,
                                 attributes: [
                                   { trait_type: "Created At", value: game.createdAt.toISOString() }
                                 ]
