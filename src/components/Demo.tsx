@@ -1886,7 +1886,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                           {leaderboardData.currentUser.isPremium && (
                             <div className="relative group">
                               <Image 
-                                src="/premium.png" 
+                                src="/Premium.png" 
                                 alt="Premium User" 
                                 width={20} 
                                 height={20} 
@@ -1956,7 +1956,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                           {user.isPremium && (
                             <div className="relative group">
                               <Image 
-                                src="/premium.png" 
+                                src="/Premium.png" 
                                 alt="Premium User" 
                                 width={20} 
                                 height={20} 
@@ -2054,7 +2054,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                           {leaderboardData.currentUser.isPremium && (
                             <div className="relative group">
                               <Image 
-                                src="/premium.png" 
+                                src="/Premium.png" 
                                 alt="Premium User" 
                                 width={20} 
                                 height={20} 
@@ -2124,7 +2124,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                           {user.isPremium && (
                             <div className="relative group">
                               <Image 
-                                src="/premium.png" 
+                                src="/Premium.png" 
                                 alt="Premium User" 
                                 width={20} 
                                 height={20} 
