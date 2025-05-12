@@ -2313,7 +2313,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
 
         // Only send notification if it hasn't been sent before
         if (!userData?.isFriendNotificationSent) {
-          const gameUrl = `${window.location.origin}/game/${newGameRef.id}`;
+          const gameUrl = `${window.location.origin}/games/${newGameRef.id}`;
           await fetch('/api/friend-notification', {
             method: 'POST',
             headers: {
