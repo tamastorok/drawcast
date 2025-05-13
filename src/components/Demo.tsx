@@ -66,6 +66,30 @@ interface AuthState {
   error: string | null;
 }
 
+interface UserStats {
+  correctGuesses: number;
+  points: number;
+  created: number;
+  gameSolutions: number;
+  isEarlyAdopter?: boolean;
+  streak?: number;
+  streakPoints?: number;
+  isCoined?: boolean;
+  weeklyWins?: number;
+  weeklyTopDrawer?: number;
+  weeklyTopGuesser?: number;
+  weeklyPoints?: number;
+  dailyGamesCreated?: number;
+  dailyShared?: number;
+  dailyCorrectGuesses?: number;
+  dailyQuests?: number;
+  isDailyQuestCompleted?: boolean;
+  isPremium?: boolean;
+  pointsRank?: number | null;
+  drawersRank?: number | null;
+  guessersRank?: number | null;
+}
+
 // Add this at the top of the file, after the imports
 const styles = `
   @keyframes glow {
@@ -105,26 +129,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const [currentGuess, setCurrentGuess] = useState('');
   const [isSubmittingGuess, setIsSubmittingGuess] = useState(false);
   const [guessError, setGuessError] = useState<string | null>(null);
-  const [userStats, setUserStats] = useState<{
-    correctGuesses: number;
-    points: number;
-    created: number;
-    gameSolutions: number;
-    isEarlyAdopter?: boolean;
-    streak?: number;
-    streakPoints?: number;
-    isCoined?: boolean;
-    weeklyWins?: number;
-    weeklyTopDrawer?: number;
-    weeklyTopGuesser?: number;
-    weeklyPoints?: number;
-    dailyGamesCreated?: number;
-    dailyShared?: number;
-    dailyCorrectGuesses?: number;
-    dailyQuests?: number;
-    isDailyQuestCompleted?: boolean;
-    isPremium?: boolean;
-  } | null>(null);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [createdGames, setCreatedGames] = useState<Array<{
     id: string;
     imageUrl: string;
@@ -1096,12 +1101,23 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
                 if (context?.user?.fid) {
                   try {
                     // Generate and store the share image first
+                    const levelInfo = getLevelInfo(userStats?.points || 0);
                     const response = await fetch('/api/generate-profile-share-image', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
                       },
-                      body: JSON.stringify({ userId: context.user.fid.toString() }),
+                      body: JSON.stringify({ 
+                        userId: context.user.fid.toString(),
+                        level: levelInfo.level,
+                        levelName: levelInfo.name,
+                        isPremium: userStats?.isPremium || false,
+                        correctGuesses: userStats?.correctGuesses || 0,
+                        gameSolutions: userStats?.gameSolutions || 0,
+                        pointsRank: leaderboardData.currentUser?.pointsRank || null,
+                        drawersRank: leaderboardData.currentUser?.drawersRank || null,
+                        guessersRank: leaderboardData.currentUser?.guessersRank || null
+                      }),
                     });
 
                     if (!response.ok) {

@@ -35,7 +35,19 @@ if (!getApps().length) {
 const adminDb = getFirestore();
 const adminStorage = getAdminStorage();
 
-async function generateProfileShareImage(userId: string) {
+async function generateProfileShareImage(
+  userId: string, 
+  providedStats?: {
+    level?: number;
+    levelName?: string;
+    isPremium?: boolean;
+    correctGuesses?: number;
+    gameSolutions?: number;
+    pointsRank?: number | null;
+    drawersRank?: number | null;
+    guessersRank?: number | null;
+  }
+) {
   // Fetch user data from Firestore
   const userRef = adminDb.collection('users').doc(userId);
   const userDoc = await userRef.get();
@@ -46,53 +58,41 @@ async function generateProfileShareImage(userId: string) {
 
   const userData = userDoc.data();
   
-  // Ensure we have all the required rank data
+  // Ensure we have all the required rank data, using provided stats if available
   const userRanks = {
-    pointsRank: userData?.pointsRank || null,
-    drawersRank: userData?.drawersRank || null,
-    guessersRank: userData?.guessersRank || null,
+    pointsRank: providedStats?.pointsRank ?? userData?.pointsRank ?? null,
+    drawersRank: providedStats?.drawersRank ?? userData?.drawersRank ?? null,
+    guessersRank: providedStats?.guessersRank ?? userData?.guessersRank ?? null,
     points: userData?.points || 0,
     username: userData?.username || `@${userId}`,
     pfpUrl: userData?.pfpUrl || `https://warpcast.com/${userId}/pfp`,
     isEarlyAdopter: userData?.isEarlyAdopter || false,
     isCoined: userData?.isCoined || false,
+    isPremium: providedStats?.isPremium ?? userData?.isPremium ?? false,
     weeklyWins: userData?.weeklyWins || 0,
     weeklyTopDrawer: userData?.weeklyTopDrawer || 0,
-    weeklyTopGuesser: userData?.weeklyTopGuesser || 0
+    weeklyTopGuesser: userData?.weeklyTopGuesser || 0,
+    correctGuesses: providedStats?.correctGuesses ?? userData?.correctGuesses ?? 0,
+    gameSolutions: providedStats?.gameSolutions ?? userData?.gameSolutions ?? 0
   };
 
   // Create canvas
-  const canvas = createCanvas(1200, 630);
+  const canvas = createCanvas(1200, 800);
   const ctx = canvas.getContext('2d');
 
   // Load and draw background image
-  const backgroundPath = path.join(process.cwd(), 'public', 'drawblank.png');
+  const backgroundPath = path.join(process.cwd(), 'public', 'profileShareBlank3.png');
   const background = await loadImage(backgroundPath);
   ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
   
-  // Calculate card position
-  const cardY = 10; // Moved up from 100 to 37 (100 - 63)
-
-  // Draw dashed border for main card
-  ctx.strokeStyle = '#9CA3AF'; // gray-400
-  ctx.lineWidth = 2;
-
   // Load and draw profile picture
   const pfpUrl = userRanks.pfpUrl;
   const pfp = await loadImage(pfpUrl);
   
-  // Draw circular profile picture with dashed border
-  const pfpSize = 96;
-  const pfpX = canvas.width / 2 - pfpSize / 2;
-  const pfpY = cardY + 40;
-  
-  // Draw dashed border for profile picture
-  ctx.beginPath();
-  ctx.arc(pfpX + pfpSize/2, pfpY + pfpSize/2, pfpSize/2 + 4, 0, Math.PI * 2);
-  ctx.strokeStyle = '#9CA3AF'; // gray-400
-  ctx.lineWidth = 4;
-  ctx.setLineDash([5, 3]);
-  ctx.stroke();
+  // Draw circular profile picture with dashed border in the top box
+  const pfpSize = 150;
+  const pfpX = 525;
+  const pfpY = 80;
   
   // Draw profile picture
   ctx.save();
@@ -104,27 +104,30 @@ async function generateProfileShareImage(userId: string) {
   ctx.restore();
 
   // Draw username
-  ctx.font = 'bold 48px Arial';
-  ctx.fillStyle = '#1F2937'; // gray-800
+  ctx.font = 'bold 18px Arial';
+  ctx.fillStyle = '#4B5563';
   ctx.textAlign = 'center';
-  ctx.fillText(userRanks.username, canvas.width / 2, pfpY + pfpSize + 60);
+  ctx.fillText(userRanks.username, canvas.width / 2, pfpY + pfpSize + 15);
 
   // Draw level info
-  const level = Math.floor((userRanks.points || 0) / 100) + 1;
-  const levelName = getLevelName(level);
-  ctx.font = '36px Arial';
-  ctx.fillStyle = '#4B5563'; // gray-600
-  ctx.fillText(`Level ${level}: ${levelName}`, canvas.width / 2, pfpY + pfpSize + 120);
+  const level = providedStats?.level;
+  const levelName = providedStats?.levelName;
+  if (level && levelName) {
+    ctx.font = 'bold 18px Arial';
+    ctx.fillStyle = '#4B5563'; // gray-600
+    ctx.fillText(`Level ${level}: ${levelName}`, canvas.width / 2, pfpY + pfpSize + 75);
+  }
 
   // Draw badges
-  const badgesY = pfpY + pfpSize + 180;
-  const badgeSize = 32;
-  const badgeSpacing = 40;
+  const badgesY = pfpY + pfpSize + 120;
+  const badgeSize = 50;
+  const badgeSpacing = 30;
   
   // Define badges with their conditions
   const badges = [
     { name: 'OG', isUnlocked: userRanks.isEarlyAdopter, image: 'OGbadge.png' },
     { name: 'Coin', isUnlocked: userRanks.isCoined, image: 'coinerbadge.png' },
+    { name: 'Premium', isUnlocked: userRanks.isPremium, image: 'Premium.png' },
     { name: 'Winner', isUnlocked: userRanks.weeklyWins > 0, image: 'weeklyTop.png' },
     { name: 'Drawer', isUnlocked: userRanks.weeklyTopDrawer > 0, image: 'topDrawer.png' },
     { name: 'Guesser', isUnlocked: userRanks.weeklyTopGuesser > 0, image: 'topGuesser.png' }
@@ -133,20 +136,22 @@ async function generateProfileShareImage(userId: string) {
   // Filter unlocked badges
   const unlockedBadges = badges.filter(badge => badge.isUnlocked);
   
-  // Calculate starting X position to center the unlocked badges
-  let currentX = canvas.width / 2 - ((badgeSize + badgeSpacing) * (unlockedBadges.length - 1) / 2);
+  // Calculate total width of all badges including spacing
+  const totalBadgesWidth = (badgeSize * unlockedBadges.length) + (badgeSpacing * (unlockedBadges.length - 1));
+  // Calculate starting X position to center the badges
+  let currentX = (canvas.width - totalBadgesWidth) / 2;
 
   // Helper function to draw a badge
   const drawBadge = async (x: number, y: number, badgeName: string, isUnlocked: boolean, imagePath: string) => {
     // Draw badge background
-    ctx.fillStyle = isUnlocked ? 'rgba(243, 244, 246, 0.95)' : 'rgba(229, 231, 235, 0.95)';
+    ctx.fillStyle = '#f9f7f0';
     ctx.beginPath();
     ctx.arc(x + badgeSize/2, y + badgeSize/2, badgeSize/2 + 4, 0, Math.PI * 2);
     ctx.fill();
 
     // Draw dashed border
     ctx.strokeStyle = isUnlocked ? '#9CA3AF' : '#D1D5DB';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 4;
     ctx.setLineDash([5, 3]);
     ctx.stroke();
 
@@ -183,10 +188,10 @@ async function generateProfileShareImage(userId: string) {
     }
 
     // Draw badge label
-    ctx.font = '12px Arial';
-    ctx.fillStyle = '#4B5563';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillStyle = '#f9f7f0';
     ctx.textAlign = 'center';
-    ctx.fillText(badgeName, x + badgeSize/2, y + badgeSize + 15);
+    ctx.fillText(badgeName, x + badgeSize/2, y + badgeSize + 25);
   };
 
   // Draw only unlocked badges
@@ -196,54 +201,60 @@ async function generateProfileShareImage(userId: string) {
   }
 
   // Update stats Y position to account for badges
-  const statsY = badgesY + badgeSize + 40;
+  const statsY = badgesY + badgeSize + 90;
 
-  // Draw stats boxes
-  const boxWidth = 180;
-  const boxHeight = 100;
-  const boxSpacing = 20;
-  const centerX = canvas.width / 2;
-  const leftX = centerX - boxWidth - boxSpacing/2;
-  const rightX = centerX + boxSpacing/2;
+  // 3x3 grid layout for stats
+  const gridCellWidth = 180;
+  const gridCellHeight = 80;
+  const gridSpacingX = 150;
+  const gridSpacingY = 85;
+  const totalGridWidth = 3 * gridCellWidth + 2 * gridSpacingX;
+  const gridStartX = (canvas.width - totalGridWidth) / 2;
+  const gridStartY = statsY;
 
-  // Helper function to draw a stat box
-  const drawStatBox = (label: string, value: string | number, x: number, y: number, rotation: number) => {
+  // Define X positions for columns and Y positions for rows
+  const colX = [
+    gridStartX,
+    gridStartX + gridCellWidth + gridSpacingX,
+    gridStartX + 2 * (gridCellWidth + gridSpacingX)
+  ];
+  const rowY = [
+    gridStartY,
+    gridStartY + gridCellHeight + gridSpacingY
+  ];
+
+  // Helper function to draw a stat box (now just draws text)
+  function drawStatBox(label: string, value: string | number, x: number, y: number, rotation: number) {
     ctx.save();
-    
-    // Draw box background
-    ctx.fillStyle = 'rgba(243, 244, 246, 0.95)'; // gray-100 with opacity
-    ctx.fillRect(x, y, boxWidth, boxHeight);
-    
-    // Draw dashed border
-    ctx.strokeStyle = '#9CA3AF'; // gray-400
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 5]);
-    ctx.strokeRect(x, y, boxWidth, boxHeight);
-    
-    // Rotate the box
-    ctx.translate(x + boxWidth/2, y + boxHeight/2);
+    // Rotate the text
+    ctx.translate(x + gridCellWidth/2, y + gridCellHeight/2);
     ctx.rotate(rotation * Math.PI / 180);
-    ctx.translate(-(x + boxWidth/2), -(y + boxHeight/2));
-    
+    ctx.translate(-(x + gridCellWidth/2), -(y + gridCellHeight/2));
     // Draw value
     ctx.font = 'bold 32px Arial';
     ctx.fillStyle = '#1F2937'; // gray-800
     ctx.textAlign = 'center';
-    ctx.fillText(value.toString(), x + boxWidth/2, y + boxHeight/2 - 10);
-    
+    ctx.fillText(value.toString(), x + gridCellWidth/2, y + gridCellHeight/2 - 10);
     // Draw label
     ctx.font = '20px Arial';
     ctx.fillStyle = '#4B5563'; // gray-600
-    ctx.fillText(label, x + boxWidth/2, y + boxHeight/2 + 25);
-    
+    ctx.fillText(label, x + gridCellWidth/2, y + gridCellHeight/2 + 25);
     ctx.restore();
-  };
+  }
 
-  // Draw stats in 2x2 grid with rotations
-  drawStatBox('Points', userRanks.points, leftX, statsY, -2);
-  drawStatBox('Overall Rank', `#${userRanks.pointsRank || '-'}`, rightX, statsY, 2);
-  drawStatBox('Drawer Rank', `#${userRanks.drawersRank || '-'}`, leftX, statsY + boxHeight + boxSpacing, 2);
-  drawStatBox('Guesser Rank', `#${userRanks.guessersRank || '-'}`, rightX, statsY + boxHeight + boxSpacing, -2);
+  // Top row
+  const overallRank = userRanks.pointsRank ? `#${userRanks.pointsRank}` : '-';
+  const drawerRank = userRanks.drawersRank ? `#${userRanks.drawersRank}` : '-';
+  const guesserRank = userRanks.guessersRank ? `#${userRanks.guessersRank}` : '-';
+
+  drawStatBox('Overall Rank', overallRank, colX[0], rowY[0], 0);
+  drawStatBox('Drawer Rank', drawerRank, colX[1], rowY[0], 0);
+  drawStatBox('Guesser Rank', guesserRank, colX[2], rowY[0], 0);
+
+  // Second row
+  drawStatBox('Points', userRanks.points, colX[0], rowY[1], 0);
+  drawStatBox('Game solutions', userRanks.gameSolutions, colX[1], rowY[1], 0);
+  drawStatBox('Correct guesses', userRanks.correctGuesses, colX[2], rowY[1], 0);
 
   return canvas.toBuffer('image/png');
 }
@@ -293,13 +304,32 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await request.json();
+    const { 
+      userId, 
+      level, 
+      levelName, 
+      isPremium, 
+      correctGuesses, 
+      gameSolutions,
+      pointsRank,
+      drawersRank,
+      guessersRank 
+    } = await request.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    const imageBuffer = await generateProfileShareImage(userId);
+    const imageBuffer = await generateProfileShareImage(userId, {
+      level,
+      levelName,
+      isPremium,
+      correctGuesses,
+      gameSolutions,
+      pointsRank,
+      drawersRank,
+      guessersRank
+    });
 
     // Upload to Firebase Storage in the shareProfile folder
     const bucket = adminStorage.bucket();
@@ -335,19 +365,3 @@ export async function POST(request: Request) {
     }, { status: 500 });
   }
 }
-
-function getLevelName(level: number): string {
-  const levelNames = [
-    'Novice Artist',
-    'Sketch Enthusiast',
-    'Drawing Apprentice',
-    'Creative Explorer',
-    'Artistic Visionary',
-    'Master Doodler',
-    'Drawing Virtuoso',
-    'Artistic Genius',
-    'Drawing Legend',
-    'Artistic Mastermind'
-  ];
-  return levelNames[Math.min(level - 1, levelNames.length - 1)] || 'Drawing Master';
-} 
