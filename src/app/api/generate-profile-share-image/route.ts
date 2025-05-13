@@ -266,10 +266,7 @@ export async function GET(request: Request) {
       // Try to get the existing file
       await file.getMetadata();
       // If we get here, the file exists, so get its download URL
-      const [downloadUrl] = await file.getSignedUrl({
-        action: 'read',
-        expires: '03-01-2500'
-      });
+      const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filename)}?alt=media`;
       return Response.redirect(downloadUrl);
     } catch {
       // File doesn't exist, generate and store it
@@ -285,10 +282,7 @@ export async function GET(request: Request) {
       });
 
       // Get the download URL
-      const [downloadUrl] = await file.getSignedUrl({
-        action: 'read',
-        expires: '03-01-2500'
-      });
+      const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filename)}?alt=media`;
       return Response.redirect(downloadUrl);
     }
   } catch (error) {
@@ -323,10 +317,7 @@ export async function POST(request: Request) {
     });
 
     // Get download URL
-    const [downloadUrl] = await file.getSignedUrl({
-      action: 'read',
-      expires: '03-01-2500'
-    });
+    const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filename)}?alt=media`;
 
     // Update the user's document with the share image URL
     const userRef = adminDb.collection('users').doc(userId);

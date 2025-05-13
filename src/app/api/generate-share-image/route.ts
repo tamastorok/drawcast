@@ -186,10 +186,7 @@ export async function POST(request: Request) {
 
     // Get download URL
     console.log('Getting download URL...');
-    const [downloadUrl] = await file.getSignedUrl({
-      action: 'read',
-      expires: '03-01-2500' // Far future expiration
-    });
+    const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(`shareImages/${filename}`)}?alt=media`;
     
     console.log('Share image generated successfully:', downloadUrl);
 
