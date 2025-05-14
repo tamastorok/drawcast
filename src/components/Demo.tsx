@@ -1177,9 +1177,14 @@ export default function Demo({ initialGameId, initialFid }: { initialGameId?: st
                       }),
                     });
 
+                    const data = await response.json();
+                    
                     if (!response.ok) {
-                      throw new Error('Failed to generate share image');
+                      console.error('Error generating share image:', data);
+                      throw new Error(data.error || 'Failed to generate share image');
                     }
+
+                    console.log('Share image generated successfully:', data);
 
                     // Open the profile URL in a new tab
                     const profileUrl = `${window.location.origin}/profile/${context.user.fid}`;

@@ -24,7 +24,7 @@ if (!getApps().length) {
   
   initializeAdminApp({
     credential: cert({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey,
     }),
@@ -304,6 +304,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    console.log('Starting profile share image generation...');
     const { 
       userId, 
       level, 
@@ -316,52 +317,83 @@ export async function POST(request: Request) {
       guessersRank 
     } = await request.json();
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
-    }
-
-    const imageBuffer = await generateProfileShareImage(userId, {
-      level,
-      levelName,
-      isPremium,
-      correctGuesses,
+    console.log('Received request data:', { 
+      userId, 
+      level, 
+      levelName, 
+      isPremium, 
+      correctGuesses, 
       gameSolutions,
       pointsRank,
       drawersRank,
-      guessersRank
+      guessersRank 
     });
 
-    // Upload to Firebase Storage in the shareProfile folder
-    const bucket = adminStorage.bucket();
-    const filename = `shareProfile/${userId}.png`;
-    const file = bucket.file(filename);
-    
-    await file.save(imageBuffer, {
-      metadata: {
-        contentType: 'image/png',
+    if (!userId) {
+      console.error('User ID is missing from request');
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    try {
+      console.log('Generating profile share image...');
+      const imageBuffer = await generateProfileShareImage(userId, {
+        level,
+        levelName,
+        isPremium,
+        correctGuesses,
+        gameSolutions,
+        pointsRank,
+        drawersRank,
+        guessersRank
+      });
+      console.log('Image generated successfully');
+
+      // Upload to Firebase Storage in the shareProfile folder
+      console.log('Uploading to Firebase Storage...');
+      const bucket = adminStorage.bucket();
+      const filename = `shareProfile/${userId}.png`;
+      const file = bucket.file(filename);
+      
+      await file.save(imageBuffer, {
         metadata: {
-          uploadedBy: userId,
-          type: 'profileShareImage'
+          contentType: 'image/png',
+          metadata: {
+            uploadedBy: userId,
+            type: 'profileShareImage'
+          }
         }
-      }
-    });
+      });
+      console.log('File uploaded successfully');
 
-    // Get download URL
-    const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filename)}?alt=media`;
+      // Get download URL
+      const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filename)}?alt=media`;
+      console.log('Generated download URL:', downloadUrl);
 
-    // Update the user's document with the share image URL
-    const userRef = adminDb.collection('users').doc(userId);
-    await userRef.update({
-      shareImageUrl: downloadUrl
-    });
+      // Update the user's document with the share image URL
+      console.log('Updating user document...');
+      const userRef = adminDb.collection('users').doc(userId);
+      await userRef.update({
+        shareImageUrl: downloadUrl
+      });
+      console.log('User document updated successfully');
 
-    return NextResponse.json({ shareImageUrl: downloadUrl });
+      return NextResponse.json({ shareImageUrl: downloadUrl });
+    } catch (error) {
+      console.error('Error in image generation/upload process:', error);
+      return NextResponse.json({ 
+        error: 'Failed to generate profile share image',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        phase: 'image_generation'
+      }, { status: 500 });
+    }
   } catch (error) {
-    console.error('Error generating profile share image:', error);
+    console.error('Error in request handling:', error);
     return NextResponse.json({ 
-      error: 'Failed to generate profile share image',
+      error: 'Failed to process request',
       details: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
+      phase: 'request_handling'
     }, { status: 500 });
   }
 }
