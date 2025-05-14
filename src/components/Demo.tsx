@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
@@ -109,14 +109,19 @@ const styles = `
   }
 `;
 
-// Add this right after the styles constant
-const styleSheet = document.createElement("style");
-styleSheet.innerText = styles;
-document.head.appendChild(styleSheet);
+export default function Demo({ initialGameId, initialFid }: { initialGameId?: string; initialFid?: string }) {
+  // Add useEffect for style injection
+  useEffect(() => {
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+    return () => {
+      document.head.removeChild(styleSheet);
+    };
+  }, []);
 
-export default function Demo({ initialGameId }: { initialGameId?: string }) {
   const { isSDKLoaded, context } = useFrame();
-  const [showProfile, setShowProfile] = useState(false);
+  const [showProfile, setShowProfile] = useState(!!initialFid);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showCollection, setShowCollection] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -298,14 +303,18 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
         console.log('Current URL:', url.href);
         console.log('All URL parameters:', Object.fromEntries(url.searchParams));
         
-        // Try different ways to get the game ID
+        // Try different ways to get the game ID or FID
         let gameId = initialGameId || 
                     url.searchParams.get('game') || 
                     url.searchParams.get('id') || 
                     url.pathname.split('/').pop();
 
+        let fid = initialFid || 
+                 url.searchParams.get('fid') || 
+                 url.pathname.split('/').pop();
+
         // Check if we're coming from a Warpcast frame
-        if (!gameId && url.searchParams.has('url')) {
+        if ((!gameId && !fid) && url.searchParams.has('url')) {
           try {
             const frameUrl = decodeURIComponent(url.searchParams.get('url') || '');
             console.log('Decoded frame URL:', frameUrl);
@@ -313,13 +322,15 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
             gameId = frameUrlObj.searchParams.get('game') || 
                     frameUrlObj.searchParams.get('id') || 
                     frameUrlObj.pathname.split('/').pop();
-            console.log('Game ID from frame URL:', gameId);
+            fid = frameUrlObj.searchParams.get('fid') || 
+                 frameUrlObj.pathname.split('/').pop();
+            console.log('Game ID or FID from frame URL:', { gameId, fid });
           } catch (error) {
             console.log('Error parsing frame URL:', error);
           }
         }
         
-        console.log('Final game ID:', gameId);
+        console.log('Final game ID or FID:', { gameId, fid });
         
         if (gameId) {
           console.log('Found game ID:', gameId);
@@ -360,8 +371,54 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
           };
 
           await fetchGame();
+        } else if (fid) {
+          console.log('Found FID:', fid);
+          // Reset other states
+          setShowGuess(false);
+          setShowLeaderboard(false);
+          setIsDrawing(false);
+          setShowProfile(true);
+          
+          // Fetch the user data
+          const fetchUserData = async () => {
+            try {
+              const userRef = doc(db, 'users', fid);
+              const userDoc = await getDoc(userRef);
+              
+              if (userDoc.exists()) {
+                const userData = userDoc.data();
+                setUserStats({
+                  correctGuesses: userData.correctGuesses || 0,
+                  points: userData.points || 0,
+                  created: userData.gamesCreated || 0,
+                  gameSolutions: userData.gameSolutions || 0,
+                  isEarlyAdopter: userData.isEarlyAdopter || false,
+                  streak: userData.streak || 1,
+                  streakPoints: userData.streakPoints || 1,
+                  isCoined: userData.isCoined || false,
+                  weeklyWins: userData.weeklyWins || 0,
+                  weeklyTopDrawer: userData.weeklyTopDrawer || 0,
+                  weeklyTopGuesser: userData.weeklyTopGuesser || 0,
+                  weeklyPoints: userData.weeklyPoints || 0,
+                  dailyGamesCreated: userData.dailyGamesCreated || 0,
+                  dailyShared: userData.dailyShared || 0,
+                  dailyCorrectGuesses: userData.dailyCorrectGuesses || 0,
+                  dailyQuests: userData.dailyQuests || 0,
+                  isDailyQuestCompleted: userData.isDailyQuestCompleted || false,
+                  isPremium: userData.isPremium || false,
+                  pointsRank: userData.pointsRank || null,
+                  drawersRank: userData.drawersRank || null,
+                  guessersRank: userData.guessersRank || null
+                });
+              }
+            } catch (error) {
+              console.error('Error fetching user data:', error);
+            }
+          };
+
+          await fetchUserData();
         } else {
-          console.log('No game ID found in URL or path');
+          console.log('No game ID or FID found in URL or path');
         }
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -369,7 +426,7 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
     };
 
     initializeFrame();
-  }, [isSDKLoaded, context]);
+  }, [isSDKLoaded, context, initialGameId, initialFid]);
 
   // Initialize Firebase auth state
   useEffect(() => {
@@ -3353,7 +3410,10 @@ export default function Demo({ initialGameId }: { initialGameId?: string }) {
   // Track game join
   const handleGameJoin = (gameId: string) => {
     trackEvent('game_joined', { gameId });
-    setSelectedGame(games.find(g => g.id === gameId) || null);
+    setIsSubmittingGuess(false); // Reset submitting state
+    setSelectedGame(games.find(game => game.id === gameId) || null);
+    setCurrentGuess('');
+    setGuessError(null);
   };
 
   // Add this function after the renderProfile function
