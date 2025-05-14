@@ -208,6 +208,7 @@ export default function Demo({ initialGameId, initialFid }: { initialGameId?: st
   const [selectedColor, setSelectedColor] = useState('black');
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
   const [premiumExpirationDays, setPremiumExpirationDays] = useState<number | null>(null);
+  const [showNewUserModal, setShowNewUserModal] = useState(false);
   // Add wallet connection state
 
   // Add function to calculate remaining time
@@ -3914,6 +3915,113 @@ export default function Demo({ initialGameId, initialFid }: { initialGameId?: st
     checkPremiumExpiration();
   }, [userStats?.isPremium, context?.user?.fid, db]);
 
+  // Add NewUserModal component before the return statement
+  const NewUserModal: React.FC = () => {
+    const handleStartGuessing = () => {
+      // Track onboarding started
+      trackEvent('onboardingStarted');
+      
+      // Filter active games (not expired, not maxed out, not banned)
+      const activeGames = games.filter(game => {
+        const isExpired = game.expiredAt.getTime() <= new Date().getTime();
+        const hasMaxGuesses = game.totalGuesses >= 10;
+        const isBanned = game.isBanned || false;
+        return !isExpired && !hasMaxGuesses && !isBanned;
+      });
+      
+      if (activeGames.length > 0) {
+        const randomIndex = Math.floor(Math.random() * activeGames.length);
+        const randomGame = activeGames[randomIndex];
+        
+        // Reset all view states
+        setShowLeaderboard(false);
+        setShowProfile(false);
+        setIsDrawing(false);
+        setShowCollection(false);
+        
+        // Set the selected game and show guess view
+        setSelectedGame(randomGame);
+        setShowGuess(true);
+        setShowNewUserModal(false);
+      } else {
+        // If no active games are loaded, fetch them first
+        fetchGames().then(() => {
+          // Filter active games again after fetching
+          const activeGames = games.filter(game => {
+            const isExpired = game.expiredAt.getTime() <= new Date().getTime();
+            const hasMaxGuesses = game.totalGuesses >= 10;
+            const isBanned = game.isBanned || false;
+            return !isExpired && !hasMaxGuesses && !isBanned;
+          });
+          
+          if (activeGames.length > 0) {
+            const randomIndex = Math.floor(Math.random() * activeGames.length);
+            const randomGame = activeGames[randomIndex];
+            
+            // Reset all view states
+            setShowLeaderboard(false);
+            setShowProfile(false);
+            setIsDrawing(false);
+            setShowCollection(false);
+            
+            // Set the selected game and show guess view
+            setSelectedGame(randomGame);
+            setShowGuess(true);
+            setShowNewUserModal(false);
+          }
+        });
+      }
+    };
+
+    const handleClose = () => {
+      // Track onboarding cancelled
+      trackEvent('onboardingCancelled');
+      setShowNewUserModal(false);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-[#f9f7f0] p-8 rounded-lg w-full max-w-sm mx-4 relative border-4 border-dashed border-gray-400 transform rotate-[-1deg] min-h-[80vh] flex flex-col">
+          {/* Close button */}
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 text-gray-800 hover:text-gray-600 transform rotate-[2deg] border-2 border-dashed border-gray-400 px-2 py-1 rounded-lg"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <h2 className="text-3xl font-bold mb-6 text-gray-800 transform rotate-[1deg]">Time to have fun!</h2>
+            <p className="text-xl text-gray-600 mb-8 transform rotate-[-2deg] max-w-[280px]">
+            Guess what others were trying to draw. It&apos;s hilarious!
+            </p>
+            <button
+              onClick={handleStartGuessing}
+              className="w-full max-w-[280px] bg-[#0c703b] text-white py-4 px-6 rounded-lg hover:bg-[#0c703b] transition-colors flex items-center justify-center gap-2 transform rotate-[2deg] border-4 border-dashed border-white text-lg font-medium"
+            >
+              Start Guessing
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Add useEffect to show modal for new users
+  useEffect(() => {
+    // Show modal for users with 0 points who aren't already in a game view
+    if (context?.user?.fid && userStats?.points === 0 && !showGuess && !selectedGame) {
+      setShowNewUserModal(true);
+      // Fetch games if not already loaded
+      if (games.length === 0) {
+        fetchGames();
+      }
+    }
+  }, [context?.user?.fid, userStats?.points]);
+
   return (
     <div
       style={{
@@ -4260,6 +4368,8 @@ On Warpcast, go to Settings → Preferred Wallets to set it up.
           )}
         </>
       )}
+      {/* New User Modal */}
+      {showNewUserModal && <NewUserModal />}
     </div>
   );
 }
