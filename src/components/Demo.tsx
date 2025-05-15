@@ -1279,7 +1279,7 @@ export default function Demo({ initialGameId, initialFid }: { initialGameId?: st
                       style={{ opacity: 0.5 }}
                     />
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      Coin a drawing on the Collect page <br /> to unlock this badge!
+                      Coin a drawing on the Earn page <br /> to unlock this badge!
                     </div>
                   </div>
                 </div>
@@ -3644,7 +3644,7 @@ export default function Demo({ initialGameId, initialFid }: { initialGameId?: st
                               const metadata = {
                                 name: `Drawcast: ${game.id}`,
                                 description: `This is a(n) ${game.prompt} drawn by ${context?.user?.username || 'Anonymous'} on Drawcast.xyz. Join the fun, challenge friends and earn points: drawcast.xyz`,
-                                image: game.imageUrl,
+                                image: game.shareImageUrl,
                                 attributes: [
                                   { trait_type: "Created At", value: game.createdAt.toISOString() }
                                 ]
@@ -3806,7 +3806,8 @@ export default function Demo({ initialGameId, initialFid }: { initialGameId?: st
         const gamesRef = collection(db, 'games');
         const q = query(
           gamesRef,
-          where('userFid', '==', context.user.fid.toString())
+          where('userFid', '==', context.user.fid.toString()),
+          orderBy('createdAt', 'desc')  // Add orderBy clause to sort by createdAt in descending order
         );
         const querySnapshot = await getDocs(q);
         
@@ -4156,7 +4157,7 @@ export default function Demo({ initialGameId, initialFid }: { initialGameId?: st
                   <span className="text-2xl">
                     <Image src="/collection.png" alt="Collection" width={24} height={24} className="transform rotate-[-2deg]" priority quality={75} unoptimized />
                   </span>
-                  <span className="text-xs">Collect</span>
+                  <span className="text-xs">Earn</span>
                 </button>
                 <button 
                   className={`flex flex-col items-center justify-center w-full h-full ${showLeaderboard ? 'bg-green-100' : ''} transform rotate-[-2deg]`}
