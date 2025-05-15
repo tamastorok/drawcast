@@ -302,8 +302,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Randomly select up to 5 followers from those with notifications enabled
-    const MAX_NOTIFICATIONS = 5;
+    // Randomly select up to 30 followers from those with notifications enabled
+    const MAX_NOTIFICATIONS = 30;
     const selectedTokens = tokens
       .sort(() => Math.random() - 0.5) // Shuffle array
       .slice(0, MAX_NOTIFICATIONS);
