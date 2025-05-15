@@ -3644,7 +3644,7 @@ export default function Demo({ initialGameId, initialFid }: { initialGameId?: st
                               const metadata = {
                                 name: `Drawcast: ${game.id}`,
                                 description: `This is a(n) ${game.prompt} drawn by ${context?.user?.username || 'Anonymous'} on Drawcast.xyz. Join the fun, challenge friends and earn points: drawcast.xyz`,
-                                image: game.shareImageUrl,
+                                image: game.imageUrl,
                                 attributes: [
                                   { trait_type: "Created At", value: game.createdAt.toISOString() }
                                 ]
