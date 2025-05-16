@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { adminDb } from '../../../lib/firebase-admin';
+import { Timestamp } from 'firebase-admin/firestore';
 
 interface NotificationDelivery {
   object: string;
@@ -239,6 +241,93 @@ async function sendNotification(fids: number[], username: string, gameUrl: strin
   }
 }
 
+// Helper function to get cached followers
+async function getCachedFollowers(fid: number): Promise<{ notyFollowers: number[], lastUpdated: Timestamp } | null> {
+  try {
+    const docRef = adminDb.collection('userFollowers').doc(fid.toString());
+    const doc = await docRef.get();
+    
+    if (!doc.exists) {
+      return null;
+    }
+
+    const data = doc.data();
+    if (!data) {
+      return null;
+    }
+
+    const lastUpdated = data.lastUpdated as Timestamp;
+    const fiveDaysAgo = Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000));
+    
+    // If data is older than 5 days, force a refresh
+    if (lastUpdated.toDate() < fiveDaysAgo.toDate()) {
+      console.log('[Friend Notification] Cache expired (older than 5 days), forcing refresh');
+      return null;
+    }
+
+    console.log('[Friend Notification] Using cached data (last updated:', lastUpdated.toDate().toISOString(), ')');
+    return {
+      notyFollowers: data.notyFollowers || [],
+      lastUpdated
+    };
+  } catch (error) {
+    console.error('[Friend Notification] Error getting cached followers:', error);
+    return null;
+  }
+}
+
+// Helper function to update follower cache
+async function updateFollowerCache(fid: number, notyFollowers: number[]): Promise<void> {
+  try {
+    const docRef = adminDb.collection('userFollowers').doc(fid.toString());
+    await docRef.set({
+      fid: fid.toString(),
+      notyFollowers,
+      lastUpdated: Timestamp.now()
+    });
+  } catch (error) {
+    console.error('[Friend Notification] Error updating follower cache:', error);
+    throw error;
+  }
+}
+
+// Helper function to update user's notification sent status
+async function updateUserNotificationStatus(fid: number): Promise<void> {
+  try {
+    const userRef = adminDb.collection('users').doc(fid.toString());
+    await userRef.update({
+      isFriendNotificationSent: true,
+      lastNotificationSent: Timestamp.now()
+    });
+    console.log('[Friend Notification] Updated user notification status for FID:', fid);
+  } catch (error) {
+    console.error('[Friend Notification] Error updating user notification status:', error);
+    throw error;
+  }
+}
+
+// Helper function to check if user has already sent notifications
+async function hasUserSentNotifications(fid: number): Promise<boolean> {
+  try {
+    const userRef = adminDb.collection('users').doc(fid.toString());
+    const userDoc = await userRef.get();
+    
+    if (!userDoc.exists) {
+      console.log('[Friend Notification] User document not found for FID:', fid);
+      return false;
+    }
+
+    const userData = userDoc.data();
+    const hasSent = userData?.isFriendNotificationSent || false;
+    
+    console.log('[Friend Notification] User notification status for FID:', fid, 'hasSent:', hasSent);
+    return hasSent;
+  } catch (error) {
+    console.error('[Friend Notification] Error checking user notification status:', error);
+    throw error;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const logs: string[] = [];
   const addLog = (message: string) => logs.push(message);
@@ -252,67 +341,97 @@ export async function POST(request: NextRequest) {
       throw new Error('Missing required parameters: fid, username, or gameUrl');
     }
 
-    // Fetch all followers using pagination
-    let allFollowers: { fid: number }[] = [];
-    let nextCursor: string | undefined;
-    let totalPages = 0;
-
-    do {
-      addLog(`Fetching followers page ${totalPages + 1}`);
-      const { users: followers, nextCursor: cursor } = await fetchFollowers(fid, nextCursor);
-      addLog(`Fetched ${followers.length} followers on page ${totalPages + 1}`);
-      
-      allFollowers = [...allFollowers, ...followers];
-      nextCursor = cursor;
-      totalPages++;
-
-      // Add a small delay between requests to avoid rate limiting
-      if (nextCursor) {
-        await delay(100);
-      }
-    } while (nextCursor && totalPages < 10); // Limit to 10 pages to avoid excessive requests
-
-    addLog(`Total followers fetched: ${allFollowers.length} across ${totalPages} pages`);
-
-    if (allFollowers.length === 0) {
-      addLog('No followers found');
-      return NextResponse.json({ 
-        success: true, 
-        totalFollowers: 0, 
-        notificationsSent: 0,
-        logs 
-      });
+    // Check if user has already sent notifications
+    const hasSent = await hasUserSentNotifications(fid);
+    if (hasSent) {
+      addLog('User has already sent notifications');
+      return NextResponse.json({
+        success: false,
+        error: 'Notifications already sent for this user',
+        logs
+      }, { status: 400 });
     }
 
-    // Get notification tokens for all followers
-    const fids = allFollowers.map(f => f.fid);
-    const tokens = await fetchNotificationTokens(fids);
-    addLog(`Found ${tokens.length} followers with notifications enabled`);
+    // Try to get cached followers first
+    const cachedData = await getCachedFollowers(fid);
+    let notyFollowers: number[] = [];
+    let totalFollowers = 0;
 
-    if (tokens.length === 0) {
+    if (cachedData) {
+      addLog('Using cached follower data');
+      notyFollowers = cachedData.notyFollowers;
+      totalFollowers = notyFollowers.length;
+    } else {
+      addLog('Cache miss or expired, fetching fresh data');
+      
+      // Fetch all followers using pagination
+      let allFollowers: { fid: number }[] = [];
+      let nextCursor: string | undefined;
+      let totalPages = 0;
+
+      do {
+        addLog(`Fetching followers page ${totalPages + 1}`);
+        const { users: followers, nextCursor: cursor } = await fetchFollowers(fid, nextCursor);
+        addLog(`Fetched ${followers.length} followers on page ${totalPages + 1}`);
+        
+        allFollowers = [...allFollowers, ...followers];
+        nextCursor = cursor;
+        totalPages++;
+
+        // Add a small delay between requests to avoid rate limiting
+        if (nextCursor) {
+          await delay(100);
+        }
+      } while (nextCursor && totalPages < 10); // Limit to 10 pages to avoid excessive requests
+
+      addLog(`Total followers fetched: ${allFollowers.length} across ${totalPages} pages`);
+      totalFollowers = allFollowers.length;
+
+      if (allFollowers.length === 0) {
+        addLog('No followers found');
+        await updateFollowerCache(fid, []); // Cache empty result
+        return NextResponse.json({ 
+          success: true, 
+          totalFollowers: 0, 
+          notificationsSent: 0,
+          logs 
+        });
+      }
+
+      // Get notification tokens for all followers
+      const fids = allFollowers.map(f => f.fid);
+      const tokens = await fetchNotificationTokens(fids);
+      addLog(`Found ${tokens.length} followers with notifications enabled`);
+
+      // Extract FIDs of followers with notifications enabled
+      notyFollowers = tokens.map(t => parseInt(t.userId));
+      
+      // Update cache with new data
+      await updateFollowerCache(fid, notyFollowers);
+    }
+
+    if (notyFollowers.length === 0) {
       addLog('No followers with notifications enabled');
       return NextResponse.json({
         success: true,
-        totalFollowers: allFollowers.length,
+        totalFollowers,
         selectedFollowers: 0,
         notificationsSent: 0,
         failedNotifications: 0,
-        pagesFetched: totalPages,
         logs
       });
     }
 
     // Randomly select up to 30 followers from those with notifications enabled
     const MAX_NOTIFICATIONS = 30;
-    const selectedTokens = tokens
+    const selectedFids = notyFollowers
       .sort(() => Math.random() - 0.5) // Shuffle array
       .slice(0, MAX_NOTIFICATIONS);
 
-    addLog(`Selected ${selectedTokens.length} random followers with notifications enabled`);
-    addLog(`Selected FIDs: ${selectedTokens.map(t => t.userId).join(', ')}`);
+    addLog(`Selected ${selectedFids.length} random followers with notifications enabled`);
+    addLog(`Selected FIDs: ${selectedFids.join(', ')}`);
 
     // Send notifications to selected followers
-    const selectedFids = selectedTokens.map(t => parseInt(t.userId));
     let notificationsSent = 0;
     let failedNotifications = 0;
     
@@ -321,6 +440,12 @@ export async function POST(request: NextRequest) {
       const successfulDeliveries = await sendNotification(selectedFids, username, gameUrl);
       notificationsSent = successfulDeliveries;
       addLog(`Successfully sent ${successfulDeliveries} notifications`);
+
+      // Update user's notification status if at least one notification was sent
+      if (successfulDeliveries > 0) {
+        await updateUserNotificationStatus(fid);
+        addLog('Updated user notification status');
+      }
     } catch (error) {
       addLog(`Failed to send notifications: ${error instanceof Error ? error.message : 'Unknown error'}`);
       failedNotifications = selectedFids.length;
@@ -330,14 +455,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      totalFollowers: allFollowers.length,
-      enabledFollowers: tokens.length,
-      selectedFollowers: selectedTokens.length,
+      totalFollowers,
+      enabledFollowers: notyFollowers.length,
+      selectedFollowers: selectedFids.length,
       notificationsSent,
       failedNotifications,
-      pagesFetched: totalPages,
       logs,
-      selectedFids: selectedFids
+      selectedFids
     });
   } catch (error) {
     addLog(`Error in notification process: ${error instanceof Error ? error.message : 'Unknown error'}`);
