@@ -2952,6 +2952,14 @@ export default function Demo({ initialGameId, initialFid }: { initialGameId?: st
           {isExpired ? (
             <div className="p-4 rounded-lg text-center bg-red-100 text-red-800 mt-4">
               This game has ended
+              {findNextUnsolvedDrawing() && (
+                <button
+                  onClick={handleNextDrawing}
+                  className="mt-4 w-full bg-[#0c703b] text-white py-2 px-4 rounded-md hover:bg-[#0c703b] transition-colors transform rotate-[-1deg] border-4 border-dashed border-white"
+                >
+                  Next Drawing →
+                </button>
+              )}
             </div>
           ) : isDrawer ? (
             <div className="p-4 rounded-lg text-center bg-blue-100 text-blue-800 mt-4">
