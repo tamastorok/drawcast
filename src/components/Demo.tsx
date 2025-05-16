@@ -4458,13 +4458,4 @@ On Warpcast, go to Settings → Preferred Wallets to set it up.
   );
 }
 
-// Add this helper function near getLevelInfo
-const getNextLevelThreshold = (points: number): number => {
-  const thresholds = [10, 50, 100, 300, 500, 800, 1200, 1700, 2300, 3000, 4500, 8000, 12000, 18000, 24000];
-  for (const threshold of thresholds) {
-    if (points < threshold) return threshold;
-  }
-  return thresholds[thresholds.length - 1];
-};
-
 
