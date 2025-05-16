@@ -984,6 +984,14 @@ export default function Demo({ initialGameId, initialFid }: { initialGameId?: st
     return { level: 1, name: "Novice Artist 🖍️" };
   };
 
+  const getNextLevelThreshold = (points: number): number => {
+    const thresholds = [10, 50, 100, 300, 500, 800, 1200, 1700, 2300, 3000, 4500, 8000, 12000, 18000, 24000];
+    for (const threshold of thresholds) {
+      if (points < threshold) return threshold;
+    }
+    return thresholds[thresholds.length - 1];
+  };
+
   // Modify updateUserStreak to handle streak points
   const updateUserStreak = async (userId: string) => {
     try {
@@ -4057,17 +4065,84 @@ export default function Demo({ initialGameId, initialFid }: { initialGameId?: st
         <>
           {/* Header */}
           <div className="fixed top-0 left-0 right-0 z-10 bg-[#f9f7f0] border-b-2 border-dashed border-gray-400">
-            <div className="w-[300px] mx-auto py-3">
-              <div className="flex justify-center items-center gap-2">
-                <Image
-                  src="/icon.png"
-                  alt="Icon"
-                  width={40}
-                  height={40}
-                  priority
-                  className="transform rotate-[-5deg]"
-                />
-                <span className="text-2xl font-bold text-gray-800 font-mono">drawcast</span><sup className="text-xs text-gray-800 transform rotate-[-3deg]">beta</sup>
+            <div className="max-w-[800px] mx-auto py-3 px-4">
+              <div className="grid grid-cols-3 items-center">
+                {/* Left column - Logo */}
+                <div className="col-span-1">
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src="/icon.png"
+                      alt="Icon"
+                      width={40}
+                      height={40}
+                      priority
+                      className="transform rotate-[-5deg]"
+                    />
+                    <div className="relative">
+                      <sup className="absolute -top-5 -right-6 text-xs text-gray-800 transform rotate-[-3deg]">beta</sup>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Middle column - empty */}
+                <div className="col-span-1"></div>
+
+                {/* Right column - Streak and Level */}
+                <div className="col-span-1">
+                  {userStats && (
+                    <div className="flex justify-end items-center gap-4">
+                      <div 
+                        className="text-xl font-bold text-gray-800 flex items-center gap-1 relative group cursor-help"
+                        title={`${userStats.streak || 0} days streak!`}
+                      >
+                        <div className="absolute right-full mr-2 px-2 py-1 bg-gray-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          {userStats.streak || 0} days streak!
+                        </div>
+                        <span>🔥</span>
+                        <span>{userStats.streak || 0}</span>
+                      </div>
+                      <div className="relative w-8 h-8 group cursor-help">
+                        <svg className="w-8 h-8 transform -rotate-90">
+                          {/* Background circle */}
+                          <circle
+                            cx="16"
+                            cy="16"
+                            r="14"
+                            stroke="#E5E7EB"
+                            strokeWidth="3"
+                            fill="none"
+                          />
+                          {/* Progress circle - only show if points > 0 or max level */}
+                          {(userStats.points || 0) > 0 && (
+                            <circle
+                              cx="16"
+                              cy="16"
+                              r="14"
+                              stroke="#0c703b"
+                              strokeWidth="3"
+                              fill="none"
+                              strokeDasharray={
+                                getLevelInfo(userStats.points || 0).level === 16 
+                                  ? "88 88" 
+                                  : `${(userStats.points || 0) / getNextLevelThreshold(userStats.points || 0) * 88} 88`
+                              }
+                            />
+                          )}
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center text-sm font-bold">
+                          {getLevelInfo(userStats.points || 0).level}
+                        </div>
+                        <div className="absolute right-full mr-2 px-2 py-1 bg-gray-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          {getLevelInfo(userStats.points || 0).level === 16 
+                            ? "You reached the maximum level!"
+                            : (userStats.points || 0) === 0
+                              ? "Start earning points to level up!"
+                              : `${getNextLevelThreshold(userStats.points || 0) - (userStats.points || 0)} more points until level ${getLevelInfo(userStats.points || 0).level + 1}`}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -4382,5 +4457,14 @@ On Warpcast, go to Settings → Preferred Wallets to set it up.
     </div>
   );
 }
+
+// Add this helper function near getLevelInfo
+const getNextLevelThreshold = (points: number): number => {
+  const thresholds = [10, 50, 100, 300, 500, 800, 1200, 1700, 2300, 3000, 4500, 8000, 12000, 18000, 24000];
+  for (const threshold of thresholds) {
+    if (points < threshold) return threshold;
+  }
+  return thresholds[thresholds.length - 1];
+};
 
 
