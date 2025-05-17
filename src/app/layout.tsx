@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { getSession } from "~/auth"
 import "~/app/globals.css";
 import { Providers } from "~/app/providers";
@@ -7,12 +7,6 @@ import { Providers } from "~/app/providers";
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_FRAME_NAME || "Drawcast",
   description: process.env.NEXT_PUBLIC_FRAME_DESCRIPTION || "Draw something and challenge your friends",
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   other: {
     'fc:frame': JSON.stringify({
       version: "next",
@@ -30,6 +24,13 @@ export const metadata: Metadata = {
       }
     })
   }
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default async function RootLayout({
