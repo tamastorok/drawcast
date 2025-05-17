@@ -1,10 +1,9 @@
 name: Daily Notifications
 
 on:
-  # Temporarily disabled schedule
-  # schedule:
-  #   # Run at 11 AM UTC every day
-  #   - cron: "0 11 * * *"
+  schedule:
+    # Run at 11 AM UTC every day
+    - cron: "0 11 * * *"
   # Allow manual trigger
   workflow_dispatch:
 
