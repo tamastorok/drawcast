@@ -26,13 +26,13 @@ async function sendNotifications(tokens: NotificationToken[]) {
   
   console.log(`Sending notifications to ${enabledTokens.length} enabled users`);
   
-  // Process 50 notifications at a time with a moderate delay between batches
-  // This should process ~600 users in about 35-40 seconds
-  for (let i = 0; i < enabledTokens.length; i += 50) {
-    const batch = enabledTokens.slice(i, i + 50);
+  // Process 25 notifications at a time with minimal delay between batches
+  // This stays well under the 5 RPS limit while being more efficient
+  for (let i = 0; i < enabledTokens.length; i += 25) {
+    const batch = enabledTokens.slice(i, i + 25);
     const batchStartTime = Date.now();
     
-    console.log(`Processing batch ${Math.floor(i/50) + 1} of ${Math.ceil(enabledTokens.length/50)} (${i + 1}-${Math.min(i + 50, enabledTokens.length)} of ${enabledTokens.length})`);
+    console.log(`Processing batch ${Math.floor(i/25) + 1} of ${Math.ceil(enabledTokens.length/25)} (${i + 1}-${Math.min(i + 25, enabledTokens.length)} of ${enabledTokens.length})`);
     
     // Send notifications in parallel for this batch
     const batchResults = await Promise.all(
@@ -45,9 +45,17 @@ async function sendNotifications(tokens: NotificationToken[]) {
             targetUrl: "https://drawcast.xyz/?utm_source=Notification&utm_medium=Daily"
           });
           
+          // Add a minimal delay between individual notifications
+          await delay(50);
+          
           return { fid: token.fid, success: result.state === "success" };
         } catch (error) {
           console.error(`Failed to send notification to FID ${token.fid}:`, error);
+          // If we hit a rate limit, wait a bit before continuing
+          if (error instanceof Error && error.message.includes('429')) {
+            console.log('Rate limit hit, waiting 2 seconds before continuing...');
+            await delay(2000);
+          }
           return { fid: token.fid, success: false };
         }
       })
@@ -58,10 +66,10 @@ async function sendNotifications(tokens: NotificationToken[]) {
     const batchDuration = Date.now() - batchStartTime;
     console.log(`Batch completed in ${batchDuration}ms`);
     
-    // Add a moderate delay between batches
-    if (i + 50 < enabledTokens.length) {
+    // Add a minimal delay between batches
+    if (i + 25 < enabledTokens.length) {
       console.log('Waiting 200ms before next batch...');
-      await delay(200); // Shorter delay between batches
+      await delay(200); // Minimal delay between batches
     }
   }
   
